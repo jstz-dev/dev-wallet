@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/chrome-manifest.json",
+  "name": "dev-wallet",
+  "version": "0.0.1",
+  "manifest_version": 3,
+  "icons": {
+    "16": "./icons/icon-16.svg",
+    "48": "./icons/icon-48.svg",
+    "128": "./icons/icon-128.svg",
+    "256": "./icons/icon-256.svg"
+  },
+  "action": {
+    "default_popup": "index.html"
+  },
+  "content_scripts": [
+    {
+      "js": ["./scripts/event-listener.js"],
+      "matches": ["http://*/*", "https://*/*"]
+    }
+  ],
+  "background": {
+    "type": "module",
+    "service_worker": "./scripts/background.js"
+  },
+  "permissions": ["scripting"],
+  "host_permissions": ["http://*/*", "https://*/*"]
+}
