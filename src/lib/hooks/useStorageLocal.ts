@@ -14,7 +14,7 @@ export function useStorageLocal<T>(
 
       if (!data[key]) {
         data[key] = initialValue;
-        chrome.storage.local.set({ [key]: initialValue });
+        void chrome.storage.local.set({ [key]: initialValue });
       }
 
       return data[key];
