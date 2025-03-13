@@ -8,6 +8,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.67.3",
     "clsx": "^2.1.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -16,6 +17,7 @@
   "devDependencies": {
     "@eslint/js": "^9.21.0",
     "@tailwindcss/vite": "^4.0.13",
+    "@tanstack/eslint-plugin-query": "^5.67.2",
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@types/chrome": "^0.0.309",
     "@types/react": "^19.0.10",
