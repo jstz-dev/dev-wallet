@@ -1,18 +1,42 @@
-import { useReducer, type ComponentPropsWithRef } from "react";
+import { useEffect, useReducer, type ComponentPropsWithRef } from "react";
 
 import { cn } from "./lib/utils";
 
-function reducer(state: number, action: "increment" | "decrement") {
-  switch (action) {
+type Action =
+  | {
+      type: "increment" | "decrement";
+    }
+  | {
+      type: "set";
+      payload: number;
+    };
+
+function reducer(state: number, action: Action) {
+  switch (action.type) {
     case "increment":
+      chrome.storage.local.set({ counter: state + 1 });
       return state + 1;
+
     case "decrement":
+      chrome.storage.local.set({ counter: state - 1 });
       return state - 1;
+
+    case "set":
+      chrome.storage.local.set({ counter: action.payload });
+      return action.payload;
   }
 }
 
 export default function App() {
   const [counter, dispatch] = useReducer(reducer, 0);
+
+  useEffect(() => {
+    (async () => {
+      const value = await chrome.storage.local.get("counter");
+
+      if (value.counter) dispatch({ type: "set", payload: value.counter });
+    })();
+  }, []);
 
   return (
     <div className="flex min-w-48 flex-col gap-2 p-4">
@@ -20,11 +44,10 @@ export default function App() {
       <p className="text-xl font-bold">Counter: {counter}</p>
 
       <div className="flex gap-4">
-        <Button onClick={() => dispatch("increment")}>Increment</Button>
-        <Button onClick={() => dispatch("decrement")}>Decrement</Button>
-      </div>
+        <Button onClick={() => dispatch({ type: "increment" })}>Increment</Button>
 
-      <Button onClick={onClickHandler}>Hello!</Button>
+        <Button onClick={() => dispatch({ type: "decrement" })}>Decrement</Button>
+      </div>
     </div>
   );
 }
@@ -39,19 +62,4 @@ function Button(props: ComponentPropsWithRef<"button">) {
       )}
     />
   );
-}
-
-async function onClickHandler() {
-  const [tab] = await chrome.tabs.query({ active: true });
-  if (!tab?.id) {
-    console.info("No tab found.");
-    return;
-  }
-
-  chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    func: () => {
-      alert("Hello from my extension!");
-    },
-  });
 }
