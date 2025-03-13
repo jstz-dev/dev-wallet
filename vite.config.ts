@@ -10,14 +10,12 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: "index.html",
-        "event-listener": "src/scripts/event-listener.ts",
-        background: "src/scripts/background.ts",
+        "service-worker": "src/scripts/service-worker.ts",
       },
       output: {
         entryFileNames: (chunkInfo) => {
           switch (chunkInfo.name) {
-            case "event-listener":
-            case "background":
+            case "service-worker":
               return `scripts/${chunkInfo.name}.js`;
             default:
               return `assets/${chunkInfo.name}.js`;
