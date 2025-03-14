@@ -1,5 +1,5 @@
 export enum WalletEvents {
-  SIGN_OPERATION = "SIGN_OPERATION",
+  SIGN = "SIGN",
 }
 
 interface Data {
@@ -7,7 +7,7 @@ interface Data {
   data?: unknown;
 }
 
-const extensionId = "fkfcpeoebjpbnbbcbdaiabcmokdfhipl";
+const extensionId = "ambhbjojnnbbbcjijonbeekcjiepoglj";
 
 export function sendMessage<T>(data: Data): Promise<T> {
   return new Promise((res) => {
