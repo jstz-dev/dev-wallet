@@ -1,24 +1,26 @@
 import { useNavigate, useParams } from "react-router";
-import type { KeyStorage } from "~/lib/constants/storage";
+import { StorageKeys, type Accounts, type KeyStorage } from "~/lib/constants/storage";
 import { useStorageLocal } from "~/lib/hooks/useStorageLocal";
 
 export default function Wallet() {
-  const { address } = useParams() as { address: string };
+  const { accountAddress } = useParams() as { accountAddress: string };
   const navigate = useNavigate();
 
-  const { data } = useStorageLocal<Record<string, KeyStorage>, KeyStorage>("address", {
+  const { data } = useStorageLocal<Accounts, KeyStorage | undefined>("accounts", {
     select: (data) => {
-      const currentAddress = data[address];
-      if (!!currentAddress) navigate("/");
+      const currentAddress = data[accountAddress];
+      if (!currentAddress) navigate("/404");
 
-      return currentAddress!;
+      return currentAddress;
     },
   });
 
   return (
-    <div>
-      <h1>{address}</h1>
-      <p>{JSON.stringify(data)}</p>
+    <div className="flex flex-col px-2">
+      <h1 className="my-2 font-semibold">address: {accountAddress}</h1>
+
+      <p>private key: {data?.[StorageKeys.ACCOUNT_PRIVATE_KEY]}</p>
+      <p>public key: {data?.[StorageKeys.ACCOUNT_PUBLIC_KEY]}</p>
     </div>
   );
 }
