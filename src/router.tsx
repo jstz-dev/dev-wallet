@@ -1,6 +1,6 @@
 import { createBrowserRouter, redirect } from "react-router";
 import RootLayout from "~/layouts/RootLayout";
-import Home from "~/pages/Home";
+import Home, { loader as homeLoader } from "~/pages/Home";
 import Wallet from "~/pages/Wallet";
 
 export const router = createBrowserRouter([
@@ -10,6 +10,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
+        loader: homeLoader,
         element: <Home />,
       },
       {
