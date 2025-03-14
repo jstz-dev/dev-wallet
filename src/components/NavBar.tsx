@@ -37,8 +37,8 @@ export default function NavBar() {
     <div className="flex justify-between bg-slate-300 p-2">
       <h1 className="my-auto text-lg font-bold text-slate-900">Dev Wallet</h1>
 
-      {accountAddress && (
-        <Select value={accountAddress} onValueChange={handleOnSelect}>
+      {currentAddress && (
+        <Select value={currentAddress} onValueChange={handleOnSelect}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
