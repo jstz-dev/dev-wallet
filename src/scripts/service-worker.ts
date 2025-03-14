@@ -1,5 +1,5 @@
-import { type AccountStorageType, StorageKeysEnum } from "../lib/constants/storage.ts";
-import { sign } from "../lib/jstz.ts";
+import { StorageKeys } from "../lib/constants/storage";
+import { sign } from "../lib/jstz";
 
 enum WalletEvents {
   GET_COUNTER = "GET_COUNTER",
@@ -7,7 +7,7 @@ enum WalletEvents {
   SIGN = "SIGN",
 }
 
-type SignEventDataType = {
+type TSignEventData = {
   type: WalletEvents.SIGN;
   data: {
     accountAddress: string;
@@ -15,13 +15,13 @@ type SignEventDataType = {
   };
 };
 
-interface GenericDataType {
+interface TGenericData {
   type: WalletEvents.GET_COUNTER | WalletEvents.SET_COUNTER;
   data?: unknown;
 }
 
 chrome.runtime.onMessageExternal.addListener(
-  async (request: GenericDataType | SignEventDataType, _sender, sendResponse) => {
+  async (request: TGenericData | TSignEventData, _sender, sendResponse) => {
     switch (request.type) {
       case WalletEvents.GET_COUNTER: {
         const data = await chrome.storage.local.get("counter");
@@ -42,25 +42,15 @@ chrome.runtime.onMessageExternal.addListener(
       }
 
       case WalletEvents.SIGN: {
-        const { accountAddress, operation } = request.data ?? {};
-
-        if (!accountAddress) {
-          sendResponse({ error: "Account address is required" });
-          return;
-        }
-
-        const { address: storedAddress } =
-          await chrome.storage.local.get<AccountStorageType>(accountAddress);
-
-        if (!storedAddress) {
-          sendResponse({ error: "Account not found" });
-          return;
-        }
+        const { operation } = request.data ?? {};
 
         const {
-          [StorageKeysEnum.ACCOUNT_PUBLIC_KEY]: publicKey,
-          [StorageKeysEnum.ACCOUNT_PRIVATE_KEY]: privateKey,
-        } = storedAddress;
+          [StorageKeys.ACCOUNT_PUBLIC_KEY]: publicKey,
+          [StorageKeys.ACCOUNT_PRIVATE_KEY]: privateKey,
+        } = await chrome.storage.local.get([
+          StorageKeys.ACCOUNT_PUBLIC_KEY,
+          StorageKeys.ACCOUNT_PRIVATE_KEY,
+        ]);
 
         if (!publicKey || !privateKey) {
           sendResponse({ error: "No proper public/private keypair found" });
