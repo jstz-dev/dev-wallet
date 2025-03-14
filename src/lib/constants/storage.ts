@@ -4,3 +4,5 @@ export enum StorageKeys {
 }
 
 export type KeyStorage = Record<StorageKeys | string, string | null>;
+
+export type Accounts = Record<string, KeyStorage>;
