@@ -18,7 +18,7 @@ export const router = createBrowserRouter([
         element: <Home />,
       },
       {
-        path: "wallets/:address",
+        path: "wallets/:accountAddress",
         element: <Wallet />,
       },
     ],
