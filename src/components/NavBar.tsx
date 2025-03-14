@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
-import { type KeyStorage } from "~/lib/constants/storage";
+import { type Accounts } from "~/lib/constants/storage";
 import { useStorageLocal } from "~/lib/hooks/useStorageLocal";
 import { spawn } from "~/lib/vault";
 
@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 
 export default function NavBar() {
   const { accountAddress } = useParams<{ accountAddress: string }>();
-  const { data: accounts } = useStorageLocal<Record<string, KeyStorage>>("accounts");
+  const { data: accounts } = useStorageLocal<Accounts>("accounts");
 
   const { data: currentAddress } = useStorageLocal<string>("currentAddress");
 

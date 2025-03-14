@@ -2,7 +2,7 @@ import * as TaquitoUtils from "@taquito/utils";
 
 import * as Bip39 from "bip39";
 
-import { StorageKeys, type KeyStorage } from "../constants/storage";
+import { StorageKeys, type Accounts } from "../constants/storage";
 import { getPublicKey, seedToHDPrivateKey } from "./misc";
 
 /**
@@ -30,7 +30,7 @@ export async function spawn(mnemonic?: string) {
   return { address: accountAddress, publicKey, privateKey };
 }
 
-async function getAccounts(): Promise<Record<string, KeyStorage>> {
+async function getAccounts(): Promise<Accounts> {
   let { accounts } = await chrome.storage.local.get("accounts");
   if (!accounts) {
     chrome.storage.local.set({ accounts: {} });

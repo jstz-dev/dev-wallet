@@ -3,6 +3,6 @@ export enum StorageKeys {
   ACCOUNT_PRIVATE_KEY = "account_private_key",
 }
 
-export type KeyStorage = Record<StorageKeys | string, string | null>;
+export type KeyStorage = Record<StorageKeys | string, string | undefined>;
 
 export type Accounts = Record<string, KeyStorage>;
