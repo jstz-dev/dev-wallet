@@ -5,6 +5,10 @@ import Wallet from "~/pages/Wallet";
 
 export const router = createBrowserRouter([
   {
+    path: "/404",
+    element: <h1>Not found</h1>,
+  },
+  {
     path: "/",
     element: <RootLayout />,
     children: [
