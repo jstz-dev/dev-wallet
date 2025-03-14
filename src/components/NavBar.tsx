@@ -13,12 +13,14 @@ export default function NavBar() {
   const { accountAddress } = useParams<{ accountAddress: string }>();
   const { data: accounts } = useStorageLocal<Accounts>("accounts");
 
-  const { data: currentAddress } = useStorageLocal<string>("currentAddress");
+  const { data: currentAddress, refetch } = useStorageLocal<string>("currentAddress");
 
   useEffect(() => {
     if (currentAddress && !accountAddress) return;
 
-    void chrome.storage.local.set({ currentAddress: accountAddress });
+    chrome.storage.local.set({ currentAddress: accountAddress }).then(() => {
+      refetch();
+    });
   }, [currentAddress, accountAddress]);
 
   const navigate = useNavigate();
