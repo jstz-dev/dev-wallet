@@ -7,7 +7,7 @@ interface Data {
   data?: unknown;
 }
 
-const extensionId = "ambhbjojnnbbbcjijonbeekcjiepoglj";
+const extensionId = process.env.NEXT_PUBLIC_EXTENSION_ID;
 
 export function sendMessage<T>(data: Data): Promise<T> {
   return new Promise((res) => {
