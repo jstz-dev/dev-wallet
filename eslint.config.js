@@ -14,7 +14,7 @@ export default tseslint.config(
   {
     extends: [
       js.configs.recommended,
-      ...tseslint.configs.recommended,
+      ...tseslint.configs.strictTypeChecked,
       prettier,
       reactHooks.configs["recommended-latest"],
       reactRefresh.configs["vite"],
@@ -49,6 +49,8 @@ export default tseslint.config(
       "react/prop-types": "off",
 
       "react-compiler/react-compiler": "warn",
+
+      "@typescript-eslint/no-unused-vars": "off",
     },
   },
   {

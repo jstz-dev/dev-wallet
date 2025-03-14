@@ -1,7 +1,6 @@
 import JstzType from "@jstz-dev/jstz-client";
 
 const encoder = new TextEncoder();
-const decoder = new TextDecoder("utf-8");
 
 export function buildRequest(
   contractAddress: string,
