@@ -4,6 +4,7 @@ import { StorageKeys, type KeyStorage } from "~/lib/constants/storage";
 import { useStorageLocal } from "~/lib/hooks/useStorageLocal";
 import { cn } from "~/lib/utils";
 import { spawn } from "~/lib/vault";
+import {ImportWalletForm} from "~/components/ImportWallet.form.tsx";
 
 export default function App() {
   const { data, isLoading, refetch } = useStorageLocal<KeyStorage>([
@@ -14,6 +15,10 @@ export default function App() {
   async function generateKeys() {
     await spawn();
     void refetch();
+  }
+
+  function onImportWalletSubmit(form) {
+    console.log(form);
   }
 
   return (
@@ -30,6 +35,10 @@ export default function App() {
       {!isLoading && !data?.[StorageKeys.ACCOUNT_PRIVATE_KEY] && (
         <Button onClick={generateKeys}>Generate</Button>
       )}
+
+      <div>Import existing wallet</div>
+
+      <ImportWalletForm onSubmit={onImportWalletSubmit} />
 
       {!isLoading && !!data?.[StorageKeys.ACCOUNT_PRIVATE_KEY] && (
         <div className="w-80">
