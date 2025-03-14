@@ -1,10 +1,13 @@
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 
-type UseStorageLocalOptions<T> = Omit<UseQueryOptions<T>, "queryKey" | "queryFn" | "initialData">;
+type UseStorageLocalOptions<T, D> = Omit<
+  UseQueryOptions<T, Error, D>,
+  "queryKey" | "queryFn" | "initialData"
+>;
 
-export function useStorageLocal<T>(
+export function useStorageLocal<T, D>(
   keys: string | string[],
-  options: UseStorageLocalOptions<T> = {},
+  options: UseStorageLocalOptions<T, D> = {},
 ) {
   return useQuery({
     queryKey: ["local", keys],
