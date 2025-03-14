@@ -1,25 +1,22 @@
-import { useQuery, type UseQueryOptions, } from "@tanstack/react-query";
+import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
 
 type UseStorageLocalOptions<T> = Omit<UseQueryOptions<T>, "queryKey" | "queryFn" | "initialData">;
 
 export function useStorageLocal<T>(
-  key: string,
-  initialValue?: T,
+  keys: string | string[],
   options: UseStorageLocalOptions<T> = {},
 ) {
   return useQuery({
-    queryKey: ["local", key],
+    queryKey: ["local", keys],
     queryFn: async () => {
-      const data = await chrome.storage.local.get(key);
+      const data = await chrome.storage.local.get(keys);
 
-      if (!data[key]) {
-        data[key] = initialValue;
-        void chrome.storage.local.set({ [key]: initialValue });
+      if (Array.isArray(keys)) {
+        return data;
       }
 
-      return data[key];
+      return data[keys];
     },
-    initialData: initialValue,
     ...options,
   });
 }
