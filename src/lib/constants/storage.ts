@@ -6,7 +6,7 @@ export enum StorageKeysEnum {
 export type AccountStorageType = Record<
   string,
   {
-    [StorageKeysEnum.ACCOUNT_PUBLIC_KEY]: string | null | undefined;
-    [StorageKeysEnum.ACCOUNT_PRIVATE_KEY]: string | null | undefined;
+    [StorageKeysEnum.ACCOUNT_PUBLIC_KEY]?: string | null;
+    [StorageKeysEnum.ACCOUNT_PRIVATE_KEY]?: string | null;
   }
 >;
