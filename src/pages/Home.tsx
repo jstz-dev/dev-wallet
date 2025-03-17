@@ -1,11 +1,12 @@
 import { redirect, useNavigate, type LoaderFunctionArgs } from "react-router";
 import { Button } from "~/components/ui/button";
+import { StorageKeys } from "~/lib/constants/storage";
 import { spawnAndSave } from "~/lib/vault";
 
 export async function loader(_args: LoaderFunctionArgs<any>) {
-  const { currentAddress } = await chrome.storage.local.get("currentAddress");
+  const { current_address } = await chrome.storage.local.get(StorageKeys.CURRENT_ADDRESS);
 
-  if (currentAddress) return redirect(`/wallets/${currentAddress}`);
+  if (current_address) return redirect(`/wallets/${current_address}`);
   return null;
 }
 
