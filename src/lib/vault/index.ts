@@ -18,6 +18,20 @@ export async function spawn(mnemonic?: string) {
   const publicKey = await getPublicKey(privateKey);
   const accountAddress = TaquitoUtils.getPkhfromPk(publicKey);
 
+  await addAccountToStorage({ accountAddress, publicKey, privateKey });
+
+  return { address: accountAddress, publicKey, privateKey };
+}
+
+export async function addAccountToStorage({
+  accountAddress,
+  publicKey,
+  privateKey,
+}: {
+  accountAddress: string;
+  publicKey: string;
+  privateKey: string;
+}) {
   const accounts = await getAccounts();
 
   accounts[accountAddress] = {
@@ -25,15 +39,13 @@ export async function spawn(mnemonic?: string) {
     [StorageKeys.ACCOUNT_PRIVATE_KEY]: privateKey,
   };
 
-  void chrome.storage.local.set({ accounts });
-
-  return { address: accountAddress, publicKey, privateKey };
+  return chrome.storage.local.set({ accounts });
 }
 
 async function getAccounts(): Promise<Record<string, KeyStorage>> {
   let { accounts } = await chrome.storage.local.get("accounts");
   if (!accounts) {
-    chrome.storage.local.set({ accounts: {} });
+    await chrome.storage.local.set({ accounts: {} });
     accounts = {};
   }
 

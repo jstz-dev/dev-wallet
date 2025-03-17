@@ -1,13 +1,28 @@
 import { useNavigate } from "react-router";
+import { ImportWalletForm } from "~/components/ImportWallet.form.tsx";
 import { Button } from "~/components/ui/button";
-import { spawn } from "~/lib/vault";
+import { addAccountToStorage, spawn } from "~/lib/vault";
 
 export default function App() {
   const navigate = useNavigate();
 
   async function handleGenerate() {
     const newAccount = await spawn();
-    navigate(`/wallets/${newAccount.address}`);
+    goToWallet(newAccount.address);
+  }
+
+  async function onImportWalletSubmit(form: {
+    accountAddress: string;
+    publicKey: string;
+    privateKey: string;
+  }) {
+      console.log(form);
+    await addAccountToStorage(form);
+    goToWallet(form.accountAddress);
+  }
+
+  function goToWallet(address: string) {
+    navigate(`/wallets/${address}`);
   }
 
   return (
@@ -15,6 +30,9 @@ export default function App() {
       <h2 className="text-lg">You don't have any account yet.</h2>
 
       <Button onClick={handleGenerate}>Generate</Button>
+      <span>or</span>
+      <p>Import existing wallet</p>
+      <ImportWalletForm onSubmit={onImportWalletSubmit} />
     </div>
   );
 }

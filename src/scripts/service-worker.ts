@@ -1,6 +1,10 @@
 import { StorageKeys } from "../lib/constants/storage";
 import { sign } from "../lib/jstz";
 
+
+
+
+
 enum WalletEvents {
   GET_COUNTER = "GET_COUNTER",
   SET_COUNTER = "SET_COUNTER",
@@ -18,6 +22,17 @@ type TSignEventData = {
 interface TGenericData {
   type: WalletEvents.GET_COUNTER | WalletEvents.SET_COUNTER;
   data?: unknown;
+}
+
+function openWalletDialog() {
+  void chrome.windows.create({
+    url: "index.html",
+    type: "popup",
+    focused: true,
+    width: 400,
+    height: 400,
+    // incognito, top, left, ...
+  });
 }
 
 chrome.runtime.onMessageExternal.addListener(
@@ -44,23 +59,23 @@ chrome.runtime.onMessageExternal.addListener(
       case WalletEvents.SIGN: {
         const { operation } = request.data ?? {};
 
+        const { accounts } = await chrome.storage.local.get("accounts");
+
+        console.log(accounts, request.data.accountAddress, accounts?.[request.data.accountAddress]);
+
+        if (!accounts || !accounts[request.data.accountAddress]) {
+          openWalletDialog();
+          sendResponse({ error: "No account found" });
+          return;
+        }
+
         const {
           [StorageKeys.ACCOUNT_PUBLIC_KEY]: publicKey,
           [StorageKeys.ACCOUNT_PRIVATE_KEY]: privateKey,
-        } = await chrome.storage.local.get([
-          StorageKeys.ACCOUNT_PUBLIC_KEY,
-          StorageKeys.ACCOUNT_PRIVATE_KEY,
-        ]);
+        } = accounts[request.data.accountAddress];
 
         if (!publicKey || !privateKey) {
-          chrome.windows.create({
-            url: "index.html",
-            type: 'popup',
-            focused: true,
-            width: 400,
-            height: 400,
-            // incognito, top, left, ...
-          });
+          openWalletDialog();
           sendResponse({ error: "No proper public/private keypair found" });
           return;
         }

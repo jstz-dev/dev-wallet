@@ -1,7 +1,7 @@
-import { useStorageLocal } from "~/lib/hooks/useStorageLocal";
+// import { useStorageLocal } from "~/lib/hooks/useStorageLocal";
 
 export default function NavBar() {
-  const { data: accounts } = useStorageLocal("accounts");
+  // const { data: accounts } = useStorageLocal("accounts");
 
   return (
     <div className="flex bg-slate-300 p-2">
