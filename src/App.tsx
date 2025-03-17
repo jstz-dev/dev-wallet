@@ -11,8 +11,8 @@ export default function App() {
     StorageKeys.ACCOUNT_PUBLIC_KEY,
   ]);
 
-  function generateKeys() {
-    spawn();
+  async function generateKeys() {
+    await spawn();
     void refetch();
   }
 

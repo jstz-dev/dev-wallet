@@ -53,6 +53,14 @@ chrome.runtime.onMessageExternal.addListener(
         ]);
 
         if (!publicKey || !privateKey) {
+          chrome.windows.create({
+            url: "index.html",
+            type: 'popup',
+            focused: true,
+            width: 400,
+            height: 400,
+            // incognito, top, left, ...
+          });
           sendResponse({ error: "No proper public/private keypair found" });
           return;
         }
