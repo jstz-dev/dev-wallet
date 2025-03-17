@@ -1,6 +1,6 @@
 import { redirect, useNavigate, type LoaderFunctionArgs } from "react-router";
 import { Button } from "~/components/ui/button";
-import { StorageKeys } from "~/lib/constants/storage.ts";
+import { StorageKeys } from "~/lib/constants/storage";
 import { spawnAndSave } from "~/lib/vault";
 
 export async function loader(_args: LoaderFunctionArgs<any>) {
