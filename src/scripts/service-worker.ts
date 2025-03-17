@@ -3,14 +3,16 @@ import { sign } from "../lib/jstz";
 
 enum WalletEvents {
   SIGN = "SIGN",
+  QUEUE = "QUEUE",
+  PROCESS_QUEUE = "PROCESS_QUEUE",
 }
 
-interface TGenericData {
+interface TRequest {
   type: WalletEvents;
   data?: unknown;
 }
 
-interface TSignEventData extends TGenericData {
+interface TSignRequest extends TRequest {
   type: WalletEvents.SIGN;
   data: {
     accountAddress: string;
@@ -18,9 +20,30 @@ interface TSignEventData extends TGenericData {
   };
 }
 
+interface TGenericRequest extends TRequest {
+  type: WalletEvents;
+}
+
+const queue: Array<{ resolve: (res: any) => void; data: unknown }> = [];
+
 chrome.runtime.onMessageExternal.addListener(
-  async (request: TSignEventData, _sender, sendResponse) => {
+  async (request: TGenericRequest | TSignRequest, _sender, sendResponse) => {
     switch (request.type) {
+      case WalletEvents.QUEUE: {
+        queue.push({ resolve: sendResponse, data: request.data });
+        break;
+      }
+
+      case WalletEvents.PROCESS_QUEUE: {
+        while (queue.length > 0) {
+          const request = queue.shift();
+          if (request) request.resolve(request.data);
+        }
+
+        sendResponse({ message: "done" });
+        break;
+      }
+
       case WalletEvents.SIGN: {
         const { operation } = request.data ?? {};
 
