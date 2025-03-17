@@ -3,8 +3,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
-import { useStorageLocal } from "~/lib/hooks/useStorageLocal";
 import { StorageKeys, type Accounts } from "~/lib/constants/storage";
+import { storageKeys, useStorageLocal } from "~/lib/hooks/useStorageLocal";
 import { spawnAndSave } from "~/lib/vault";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -29,8 +29,8 @@ export default function NavBar() {
   async function handleOnSelect(newValue: "generate" | (string & {})) {
     if (newValue !== "generate") return navigate(`/wallets/${newValue}`);
 
-    queryClient.invalidateQueries({ queryKey: ["local", "accounts"] });
     const newAccount = await spawnAndSave();
+    queryClient.invalidateQueries({ queryKey: storageKeys.local(StorageKeys.ACCOUNTS) });
 
     navigate(`/wallets/${newAccount.address}`);
   }
