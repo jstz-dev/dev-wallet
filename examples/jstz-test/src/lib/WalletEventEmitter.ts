@@ -1,5 +1,7 @@
 export enum WalletEvents {
   SIGN = "SIGN",
+  QUEUE = "QUEUE",
+  PROCESS_QUEUE = "PROCESS_QUEUE",
 }
 
 interface Data {
@@ -17,9 +19,6 @@ export function sendMessage<T>(data: Data): Promise<T> {
   });
 }
 
-export function sendMessageSync<T>(
-  data: Data,
-  callback: (res: T) => void = () => {},
-) {
+export function sendMessageSync<T>(data: Data, callback: (res: T) => void = () => {}) {
   chrome.runtime.sendMessage(extensionId, data, {}, callback);
 }
