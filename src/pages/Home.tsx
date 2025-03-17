@@ -1,6 +1,6 @@
 import { redirect, useNavigate, type LoaderFunctionArgs } from "react-router";
 import { Button } from "~/components/ui/button";
-import { spawn } from "~/lib/vault";
+import { spawnAndSave } from "~/lib/vault";
 
 export async function loader(_args: LoaderFunctionArgs<any>) {
   const { currentAddress } = await chrome.storage.local.get("currentAddress");
@@ -13,7 +13,7 @@ export default function Home() {
   const navigate = useNavigate();
 
   async function handleGenerate() {
-    const newAccount = await spawn();
+    const newAccount = await spawnAndSave();
     navigate(`/wallets/${newAccount.address}`);
   }
 
