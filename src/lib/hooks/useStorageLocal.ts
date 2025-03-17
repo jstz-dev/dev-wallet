@@ -5,7 +5,11 @@ type UseStorageLocalOptions<T, D> = Omit<
   "queryKey" | "queryFn" | "initialData"
 >;
 
-export function useStorageLocal<T, D>(
+export const storageKeys = {
+  local: (keys: string | string[]) => ["local", keys],
+};
+
+export function useStorageLocal<T, D = T>(
   keys: string | string[],
   options: UseStorageLocalOptions<T, D> = {},
 ) {

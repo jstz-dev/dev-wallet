@@ -3,7 +3,7 @@ import NavBar from "~/components/NavBar";
 
 export default function RootLayout() {
   return (
-    <div className="flex min-w-100 flex-col">
+    <div className="flex min-w-100 flex-col pb-4">
       <NavBar />
 
       <Outlet />
