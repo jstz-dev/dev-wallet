@@ -6,14 +6,15 @@ import { useNavigate, useParams } from "react-router";
 import { type Accounts } from "~/lib/constants/storage";
 import { useStorageLocal } from "~/lib/hooks/useStorageLocal";
 import { spawn } from "~/lib/vault";
+import { StorageKeys, type Accounts } from "~/lib/constants/storage";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 export default function NavBar() {
   const { accountAddress } = useParams<{ accountAddress: string }>();
-  const { data: accounts } = useStorageLocal<Accounts>("accounts");
+  const { data: accounts } = useStorageLocal<Accounts>(StorageKeys.ACCOUNTS);
 
-  const { data: currentAddress, refetch } = useStorageLocal<string>("currentAddress");
+  const { data: currentAddress, refetch } = useStorageLocal<string>(StorageKeys.CURRENT_ADDRESS);
 
   useEffect(() => {
     if (currentAddress && !accountAddress) return;

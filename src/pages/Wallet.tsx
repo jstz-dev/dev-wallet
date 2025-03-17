@@ -6,7 +6,7 @@ export default function Wallet() {
   const { accountAddress } = useParams() as { accountAddress: string };
   const navigate = useNavigate();
 
-  const { data } = useStorageLocal<Accounts, KeyStorage | undefined>("accounts", {
+  const { data } = useStorageLocal<Accounts, KeyStorage | undefined>(StorageKeys.ACCOUNTS, {
     select: (data) => {
       const currentAddress = data[accountAddress];
       if (!currentAddress) navigate("/404");
