@@ -5,6 +5,9 @@ export enum StorageKeys {
   CURRENT_ADDRESS = "currentAddress",
 }
 
-export type KeyStorage = Record<StorageKeys | string, string | undefined>;
+export type KeyStorage = Record<
+  StorageKeys.PUBLIC_KEY | StorageKeys.PRIVATE_KEY,
+  string | undefined
+>;
 
 export type Accounts = Record<string, KeyStorage>;
