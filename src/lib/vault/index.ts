@@ -13,14 +13,7 @@ import { getPublicKey, seedToHDPrivateKey } from "./misc";
 export async function spawnAndSave(mnemonic?: string) {
   const { address, publicKey, privateKey } = await spawn(mnemonic);
 
-  const accounts = await getAccounts();
-
-  accounts[address] = {
-    [StorageKeys.ACCOUNT_PUBLIC_KEY]: publicKey,
-    [StorageKeys.ACCOUNT_PRIVATE_KEY]: privateKey,
-  };
-
-  void chrome.storage.local.set({ accounts });
+  await addAccountToStorage({ accountAddress: address, publicKey, privateKey });
 
   return { address, publicKey, privateKey };
 }
@@ -39,6 +32,25 @@ async function spawn(mnemonic?: string) {
   const accountAddress = TaquitoUtils.getPkhfromPk(publicKey);
 
   return { address: accountAddress, publicKey, privateKey };
+}
+
+export async function addAccountToStorage({
+  accountAddress,
+  publicKey,
+  privateKey,
+}: {
+  accountAddress: string;
+  publicKey: string;
+  privateKey: string;
+}) {
+  const accounts = await getAccounts();
+
+  accounts[accountAddress] = {
+    [StorageKeys.ACCOUNT_PUBLIC_KEY]: publicKey,
+    [StorageKeys.ACCOUNT_PRIVATE_KEY]: privateKey,
+  };
+
+  return chrome.storage.local.set({ accounts });
 }
 
 async function getAccounts(): Promise<Accounts> {
