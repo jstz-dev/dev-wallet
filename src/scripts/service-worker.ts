@@ -16,8 +16,19 @@ interface TSignRequest extends TRequest {
   type: WalletEvents.SIGN;
   data: {
     accountAddress: string;
-    operation: unknown;
+    operation: Record<string, unknown>;
   };
+}
+
+function openWalletDialog() {
+  void chrome.windows.create({
+    url: "index.html",
+    type: "popup",
+    focused: true,
+    width: 400,
+    height: 400,
+    // incognito, top, left, ...
+  });
 }
 
 interface TGenericRequest extends TRequest {
@@ -47,24 +58,28 @@ chrome.runtime.onMessageExternal.addListener(
       case WalletEvents.SIGN: {
         const { operation } = request.data ?? {};
 
+        const { accounts, currentAddress } = await chrome.storage.local.get([
+          StorageKeys.ACCOUNTS,
+          StorageKeys.CURRENT_ADDRESS,
+        ]);
+
+        if (!accounts || !currentAddress || !accounts[currentAddress]) {
+          openWalletDialog();
+          sendResponse({ error: "No account found" });
+          return;
+        }
+
         const { [StorageKeys.PUBLIC_KEY]: publicKey, [StorageKeys.PRIVATE_KEY]: privateKey } =
-          await chrome.storage.local.get([StorageKeys.PUBLIC_KEY, StorageKeys.PRIVATE_KEY]);
+          accounts[currentAddress];
 
         if (!publicKey || !privateKey) {
-          chrome.windows.create({
-            url: "index.html",
-            type: "popup",
-            focused: true,
-            width: 400,
-            height: 400,
-            // incognito, top, left, ...
-          });
+          openWalletDialog();
           sendResponse({ error: "No proper public/private keypair found" });
           return;
         }
 
         const signature = sign(operation, privateKey);
-        sendResponse({ signature, publicKey: publicKey });
+        sendResponse({ signature, publicKey: publicKey, accountAddress: currentAddress });
         break;
       }
     }
