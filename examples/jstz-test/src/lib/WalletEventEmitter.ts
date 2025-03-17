@@ -1,7 +1,5 @@
 export enum WalletEvents {
   SIGN = "SIGN",
-  QUEUE = "QUEUE",
-  PROCESS_QUEUE = "PROCESS_QUEUE",
 }
 
 interface Data {
