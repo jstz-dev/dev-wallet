@@ -14,7 +14,6 @@ export default {
   semi: true,
   singleQuote: false,
   bracketSpacing: true,
-  experimentalTernaries: true,
 
   importOrder: ["^@[a-z]+", "<THIRD_PARTY_MODULES>", "^[@/]", "^[./]"],
   importOrderSeparation: true,
