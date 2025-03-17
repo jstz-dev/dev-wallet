@@ -26,8 +26,8 @@ type Form = z.infer<typeof schema>;
 export default function Home() {
   const { register, control } = useForm({
     defaultValues: {
-        smartFunctionAddress: "KT195GUDbnuWpYCZFjJxKniQxiUcbVjkjBqK",
-        accountAddress: "tz1NCmDSFAiAs7y8K6FFaa6U5717LbbinG3E",
+      accountAddress: "tz1UVvGHshMXugu18DxJxSXfnpAT7nEwj7w5",
+      smartFunctionAddress: "KT1Vf83uoTN7i2C8m6WBzZ6xhtdY9fC5vkKf",
     },
     resolver: zodResolver(schema),
   });
@@ -69,8 +69,8 @@ export default function Home() {
 
       // Sign operation using provided secret key
       // DO NOT use this in production until Jstz has a way of signing in a secure manner
-      setNotification("Signing operation..." );
-      const signingResponse = await sendSigningRequest(operation);
+      setNotification("Signing operation...");
+      const signingResponse = await sendSigningRequest(operation, accountAddress);
 
       if ("error" in signingResponse) {
         setNotification("Error signing operation: " + signingResponse.error);
@@ -79,7 +79,7 @@ export default function Home() {
 
       const { signature, publicKey } = signingResponse;
 
-      setNotification("Operation signed! Public key: " + publicKey );
+      setNotification("Operation signed! Public key: " + publicKey);
       const {
         result: {
           inner: { body },
@@ -90,8 +90,9 @@ export default function Home() {
         signature: signature,
       });
 
-      const returnedMessage =
-        body ? JSON.parse(decoder.decode(new Uint8Array(body))) : "No message.";
+      const returnedMessage = body
+        ? JSON.parse(decoder.decode(new Uint8Array(body)))
+        : "No message.";
 
       setNotification("Completed call. Response: " + returnedMessage);
     } catch (err) {
@@ -116,11 +117,6 @@ export default function Home() {
           </Label>
 
           <Input {...register("smartFunctionAddress")} />
-        </div>
-
-        <div>
-          <Label>Jstz account address:</Label>
-          <Input {...register("accountAddress")} />
         </div>
       </div>
 

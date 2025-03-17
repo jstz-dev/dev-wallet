@@ -5,7 +5,7 @@ const encoder = new TextEncoder();
 export function buildRequest(
   contractAddress: string,
   path: string,
-  message?: string,
+  message: string = "",
 ): JstzType.Operation.RunFunction {
   return {
     _type: "RunFunction",

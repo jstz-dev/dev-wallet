@@ -54,7 +54,7 @@ export async function addAccountToStorage({
   return chrome.storage.local.set({ accounts });
 }
 
-async function getAccounts(): Promise<Accounts> {
+export async function getAccounts(): Promise<Accounts> {
   let { accounts } = await chrome.storage.local.get(StorageKeys.ACCOUNTS);
   if (!accounts) {
     chrome.storage.local.set({ accounts: {} });

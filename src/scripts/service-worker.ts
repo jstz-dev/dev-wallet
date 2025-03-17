@@ -1,18 +1,18 @@
-import { StorageKeys } from "../lib/constants/storage";
-import { sign } from "../lib/jstz";
+import type { Accounts } from "~/lib/constants/storage";
+import { sign } from "~/lib/jstz";
+import * as Vault from "~/lib/vault";
 
-enum WalletEvents {
+export enum WalletEvents {
   SIGN = "SIGN",
-  QUEUE = "QUEUE",
   PROCESS_QUEUE = "PROCESS_QUEUE",
 }
 
-interface TRequest {
+interface TEvent {
   type: WalletEvents;
   data?: unknown;
 }
 
-interface TSignRequest extends TRequest {
+interface SignEvent extends TEvent {
   type: WalletEvents.SIGN;
   data: {
     accountAddress: string;
@@ -21,8 +21,9 @@ interface TSignRequest extends TRequest {
 }
 
 function openWalletDialog() {
+  const params = new URLSearchParams([["isPopup", "true"]]);
   void chrome.windows.create({
-    url: "index.html",
+    url: `index.html${params}`,
     type: "popup",
     focused: true,
     width: 400,
@@ -31,57 +32,71 @@ function openWalletDialog() {
   });
 }
 
-interface TGenericRequest extends TRequest {
-  type: WalletEvents;
+interface ProcessQueueEvent extends TEvent {
+  type: WalletEvents.PROCESS_QUEUE;
+  data: Accounts[string];
 }
 
-const queue: Array<{ resolve: (res: any) => void; data: unknown }> = [];
+interface SignRequest {
+  resolve: (res?: any) => void;
+  operation: unknown;
+}
 
-chrome.runtime.onMessageExternal.addListener(
-  async (request: TGenericRequest | TSignRequest, _sender, sendResponse) => {
-    switch (request.type) {
-      case WalletEvents.QUEUE: {
-        queue.push({ resolve: sendResponse, data: request.data });
-        break;
+const signQueue: SignRequest[] = [];
+
+chrome.runtime.onMessageExternal.addListener(async (request: SignEvent, _sender, sendResponse) => {
+  switch (request.type) {
+    case WalletEvents.SIGN: {
+      const { operation, accountAddress } = request.data ?? {};
+
+      const accounts = await Vault.getAccounts();
+
+      if (Object.entries(accounts).length === 0) {
+        openWalletDialog();
+
+        signQueue.push({ resolve: sendResponse, operation });
+        return;
       }
 
-      case WalletEvents.PROCESS_QUEUE: {
-        while (queue.length > 0) {
-          const request = queue.shift();
-          if (request) request.resolve(request.data);
-        }
+      const { publicKey, privateKey } = accounts[accountAddress] ?? {
+        publicKey: "",
+        privateKey: "",
+      };
 
-        sendResponse({ message: "done" });
-        break;
+      if (!publicKey || !privateKey) {
+        sendResponse({ error: "No proper public/private keypair found" });
+        return;
       }
 
-      case WalletEvents.SIGN: {
-        const { operation } = request.data ?? {};
-
-        const { accounts, currentAddress } = await chrome.storage.local.get([
-          StorageKeys.ACCOUNTS,
-          StorageKeys.CURRENT_ADDRESS,
-        ]);
-
-        if (!accounts || !currentAddress || !accounts[currentAddress]) {
-          openWalletDialog();
-          sendResponse({ error: "No account found" });
-          return;
-        }
-
-        const { [StorageKeys.PUBLIC_KEY]: publicKey, [StorageKeys.PRIVATE_KEY]: privateKey } =
-          accounts[currentAddress];
-
-        if (!publicKey || !privateKey) {
-          openWalletDialog();
-          sendResponse({ error: "No proper public/private keypair found" });
-          return;
-        }
-
-        const signature = sign(operation, privateKey);
-        sendResponse({ signature, publicKey: publicKey, accountAddress: currentAddress });
-        break;
-      }
+      const signature = sign(operation, privateKey);
+      sendResponse({ signature, publicKey: publicKey, accountAddress });
+      break;
     }
-  },
-);
+  }
+});
+
+chrome.runtime.onMessage.addListener(async (request: ProcessQueueEvent, _sender, sendResponse) => {
+  switch (request.type) {
+    case WalletEvents.PROCESS_QUEUE: {
+      while (signQueue.length > 0) {
+        const queueRequest = signQueue.shift();
+        if (!queueRequest) break;
+
+        const account = request.data;
+        console.log(account);
+        const signature = sign(
+          queueRequest.operation as Record<string, unknown>,
+          account.privateKey!,
+        );
+
+        queueRequest.resolve({
+          signature,
+          publicKey: account.publicKey,
+        });
+      }
+
+      sendResponse({ message: "done" });
+      break;
+    }
+  }
+});
