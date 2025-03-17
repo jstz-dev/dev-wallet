@@ -1,10 +1,6 @@
 import { StorageKeys } from "../lib/constants/storage";
 import { sign } from "../lib/jstz";
 
-
-
-
-
 enum WalletEvents {
   SIGN = "SIGN",
 }
@@ -18,7 +14,7 @@ interface TSignEventData extends TGenericData {
   type: WalletEvents.SIGN;
   data: {
     accountAddress: string;
-    operation: unknown;
+    operation: Record<string, unknown>;
   };
 }
 
@@ -39,17 +35,28 @@ chrome.runtime.onMessageExternal.addListener(
       case WalletEvents.SIGN: {
         const { operation } = request.data ?? {};
 
+        const { accounts, currentAddress } = await chrome.storage.local.get([
+          StorageKeys.ACCOUNTS,
+          StorageKeys.CURRENT_ADDRESS,
+        ]);
+
+        if (!accounts || !currentAddress || !accounts[currentAddress]) {
+          openWalletDialog();
+          sendResponse({ error: "No account found" });
+          return;
+        }
+
         const { [StorageKeys.PUBLIC_KEY]: publicKey, [StorageKeys.PRIVATE_KEY]: privateKey } =
-          await chrome.storage.local.get([StorageKeys.PUBLIC_KEY, StorageKeys.PRIVATE_KEY]);
+          accounts[currentAddress];
 
         if (!publicKey || !privateKey) {
-            openWalletDialog();
+          openWalletDialog();
           sendResponse({ error: "No proper public/private keypair found" });
           return;
         }
 
         const signature = sign(operation, privateKey);
-        sendResponse({ signature, publicKey: publicKey });
+        sendResponse({ signature, publicKey: publicKey, accountAddress: currentAddress });
         break;
       }
     }

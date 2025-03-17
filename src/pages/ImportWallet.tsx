@@ -20,7 +20,8 @@ export default function ImportWallet() {
     }
 
   return (
-    <div className="flex flex-col px-2">
+    <div className="flex flex-col px-2 gap-2">
+        <h3 className={'text-lg font-bold'}>Provide details of wallet to import</h3>
         <ImportWalletForm onSubmit={onImportWalletSubmit} />
     </div>
   );

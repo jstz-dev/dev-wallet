@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Button } from "~/components/ui/button.tsx";
+import { Button } from "~/components/ui/button";
+import {Label} from "~/components/ui/label";
+import {Input} from "~/components/ui/input";
 
 type ImportWalletFormProps = {
   onSubmit: (form: { accountAddress: string; publicKey: string; privateKey: string }) => void;
@@ -16,33 +18,35 @@ export function ImportWalletForm({ onSubmit }: ImportWalletFormProps) {
 
   return (
     <div>
-      <form className="fields" >
-        <div>
-          <label>Jstz account address:</label>
-          <input
+      <form className="fields space-y-4 max-w-96" >
+        <div className={"space-y-2"}>
+          <Label>Jstz account address:</Label>
+          <Input
             type="text"
             value={accountAddress}
             required
             onChange={(e) => setAccountAddress(e.target.value)}
-          ></input>
+          ></Input>
         </div>
-        <div>
-          <label>Public key:</label>
-          <input
+        <div className={"space-y-2"}>
+
+        <Label>Public key:</Label>
+          <Input
             type="text"
             value={publicKey}
             required
             onChange={(e) => setPublicKey(e.target.value)}
-          ></input>
+          ></Input>
         </div>
-        <div>
-          <label>Secret key:</label>
-          <input
+        <div className={"space-y-2"}>
+
+          <Label>Secret key:</Label>
+          <Input
             type="text"
             value={privateKey}
             required
             onChange={(e) => setPrivateKey(e.target.value)}
-          ></input>
+          ></Input>
         </div>
 
         <Button disabled={!accountAddress || !publicKey || !privateKey} type="button" onClick={() => onSubmit({ accountAddress, publicKey, privateKey })}>
