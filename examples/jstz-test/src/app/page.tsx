@@ -25,16 +25,20 @@ type Form = z.infer<typeof schema>;
 
 export default function Home() {
   const { register, control } = useForm({
+    defaultValues: {
+        smartFunctionAddress: "KT195GUDbnuWpYCZFjJxKniQxiUcbVjkjBqK",
+        accountAddress: "tz1NCmDSFAiAs7y8K6FFaa6U5717LbbinG3E",
+    },
     resolver: zodResolver(schema),
   });
 
   const form = useWatch({ control });
   const [notification, setNotification] = useState("");
 
-  async function sendSigningRequest(operation: unknown, accountAddress: string) {
-    return sendMessage<{ signature: string; publicKey: string } | { error: string }>({
+  async function sendSigningRequest(operation: unknown) {
+    return sendMessage<{ signature: string; publicKey: string, accountAddress: string } | { error: string }>({
       type: WalletEvents.SIGN,
-      data: { operation, accountAddress },
+      data: { operation },
     });
   }
 
@@ -66,7 +70,7 @@ export default function Home() {
       // Sign operation using provided secret key
       // DO NOT use this in production until Jstz has a way of signing in a secure manner
       setNotification("Signing operation..." );
-      const signingResponse = await sendSigningRequest(operation, accountAddress);
+      const signingResponse = await sendSigningRequest(operation);
 
       if ("error" in signingResponse) {
         setNotification("Error signing operation: " + signingResponse.error);
