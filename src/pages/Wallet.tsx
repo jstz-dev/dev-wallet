@@ -19,8 +19,8 @@ export default function Wallet() {
     <div className="flex flex-col px-2">
       <h1 className="my-2 font-semibold">address: {accountAddress}</h1>
 
-      <p>private key: {data?.[StorageKeys.ACCOUNT_PRIVATE_KEY]}</p>
-      <p>public key: {data?.[StorageKeys.ACCOUNT_PUBLIC_KEY]}</p>
+      <p>private key: {data?.[StorageKeys.PRIVATE_KEY]}</p>
+      <p>public key: {data?.[StorageKeys.PUBLIC_KEY]}</p>
     </div>
   );
 }

@@ -4,9 +4,9 @@ import { StorageKeys } from "~/lib/constants/storage";
 import { spawnAndSave } from "~/lib/vault";
 
 export async function loader(_args: LoaderFunctionArgs<any>) {
-  const { current_address } = await chrome.storage.local.get(StorageKeys.CURRENT_ADDRESS);
+  const { currentAddress } = await chrome.storage.local.get(StorageKeys.CURRENT_ADDRESS);
 
-  if (current_address) return redirect(`/wallets/${current_address}`);
+  if (currentAddress) return redirect(`/wallets/${currentAddress}`);
   return null;
 }
 
