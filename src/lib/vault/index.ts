@@ -16,8 +16,8 @@ export async function spawnAndSave(mnemonic?: string) {
   const accounts = await getAccounts();
 
   accounts[address] = {
-    [StorageKeys.ACCOUNT_PUBLIC_KEY]: publicKey,
-    [StorageKeys.ACCOUNT_PRIVATE_KEY]: privateKey,
+    [StorageKeys.PUBLIC_KEY]: publicKey,
+    [StorageKeys.PRIVATE_KEY]: privateKey,
   };
 
   void chrome.storage.local.set({ accounts });
