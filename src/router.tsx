@@ -2,7 +2,7 @@ import {createBrowserRouter, Navigate, redirect} from "react-router";
 import RootLayout from "~/layouts/RootLayout";
 import Home, { loader as homeLoader } from "~/pages/Home";
 import Wallet from "~/pages/Wallet";
-import ImportWallet from "~/pages/ImportWallet.tsx";
+import ImportWallet from "~/pages/ImportWallet";
 
 export const router = createBrowserRouter([
   {
