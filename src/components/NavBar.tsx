@@ -18,7 +18,7 @@ export default function NavBar() {
   useEffect(() => {
     if (currentAddress && !accountAddress) return;
 
-    chrome.storage.local.set({ currentAddress: accountAddress }).then(() => {
+    chrome.storage.local.set({ [StorageKeys.CURRENT_ADDRESS]: accountAddress }).then(() => {
       refetch();
     });
   }, [currentAddress, accountAddress]);
