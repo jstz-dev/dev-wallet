@@ -13,14 +13,6 @@ import { getPublicKey, seedToHDPrivateKey } from "./misc";
 export async function spawnAndSave(mnemonic?: string) {
   const { address, publicKey, privateKey } = await spawn(mnemonic);
 
-  const accounts = await getAccounts();
-
-  accounts[address] = {
-    [StorageKeys.PUBLIC_KEY]: publicKey,
-    [StorageKeys.PRIVATE_KEY]: privateKey,
-  };
-
-  void chrome.storage.local.set({ accounts });
   await addAccountToStorage({ accountAddress: address, publicKey, privateKey });
 
   return { address, publicKey, privateKey };

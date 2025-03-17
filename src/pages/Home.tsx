@@ -1,8 +1,7 @@
 import { redirect, useNavigate, type LoaderFunctionArgs } from "react-router";
-import { ImportWalletForm } from "~/components/ImportWallet.form.tsx";
 import { Button } from "~/components/ui/button";
 import { StorageKeys } from "~/lib/constants/storage.ts";
-import { spawnAndSave, addAccountToStorage } from "~/lib/vault";
+import { spawnAndSave } from "~/lib/vault";
 
 export async function loader(_args: LoaderFunctionArgs<any>) {
   const { currentAddress } = await chrome.storage.local.get(StorageKeys.CURRENT_ADDRESS);
@@ -19,16 +18,6 @@ function Home() {
     goToWallet(newAccount.address);
   }
 
-  async function onImportWalletSubmit(form: {
-    accountAddress: string;
-    publicKey: string;
-    privateKey: string;
-  }) {
-    console.log(form);
-    await addAccountToStorage(form);
-    goToWallet(form.accountAddress);
-  }
-
   function goToWallet(address: string) {
     navigate(`/wallets/${address}`);
   }
@@ -36,10 +25,9 @@ function Home() {
     <div className="flex flex-col gap-2 p-4">
       <h2 className="text-lg">You don't have any account yet.</h2>
 
-      <Button onClick={handleGenerate}>Generate</Button>
+      <Button onClick={handleGenerate}>Generate new wallet</Button>
       <span>or</span>
-      <p>Import existing wallet</p>
-      <ImportWalletForm onSubmit={onImportWalletSubmit} />
+      <Button onClick={() => navigate("import-wallet")}>Import existing wallet</Button>
     </div>
   );
 }
