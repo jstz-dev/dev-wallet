@@ -22,9 +22,6 @@ export default function Home({ onGenerate }: HomeProps) {
     navigate(`/wallets/${newAccount.address}`);
   }
 
-  function goToWallet(address: string) {
-    navigate(`/wallets/${address}`);
-  }
   return (
     <div className="flex flex-col gap-2 p-4">
       <h2 className="text-lg">You don't have any account yet.</h2>
