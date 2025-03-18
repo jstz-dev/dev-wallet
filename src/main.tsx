@@ -5,7 +5,7 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router";
 
 import "./index.css";
-import { popupRouter } from "./popup-router";
+import { popupRouter } from "./dialog-router";
 import { router } from "./router";
 
 const params = new URLSearchParams(window.location.search);
