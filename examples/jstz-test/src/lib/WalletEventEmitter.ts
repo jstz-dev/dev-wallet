@@ -9,8 +9,6 @@ interface Data {
 
 const extensionId = process.env.NEXT_PUBLIC_EXTENSION_ID;
 
-console.log("extensionId", extensionId);
-
 export function sendMessage<T>(data: Data): Promise<T> {
   return new Promise((res) => {
     chrome.runtime.sendMessage(extensionId, data, {}, (response) => {
@@ -19,9 +17,6 @@ export function sendMessage<T>(data: Data): Promise<T> {
   });
 }
 
-export function sendMessageSync<T>(
-  data: Data,
-  callback: (res: T) => void = () => {},
-) {
+export function sendMessageSync<T>(data: Data, callback: (res: T) => void = () => {}) {
   chrome.runtime.sendMessage(extensionId, data, {}, callback);
 }

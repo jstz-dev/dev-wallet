@@ -2,13 +2,14 @@ import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import {Label} from "~/components/ui/label";
 import {Input} from "~/components/ui/input";
+import type {WalletType} from "~/lib/vault";
 
 type ImportWalletFormProps = {
-  onSubmit: (form: { accountAddress: string; publicKey: string; privateKey: string }) => void;
+  onSubmit: (form: WalletType) => void;
 };
 
 export function ImportWalletForm({ onSubmit }: ImportWalletFormProps) {
-  const [accountAddress, setAccountAddress] = useState("tz1NCmDSFAiAs7y8K6FFaa6U5717LbbinG3E");
+  const [address, setAddress] = useState("tz1NCmDSFAiAs7y8K6FFaa6U5717LbbinG3E");
   const [publicKey, setPublicKey] = useState(
     "edpkuKwgNv6LycVpNiMsqbDgvFkeLoaXD5tMkEwyoeUsY8MvD4yQrN",
   );
@@ -23,9 +24,9 @@ export function ImportWalletForm({ onSubmit }: ImportWalletFormProps) {
           <Label>Jstz account address:</Label>
           <Input
             type="text"
-            value={accountAddress}
+            value={address}
             required
-            onChange={(e) => setAccountAddress(e.target.value)}
+            onChange={(e) => setAddress(e.target.value)}
           ></Input>
         </div>
         <div className={"space-y-2"}>
@@ -49,7 +50,7 @@ export function ImportWalletForm({ onSubmit }: ImportWalletFormProps) {
           ></Input>
         </div>
 
-        <Button disabled={!accountAddress || !publicKey || !privateKey} type="button" onClick={() => onSubmit({ accountAddress, publicKey, privateKey })}>
+        <Button disabled={!address || !publicKey || !privateKey} type="button" onClick={() => onSubmit({ address, publicKey, privateKey })}>
           Add
         </Button>
       </form>

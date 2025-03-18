@@ -1,18 +1,22 @@
 import { useNavigate } from "react-router";
-import {addAccountToStorage} from "~/lib/vault";
+import {addAccountToStorage, type WalletType} from "~/lib/vault";
 import {ImportWalletForm} from "~/components/ImportWallet.form.tsx";
 
-export default function ImportWallet() {
+interface ImportWalletProps {
+    onGenerate?: (payload: WalletType) => void | Promise<void>;
+}
+
+export default function ImportWallet({onGenerate}: ImportWalletProps) {
   const navigate = useNavigate();
 
     async function onImportWalletSubmit(form: {
-        accountAddress: string;
+        address: string;
         publicKey: string;
         privateKey: string;
     }) {
-        console.log(form);
         await addAccountToStorage(form);
-        goToWallet(form.accountAddress);
+        goToWallet(form.address);
+        onGenerate?.(form);
     }
 
     function goToWallet(address: string) {
