@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { StorageKeys, type Accounts } from "~/lib/constants/storage";
 import { storageKeys, useStorageLocal } from "~/lib/hooks/useStorageLocal";
-import { spawnAndSave } from "~/lib/vault";
+import * as Vault from "~/lib/vault";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
@@ -33,7 +33,7 @@ export default function NavBar() {
     }
     if (newValue !== "generate") return navigate(`/wallets/${newValue}`);
 
-    const newAccount = await spawnAndSave();
+    const newAccount = await Vault.spawnAndSave();
     await queryClient.invalidateQueries({ queryKey: storageKeys.local(StorageKeys.ACCOUNTS) });
 
     navigate(`/wallets/${newAccount.address}`);

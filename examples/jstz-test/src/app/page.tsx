@@ -4,10 +4,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Jstz } from "@jstz-dev/jstz-client";
 import { Label } from "@radix-ui/react-label";
 
+import { TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import z from "zod";
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { sendMessage, WalletEvents } from "~/lib/WalletEventEmitter";
 import { buildRequest } from "~/lib/buildRequest";
@@ -26,8 +29,8 @@ type Form = z.infer<typeof schema>;
 export default function Home() {
   const { register, control } = useForm({
     defaultValues: {
-        smartFunctionAddress: "KT195GUDbnuWpYCZFjJxKniQxiUcbVjkjBqK",
-        accountAddress: "tz1NCmDSFAiAs7y8K6FFaa6U5717LbbinG3E",
+      smartFunctionAddress: "KT1Vf83uoTN7i2C8m6WBzZ6xhtdY9fC5vkKf",
+      accountAddress: "tz1UVvGHshMXugu18DxJxSXfnpAT7nEwj7w5",
     },
     resolver: zodResolver(schema),
   });
@@ -36,7 +39,9 @@ export default function Home() {
   const [notification, setNotification] = useState("");
 
   async function sendSigningRequest(operation: unknown) {
-    return sendMessage<{ signature: string; publicKey: string, accountAddress: string } | { error: string }>({
+    return sendMessage<
+      { signature: string; publicKey: string; accountAddress: string } | { error: string }
+    >({
       type: WalletEvents.SIGN,
       data: { operation },
     });
@@ -51,25 +56,25 @@ export default function Home() {
       timeout: 6000,
     });
 
-    const nonce = await jstzClient.accounts.getNonce(accountAddress).catch(console.error);
+    //const nonce = await jstzClient.accounts.getNonce(accountAddress).catch(console.error);
 
-    if (!nonce) {
-      setNotification(
-        "This account has not been revealed; make an XTZ transaction with the account before calling a smart function.",
-      );
-      return;
-    }
+    //if (!nonce) {
+    //  setNotification(
+    //    "This account has not been revealed; make an XTZ transaction with the account before calling a smart function.",
+    //  );
+    //  return;
+    //}
 
     try {
       const operation = {
         content: buildRequest(smartFunctionAddress, pathToCall),
-        nonce,
+        //nonce,
         source: accountAddress,
       };
 
-      // Sign operation using provided secret key
+      // NOTE: Sign operation using provided secret key
       // DO NOT use this in production until Jstz has a way of signing in a secure manner
-      setNotification("Signing operation..." );
+      setNotification("Signing operation...");
       const signingResponse = await sendSigningRequest(operation);
 
       if ("error" in signingResponse) {
@@ -79,7 +84,7 @@ export default function Home() {
 
       const { signature, publicKey } = signingResponse;
 
-      setNotification("Operation signed! Public key: " + publicKey );
+      setNotification("Operation signed! Public key: " + publicKey);
       const {
         result: {
           inner: { body },
@@ -90,8 +95,9 @@ export default function Home() {
         signature: signature,
       });
 
-      const returnedMessage =
-        body ? JSON.parse(decoder.decode(new Uint8Array(body))) : "No message.";
+      const returnedMessage = body
+        ? JSON.parse(decoder.decode(new Uint8Array(body)))
+        : "No message.";
 
       setNotification("Completed call. Response: " + returnedMessage);
     } catch (err) {
@@ -100,63 +106,78 @@ export default function Home() {
   }
 
   return (
-    <div className={"mx-auto max-w-96 space-y-4"}>
-      <h1>Call the counter smart function</h1>
+    <div className="flex min-h-screen items-center justify-center">
+      <Card className="mx-auto w-100">
+        <CardHeader>
+          <CardTitle>Call the counter smart function</CardTitle>
+        </CardHeader>
 
-      <div className={"space-y-6"}>
-        <div>
-          <Label>
-            <a
-              href="https://github.com/jstz-dev/jstz/blob/main/examples/counter/README.md"
-              target="_blank"
+        <CardContent>
+          <div className="space-y-6">
+            <div>
+              <Label>
+                <a
+                  href="https://github.com/jstz-dev/jstz/blob/main/examples/counter/README.md"
+                  target="_blank"
+                >
+                  Counter
+                </a>{" "}
+                smart function address:
+              </Label>
+
+              <Input {...register("smartFunctionAddress")} />
+            </div>
+
+            <div>
+              <Label>Jstz account address:</Label>
+
+              <Input {...register("accountAddress")} />
+            </div>
+          </div>
+
+          <div className="mt-4 flex justify-between">
+            <Button
+              onClick={() => {
+                callSmartFunction("/get");
+              }}
             >
-              Counter
-            </a>{" "}
-            smart function address:
-          </Label>
+              Get
+            </Button>
 
-          <Input {...register("smartFunctionAddress")} />
-        </div>
+            <Button
+              onClick={() => {
+                callSmartFunction("/increment");
+              }}
+            >
+              Increment
+            </Button>
 
-        <div>
-          <Label>Jstz account address:</Label>
-          <Input {...register("accountAddress")} />
-        </div>
-      </div>
+            <Button
+              onClick={() => {
+                callSmartFunction("/decrement");
+              }}
+            >
+              Decrement
+            </Button>
+          </div>
 
-      <div className={"space-x-2"}>
-        <Button
-          onClick={() => {
-            callSmartFunction("/get");
-          }}
-        >
-          Get
-        </Button>
+          <p>{notification}</p>
+        </CardContent>
 
-        <Button
-          onClick={() => {
-            callSmartFunction("/increment");
-          }}
-        >
-          Increment
-        </Button>
+        <CardFooter>
+          <Alert variant="warning">
+            <TriangleAlert className="size-4" />
 
-        <Button
-          onClick={() => {
-            callSmartFunction("/decrement");
-          }}
-        >
-          Decrement
-        </Button>
-      </div>
+            <AlertTitle>WARNING</AlertTitle>
 
-      <p>{notification}</p>
-
-      <div>
-        WARNING: This application does not encrypt private keys and therefore should not be used in
-        production. This application is a demonstration of how Jstz works and not a secure
-        application.
-      </div>
+            <AlertDescription>
+              This application does not encrypt private keys and therefore should not be used in
+              production. This application is a demonstration of how Jstz works and not a secure
+              application.
+            </AlertDescription>
+          </Alert>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
