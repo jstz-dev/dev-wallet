@@ -1,6 +1,5 @@
-import type { Accounts } from "~/lib/constants/storage";
+import {type Accounts, StorageKeys} from "~/lib/constants/storage";
 import { sign } from "~/lib/jstz";
-import * as Vault from "~/lib/vault";
 
 export enum WalletEvents {
   SIGN = "SIGN",
@@ -23,7 +22,7 @@ interface SignEvent extends TEvent {
 function openWalletDialog() {
   const params = new URLSearchParams([["isPopup", "true"]]);
   void chrome.windows.create({
-    url: `index.html${params}`,
+    url: `index.html${params ? `?${params}` : ""}`,
     type: "popup",
     focused: true,
     width: 400,
@@ -49,7 +48,10 @@ chrome.runtime.onMessageExternal.addListener(async (request: SignEvent, _sender,
     case WalletEvents.SIGN: {
       const { operation, accountAddress } = request.data ?? {};
 
-      const accounts = await Vault.getAccounts();
+      const { accounts = {}, currentAddress } = await chrome.storage.local.get([
+        StorageKeys.ACCOUNTS,
+        StorageKeys.CURRENT_ADDRESS,
+      ]);
 
       if (Object.entries(accounts).length === 0) {
         openWalletDialog();
@@ -58,10 +60,18 @@ chrome.runtime.onMessageExternal.addListener(async (request: SignEvent, _sender,
         return;
       }
 
-      const { publicKey, privateKey } = accounts[accountAddress] ?? {
-        publicKey: "",
-        privateKey: "",
-      };
+      if (!accounts || !currentAddress || !accounts[currentAddress]) {
+        openWalletDialog();
+        sendResponse({ error: "No account found" });
+        return;
+      }
+
+      const { [StorageKeys.PUBLIC_KEY]: publicKey, [StorageKeys.PRIVATE_KEY]: privateKey } =
+          accounts[currentAddress] ?? {
+            publicKey: "",
+            privateKey: "",
+          };
+
 
       if (!publicKey || !privateKey) {
         sendResponse({ error: "No proper public/private keypair found" });
@@ -83,7 +93,7 @@ chrome.runtime.onMessage.addListener(async (request: ProcessQueueEvent, _sender,
         if (!queueRequest) break;
 
         const account = request.data;
-        console.log(account);
+
         const signature = sign(
           queueRequest.operation as Record<string, unknown>,
           account.privateKey!,

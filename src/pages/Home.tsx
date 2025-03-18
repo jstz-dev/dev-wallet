@@ -2,6 +2,7 @@ import { redirect, useNavigate, type LoaderFunctionArgs } from "react-router";
 import { Button } from "~/components/ui/button";
 import { StorageKeys } from "~/lib/constants/storage";
 import * as Vault from "~/lib/vault";
+import type {WalletType} from "~/lib/vault";
 
 export async function loader(_args: LoaderFunctionArgs<any>) {
   const { currentAddress } = await chrome.storage.local.get(StorageKeys.CURRENT_ADDRESS);
@@ -11,7 +12,7 @@ export async function loader(_args: LoaderFunctionArgs<any>) {
 }
 
 interface HomeProps {
-  onGenerate?: () => void | Promise<void>;
+  onGenerate?: (payload: WalletType) => void | Promise<void>;
 }
 
 export default function Home({ onGenerate }: HomeProps) {
@@ -20,13 +21,14 @@ export default function Home({ onGenerate }: HomeProps) {
   async function handleGenerate() {
     const newAccount = await Vault.spawnAndSave();
     navigate(`/wallets/${newAccount.address}`);
+    onGenerate?.(newAccount);
   }
 
   return (
     <div className="flex flex-col gap-2 p-4">
       <h2 className="text-lg">You don't have any account yet.</h2>
 
-      <Button onClick={onGenerate ?? handleGenerate}>Generate new wallet</Button>
+      <Button onClick={handleGenerate}>Generate new wallet</Button>
       <span>or</span>
       <Button onClick={() => navigate("import-wallet")}>Import existing wallet</Button>
     </div>
