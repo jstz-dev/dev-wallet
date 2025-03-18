@@ -16,11 +16,20 @@ export default function Wallet() {
   });
 
   return (
-    <div className="flex flex-col px-2">
-      <h1 className="my-2 font-semibold">address: {accountAddress}</h1>
+    <div className="flex flex-col gap-4 p-2">
+      <h1>
+        <span className="font-bold">Address:</span> {accountAddress}
+      </h1>
 
-      <p>private key: {data?.[StorageKeys.PRIVATE_KEY]}</p>
-      <p>public key: {data?.[StorageKeys.PUBLIC_KEY]}</p>
+      <div>
+        <p>
+          <span className="font-bold">Private Key:</span> {data?.[StorageKeys.PRIVATE_KEY]}
+        </p>
+
+        <p>
+          <span className="font-bold">Public Key:</span> {data?.[StorageKeys.PUBLIC_KEY]}
+        </p>
+      </div>
     </div>
   );
 }

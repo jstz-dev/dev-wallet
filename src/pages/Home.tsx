@@ -28,9 +28,13 @@ export default function Home({ onGenerate }: HomeProps) {
     <div className="flex flex-col gap-2 p-4">
       <h2 className="text-lg">You don't have any account yet.</h2>
 
-      <Button onClick={handleGenerate}>Generate new wallet</Button>
-      <span>or</span>
-      <Button onClick={() => navigate("import-wallet")}>Import existing wallet</Button>
+      <div className="flex items-center justify-between">
+        <Button onClick={onGenerate ?? handleGenerate}>Generate new wallet</Button>
+
+        <span className="text-xl font-semibold">- or -</span>
+
+        <Button onClick={() => navigate("import-wallet")}>Import existing wallet</Button>
+      </div>
     </div>
   );
 }
