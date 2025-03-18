@@ -36,7 +36,9 @@ export default function Home() {
   const [notification, setNotification] = useState("");
 
   async function sendSigningRequest(operation: unknown) {
-    return sendMessage<{ signature: string; publicKey: string, accountAddress: string } | { error: string }>({
+    return sendMessage<
+      { signature: string; publicKey: string; accountAddress: string } | { error: string }
+    >({
       type: WalletEvents.SIGN,
       data: { operation },
     });
@@ -67,10 +69,10 @@ export default function Home() {
         source: accountAddress,
       };
 
-      // Sign operation using provided secret key
+      // NOTE: Sign operation using provided secret key
       // DO NOT use this in production until Jstz has a way of signing in a secure manner
       setNotification("Signing operation...");
-      const signingResponse = await sendSigningRequest(operation, accountAddress);
+      const signingResponse = await sendSigningRequest(operation);
 
       if ("error" in signingResponse) {
         setNotification("Error signing operation: " + signingResponse.error);
@@ -101,10 +103,10 @@ export default function Home() {
   }
 
   return (
-    <div className={"mx-auto max-w-96 space-y-4"}>
+    <div className="mx-auto max-w-96 space-y-4">
       <h1>Call the counter smart function</h1>
 
-      <div className={"space-y-6"}>
+      <div className="space-y-6">
         <div>
           <Label>
             <a
@@ -118,9 +120,15 @@ export default function Home() {
 
           <Input {...register("smartFunctionAddress")} />
         </div>
+
+        <div>
+          <Label>Jstz account address:</Label>
+
+          <Input {...register("accountAddress")} />
+        </div>
       </div>
 
-      <div className={"space-x-2"}>
+      <div className="space-x-2">
         <Button
           onClick={() => {
             callSmartFunction("/get");
