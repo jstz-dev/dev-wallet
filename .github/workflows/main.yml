@@ -19,18 +19,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'  # Update to your Node.js version
-          cache: 'pnpm'
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
-          run_install:
-            args:
-              - '--frozen-lockfile'
-        
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          run_install: |
+            - args: [--frozen-lockfile]
 
       - name: Run ESLint
-        run: pnpm eslint . --ext .js,.jsx,.ts,.tsx  # Update extensions as needed
+        run: pnpm lint
