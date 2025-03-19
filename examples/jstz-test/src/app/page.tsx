@@ -1,8 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import JstzType, { Jstz } from "@jstz-dev/jstz-client";
-import { Operation, OperationInjectParams } from "@jstz-dev/jstz-client/src/resources/operations";
+import Jstz from "@jstz-dev/jstz-client";
 import { Label } from "@radix-ui/react-label";
 
 import { TriangleAlert } from "lucide-react";
@@ -38,10 +37,10 @@ export default function Home() {
   const form = useWatch({ control });
   const [notification, setNotification] = useState("");
 
-  async function sendSigningRequest(runFunctionRequest: JstzType.Operation.RunFunction) {
+  async function sendSigningRequest(runFunctionRequest: Jstz.Operation.RunFunction) {
     return sendMessage<
       | {
-          operation: Operation.RunFunction | Operation.DeployFunction;
+          operation: Jstz.Operation;
           signature: string;
           publicKey: string;
           accountAddress: string;
@@ -49,7 +48,7 @@ export default function Home() {
       | { error: string }
     >({
       type: WalletEvents.SIGN,
-      data: { runFunctionRequest },
+      data: { content: runFunctionRequest },
     });
   }
 
@@ -71,26 +70,29 @@ export default function Home() {
 
       setNotification(`Operation signed with address: ${accountAddress}`);
 
-      const jstzClient = new Jstz({
+      const jstzClient = new Jstz.Jstz({
         timeout: 6000,
       });
 
       const {
-        result: {
-          inner: { body },
-        },
-      } = await jstzClient.operations.injectAndPoll<
-        OperationInjectParams & { inner: { content: Operation.RunFunction } }
-      >({
+        result: { inner },
+      } = await jstzClient.operations.injectAndPoll({
         inner: operation,
         public_key: publicKey,
         signature,
       });
 
-      const returnedMessage =
-        body ? JSON.parse(decoder.decode(new Uint8Array(body))) : "No message.";
+      let returnedMessage = "No message.";
 
-      setNotification("Completed call. Response: " + returnedMessage);
+      if (typeof inner === "object" && "body" in inner) {
+        returnedMessage = inner.body && JSON.parse(decoder.decode(new Uint8Array(inner.body)));
+      }
+
+      if (typeof inner === "string") {
+        returnedMessage = inner;
+      }
+
+      setNotification(`Completed call. Response: ${returnedMessage}`);
     } catch (err) {
       setNotification(JSON.stringify(err));
     }
