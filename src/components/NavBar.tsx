@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 
-import {Download, Plus} from "lucide-react";
+import { Download, Plus } from "lucide-react";
 import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { StorageKeys, type Accounts } from "~/lib/constants/storage";
@@ -18,25 +18,23 @@ export default function NavBar() {
   useEffect(() => {
     if (currentAddress && !accountAddress) return;
 
-    chrome.storage.local.set({ [StorageKeys.CURRENT_ADDRESS]: accountAddress }).then(() => {
-      refetch();
+    void chrome.storage.local.set({ [StorageKeys.CURRENT_ADDRESS]: accountAddress }).then(() => {
+      void refetch();
     });
-  }, [currentAddress, accountAddress]);
+  }, [currentAddress, accountAddress, refetch]);
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   async function handleOnSelect(newValue: "generate" | (string & {})) {
-    if (newValue === "import") {
-      navigate('/import-wallet');
-      return
-    }
+    if (newValue === "import") return navigate("/import-wallet");
+
     if (newValue !== "generate") return navigate(`/wallets/${newValue}`);
 
     const newAccount = await Vault.spawnAndSave();
     await queryClient.invalidateQueries({ queryKey: storageKeys.local(StorageKeys.ACCOUNTS) });
 
-    navigate(`/wallets/${newAccount.address}`);
+    return navigate(`/wallets/${newAccount.address}`);
   }
 
   return (
@@ -60,6 +58,7 @@ export default function NavBar() {
             <SelectItem value="generate">
               Generate <Plus />
             </SelectItem>
+
             <SelectItem value="import">
               Import <Download />
             </SelectItem>

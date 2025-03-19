@@ -19,10 +19,10 @@ export function useStorageLocal<T, D = T>(
       const data = await chrome.storage.local.get(keys);
 
       if (Array.isArray(keys)) {
-        return data;
+        return data as T;
       }
 
-      return data[keys];
+      return data[keys] as T;
     },
     ...options,
   });

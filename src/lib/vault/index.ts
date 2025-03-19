@@ -6,10 +6,10 @@ import { StorageKeys, type Accounts } from "../constants/storage";
 import { getPublicKey, seedToHDPrivateKey } from "./misc";
 
 export type WalletType = {
-    address: string;
-    publicKey: string;
-    privateKey: string;
-}
+  address: string;
+  publicKey: string;
+  privateKey: string;
+};
 
 /**
  * Creates a new wallet and saves it.
@@ -40,26 +40,24 @@ async function spawn(mnemonic?: string): Promise<WalletType> {
   return { address: accountAddress, publicKey, privateKey };
 }
 
-export async function addAccountToStorage({
-  address,
-  publicKey,
-  privateKey,
-}: WalletType) {
+export async function addAccountToStorage({ address, publicKey, privateKey }: WalletType) {
   const accounts = await getAccounts();
 
-    accounts[address] = {
-        [StorageKeys.PUBLIC_KEY]: publicKey,
-        [StorageKeys.PRIVATE_KEY]: privateKey,
-    };
-
+  accounts[address] = {
+    [StorageKeys.PUBLIC_KEY]: publicKey,
+    [StorageKeys.PRIVATE_KEY]: privateKey,
+  };
 
   return chrome.storage.local.set({ accounts });
 }
 
 export async function getAccounts(): Promise<Accounts> {
-  let { accounts } = await chrome.storage.local.get(StorageKeys.ACCOUNTS);
+  let { accounts } = await chrome.storage.local.get<{ accounts: Accounts | null }>(
+    StorageKeys.ACCOUNTS,
+  );
+
   if (!accounts) {
-    chrome.storage.local.set({ accounts: {} });
+    void chrome.storage.local.set({ accounts: {} });
     accounts = {};
   }
 
