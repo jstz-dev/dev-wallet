@@ -10,7 +10,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist"] },
+  { ignores: ["dist", "examples"] },
   {
     extends: [
       js.configs.recommended,
@@ -22,10 +22,17 @@ export default tseslint.config(
       react.configs.flat["jsx-runtime"],
       reactCompiler.configs.recommended,
     ],
-    files: ["**/*.{ts,tsx,js,jsx}"],
+    settings: {
+      react: {
+        version: "detect",
+      },
+    },
+    files: ["src/**/*.{ts,tsx,js,jsx}"],
     languageOptions: {
       ecmaVersion: 2024,
       parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
         ecmaFeatures: {
           jsx: true,
         },
