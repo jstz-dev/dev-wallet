@@ -1,7 +1,8 @@
 import Jstz from "@jstz-dev/jstz-client";
 
-import { type Accounts, StorageKeys } from "~/lib/constants/storage";
+import { StorageKeys } from "~/lib/constants/storage";
 import { sign } from "~/lib/jstz";
+import type { WalletType } from "~/lib/vault";
 
 export enum WalletEvents {
   SIGN = "SIGN",
@@ -21,8 +22,8 @@ interface SignEvent extends TEvent {
 }
 
 interface SignRequest {
-  resolve: (res?: any) => void;
-  operation: Jstz.Operation;
+  resolve: (res: SignResponse) => void;
+  content: SignEvent["data"]["content"];
 }
 
 interface SignResponse {
@@ -45,35 +46,24 @@ chrome.runtime.onMessageExternal.addListener(
           StorageKeys.CURRENT_ADDRESS,
         ]);
 
-        const jstzClient = new Jstz.Jstz({
-          timeout: 6000,
-        });
-
-        const nonce = await jstzClient.accounts
-          .getNonce(currentAddress)
-          .catch((_) => Promise.resolve(0));
-
-        const operation: Jstz.Operation = {
-          content,
-          nonce,
-          source: currentAddress,
-        };
-
         if (Object.entries(accounts).length === 0 || !currentAddress || !accounts[currentAddress]) {
           openWalletDialog();
 
-          signQueue.push({ resolve: sendResponse, operation });
+          signQueue.push({ resolve: sendResponse, content });
           return;
         }
+
+        const operation = await createOperation({ content, address: currentAddress });
 
         const { [StorageKeys.PUBLIC_KEY]: publicKey, [StorageKeys.PRIVATE_KEY]: privateKey } =
           accounts[currentAddress];
 
         const signature = sign(operation, privateKey);
+
         sendResponse({
           operation,
           signature,
-          publicKey: publicKey,
+          publicKey,
           accountAddress: currentAddress,
         });
         break;
@@ -84,7 +74,7 @@ chrome.runtime.onMessageExternal.addListener(
 
 interface ProcessQueueEvent extends TEvent {
   type: WalletEvents.PROCESS_QUEUE;
-  data: Accounts[string];
+  data: WalletType;
 }
 
 chrome.runtime.onMessage.addListener(async (request: ProcessQueueEvent, _sender, sendResponse) => {
@@ -94,13 +84,20 @@ chrome.runtime.onMessage.addListener(async (request: ProcessQueueEvent, _sender,
         const queueRequest = signQueue.shift();
         if (!queueRequest) break;
 
-        const account = request.data;
+        const { address, publicKey, privateKey } = request.data;
 
-        const signature = sign(queueRequest.operation, account.privateKey!);
+        const operation = await createOperation({
+          content: queueRequest.content,
+          address: address,
+        });
+
+        const signature = sign(operation, privateKey!);
 
         queueRequest.resolve({
+          operation,
           signature,
-          publicKey: account.publicKey,
+          publicKey: publicKey,
+          accountAddress: address,
         });
       }
 
@@ -109,6 +106,26 @@ chrome.runtime.onMessage.addListener(async (request: ProcessQueueEvent, _sender,
     }
   }
 });
+
+async function createOperation({
+  content,
+  address,
+}: {
+  content: SignRequest["content"];
+  address: WalletType["address"];
+}): Promise<Jstz.Operation> {
+  const jstzClient = new Jstz.Jstz({
+    timeout: 6000,
+  });
+
+  const nonce = await jstzClient.accounts.getNonce(address).catch((_) => Promise.resolve(0));
+
+  return {
+    content,
+    nonce,
+    source: address,
+  };
+}
 
 function openWalletDialog() {
   const params = new URLSearchParams([["isPopup", "true"]]);
