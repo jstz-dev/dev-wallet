@@ -5,7 +5,6 @@ import jsdoc from "eslint-plugin-jsdoc";
 import react from "eslint-plugin-react";
 import reactCompiler from "eslint-plugin-react-compiler";
 import reactHooks from "eslint-plugin-react-hooks";
-import reactRefresh from "eslint-plugin-react-refresh";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
@@ -17,7 +16,6 @@ export default tseslint.config(
       ...tseslint.configs.strictTypeChecked,
       prettier,
       reactHooks.configs["recommended-latest"],
-      reactRefresh.configs["vite"],
       react.configs.flat.recommended,
       react.configs.flat["jsx-runtime"],
       reactCompiler.configs.recommended,
