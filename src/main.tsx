@@ -4,8 +4,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router";
 
-import "./index.css";
 import { popupRouter } from "./dialog-router";
+import "./index.css";
 import { router } from "./router";
 
 const params = new URLSearchParams(window.location.search);
