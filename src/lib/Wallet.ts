@@ -1,14 +1,31 @@
-import { StorageKeys, type Accounts } from "./constants/storage";
+import * as TaquitoUtils from "@taquito/utils";
 
+import * as Bip39 from "bip39";
+import * as signer from "jstz_sdk";
+
+import { StorageKeys, type Accounts } from "./constants/storage";
+import { getPublicKey, seedToHDPrivateKey } from "./vault";
+
+export interface WalletType {
+  address: string;
+  publicKey: string;
+  privateKey: string;
+}
+
+/**
+ * An interface that allows interacting with the wallets and synchronizes them.
+ */
 export class Wallet {
+  static #instance: Wallet;
+
   #accounts: Accounts = {};
-  #currentAddress: string | null = null;
+  #currentAddress = "";
 
   #deconstructor = new FinalizationRegistry((_heldValue) => {
     chrome.storage.local.onChanged.removeListener(this.#storageListener);
   });
 
-  constructor() {
+  private constructor() {
     chrome.storage.local
       .get<{
         [StorageKeys.ACCOUNTS]: Accounts;
@@ -24,19 +41,47 @@ export class Wallet {
     this.#deconstructor.register(this, Wallet.name);
   }
 
+  public static get instance(): Wallet {
+    if (!Wallet.#instance) {
+      Wallet.#instance = new Wallet();
+    }
+
+    return Wallet.#instance;
+  }
+
   /**
    * Sign an operation using the currently selected account.
    */
-  async sign() {}
+  public sign(privateKey: string, operation: Record<string, unknown>) {
+    return signer.sign_operation(operation, privateKey!);
+  }
+
+  /**
+   * Creates a new wallet.
+   * @param mnemonic Seed phrase
+   * @returns Generated wallet
+   */
+  async spawn(mnemonic?: string): Promise<WalletType> {
+    if (!mnemonic) mnemonic = Bip39.generateMnemonic(128);
+
+    const seed = Bip39.mnemonicToSeedSync(mnemonic);
+    const privateKey = seedToHDPrivateKey(seed, 0);
+    const publicKey = await getPublicKey(privateKey);
+    const address = TaquitoUtils.getPkhfromPk(publicKey);
+
+    this.addAccount({ address, publicKey, privateKey });
+
+    return { address, publicKey, privateKey };
+  }
 
   /**
    * Adds a new account to the `Wallet` and save it in the local store.
    * If there is already an account on the provided address it'll replace it.
    */
-  async addAccount(accountAddress: string, privateKey: string, publicKey: string) {
+  public async addAccount({ address, privateKey, publicKey }: WalletType) {
     const accounts = await chrome.storage.local.get<Accounts>(StorageKeys.ACCOUNTS);
 
-    accounts[accountAddress] = {
+    accounts[address] = {
       privateKey,
       publicKey,
     };
@@ -58,20 +103,20 @@ export class Wallet {
     }
   }
 
-  get accounts() {
+  public get accounts() {
     return this.#accounts;
   }
 
-  set accounts(newValue) {
+  public set accounts(newValue) {
     this.#accounts = newValue;
     chrome.storage.local.set({ [StorageKeys.ACCOUNTS]: newValue });
   }
 
-  get currentAddress() {
+  public get currentAddress() {
     return this.#currentAddress;
   }
 
-  set currentAddress(newValue) {
+  public set currentAddress(newValue) {
     this.#currentAddress = newValue;
     chrome.storage.local.set({ [StorageKeys.CURRENT_ADDRESS]: newValue });
   }
