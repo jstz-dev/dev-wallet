@@ -29,7 +29,7 @@ export default function Home({ onGenerate }: HomeProps) {
       <h2 className="text-lg">You don't have any account yet.</h2>
 
       <div className="flex items-center justify-between">
-        <Button onClick={onGenerate ?? handleGenerate}>Generate new wallet</Button>
+        <Button onClick={handleGenerate}>Generate new wallet</Button>
 
         <span className="text-xl font-semibold">- or -</span>
 

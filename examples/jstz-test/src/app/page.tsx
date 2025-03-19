@@ -1,7 +1,8 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Jstz } from "@jstz-dev/jstz-client";
+import JstzType, { Jstz } from "@jstz-dev/jstz-client";
+import { Operation, OperationInjectParams } from "@jstz-dev/jstz-client/src/resources/operations";
 import { Label } from "@radix-ui/react-label";
 
 import { TriangleAlert } from "lucide-react";
@@ -29,8 +30,7 @@ type Form = z.infer<typeof schema>;
 export default function Home() {
   const { register, control } = useForm({
     defaultValues: {
-      smartFunctionAddress: "KT1Vf83uoTN7i2C8m6WBzZ6xhtdY9fC5vkKf",
-      accountAddress: "tz1UVvGHshMXugu18DxJxSXfnpAT7nEwj7w5",
+      smartFunctionAddress: "KT1RtPzCe7MnGEcc1YhAS5RYK4VKFNXFvcKe",
     },
     resolver: zodResolver(schema),
   });
@@ -38,66 +38,57 @@ export default function Home() {
   const form = useWatch({ control });
   const [notification, setNotification] = useState("");
 
-  async function sendSigningRequest(operation: unknown) {
+  async function sendSigningRequest(runFunctionRequest: JstzType.Operation.RunFunction) {
     return sendMessage<
-      { signature: string; publicKey: string; accountAddress: string } | { error: string }
+      | {
+          operation: Operation.RunFunction | Operation.DeployFunction;
+          signature: string;
+          publicKey: string;
+          accountAddress: string;
+        }
+      | { error: string }
     >({
       type: WalletEvents.SIGN,
-      data: { operation },
+      data: { runFunctionRequest },
     });
   }
 
   async function callSmartFunction(pathToCall: string) {
-    const { accountAddress, smartFunctionAddress } = form as Form;
+    const { smartFunctionAddress } = form as Form;
 
-    setNotification("Calling the smart function...");
-
-    const jstzClient = new Jstz({
-      timeout: 6000,
-    });
-
-    //const nonce = await jstzClient.accounts.getNonce(accountAddress).catch(console.error);
-
-    //if (!nonce) {
-    //  setNotification(
-    //    "This account has not been revealed; make an XTZ transaction with the account before calling a smart function.",
-    //  );
-    //  return;
-    //}
+    const requestToSign = buildRequest({ smartFunctionAddress, path: pathToCall });
 
     try {
-      const operation = {
-        content: buildRequest(smartFunctionAddress, pathToCall),
-        //nonce,
-        source: accountAddress,
-      };
-
-      // NOTE: Sign operation using provided secret key
-      // DO NOT use this in production until Jstz has a way of signing in a secure manner
-      setNotification("Signing operation...");
-      const signingResponse = await sendSigningRequest(operation);
+      setNotification("Sending a request to sign...");
+      const signingResponse = await sendSigningRequest(requestToSign);
 
       if ("error" in signingResponse) {
         setNotification("Error signing operation: " + signingResponse.error);
         return;
       }
 
-      const { signature, publicKey } = signingResponse;
+      const { operation, signature, publicKey, accountAddress } = signingResponse;
 
-      setNotification("Operation signed! Public key: " + publicKey);
+      setNotification(`Operation signed with address: ${accountAddress}`);
+
+      const jstzClient = new Jstz({
+        timeout: 6000,
+      });
+
       const {
         result: {
           inner: { body },
         },
-      } = await jstzClient.operations.injectAndPoll({
+      } = await jstzClient.operations.injectAndPoll<
+        OperationInjectParams & { inner: { content: Operation.RunFunction } }
+      >({
         inner: operation,
         public_key: publicKey,
-        signature: signature,
+        signature,
       });
 
-      const returnedMessage = body
-        ? JSON.parse(decoder.decode(new Uint8Array(body)))
-        : "No message.";
+      const returnedMessage =
+        body ? JSON.parse(decoder.decode(new Uint8Array(body))) : "No message.";
 
       setNotification("Completed call. Response: " + returnedMessage);
     } catch (err) {
@@ -126,12 +117,6 @@ export default function Home() {
               </Label>
 
               <Input {...register("smartFunctionAddress")} />
-            </div>
-
-            <div>
-              <Label>Jstz account address:</Label>
-
-              <Input {...register("accountAddress")} />
             </div>
           </div>
 

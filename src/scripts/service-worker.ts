@@ -1,4 +1,6 @@
-import {type Accounts, StorageKeys} from "~/lib/constants/storage";
+import { Jstz } from "@jstz-dev/jstz-client";
+
+import { type Accounts, StorageKeys } from "~/lib/constants/storage";
 import { sign } from "~/lib/jstz";
 
 export enum WalletEvents {
@@ -14,8 +16,7 @@ interface TEvent {
 interface SignEvent extends TEvent {
   type: WalletEvents.SIGN;
   data: {
-    accountAddress: string;
-    operation: Record<string, unknown>;
+    content: Record<string, unknown>;
   };
 }
 
@@ -46,12 +47,26 @@ const signQueue: SignRequest[] = [];
 chrome.runtime.onMessageExternal.addListener(async (request: SignEvent, _sender, sendResponse) => {
   switch (request.type) {
     case WalletEvents.SIGN: {
-      const { operation, accountAddress } = request.data ?? {};
+      const { content } = request.data ?? {};
 
       const { accounts = {}, currentAddress } = await chrome.storage.local.get([
         StorageKeys.ACCOUNTS,
         StorageKeys.CURRENT_ADDRESS,
       ]);
+
+      const jstzClient = new Jstz({
+        timeout: 6000,
+      });
+
+      const nonce = await jstzClient.accounts
+        .getNonce(currentAddress)
+        .catch((_) => Promise.resolve(0));
+
+      const operation = {
+        content,
+        nonce,
+        source: currentAddress,
+      };
 
       if (Object.entries(accounts).length === 0) {
         openWalletDialog();
@@ -67,11 +82,10 @@ chrome.runtime.onMessageExternal.addListener(async (request: SignEvent, _sender,
       }
 
       const { [StorageKeys.PUBLIC_KEY]: publicKey, [StorageKeys.PRIVATE_KEY]: privateKey } =
-          accounts[currentAddress] ?? {
-            publicKey: "",
-            privateKey: "",
-          };
-
+        accounts[currentAddress] ?? {
+          publicKey: "",
+          privateKey: "",
+        };
 
       if (!publicKey || !privateKey) {
         sendResponse({ error: "No proper public/private keypair found" });
@@ -79,7 +93,7 @@ chrome.runtime.onMessageExternal.addListener(async (request: SignEvent, _sender,
       }
 
       const signature = sign(operation, privateKey);
-      sendResponse({ signature, publicKey: publicKey, accountAddress });
+      sendResponse({ signature, publicKey: publicKey, accountAddress: currentAddress });
       break;
     }
   }
