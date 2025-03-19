@@ -1,8 +1,8 @@
 import { createBrowserRouter, Navigate } from "react-router";
-import RootLayout from "~/layouts/RootLayout";
-import Home, { loader as homeLoader } from "~/pages/Home";
-import Wallet from "~/pages/Wallet";
-import ImportWallet from "~/pages/ImportWallet";
+import RootLayout from "~/layouts/Root.layout";
+import Home, { loader as homeLoader } from "~/pages/Home.page";
+import ImportWallet from "~/pages/ImportWallet.page";
+import Wallet from "~/pages/Wallet.page";
 
 export const router = createBrowserRouter([
   {

@@ -1,11 +1,11 @@
 import { createBrowserRouter, Navigate, Outlet } from "react-router";
 import type { WalletType } from "~/lib/vault";
-import ImportWallet from "~/pages/ImportWallet.tsx";
-import Wallet from "~/pages/Wallet.tsx";
+import ImportWallet from "~/pages/ImportWallet.page";
+import Wallet from "~/pages/Wallet.page";
 
 import { StorageKeys } from "./lib/constants/storage";
-import Home, { loader as homeLoader } from "./pages/Home";
 import { WalletEvents } from "./scripts/service-worker";
+import Home, { loader as homeLoader } from "./pages/Home.page";
 
 async function onGenerate(payload: WalletType) {
   await chrome.runtime.sendMessage({ type: WalletEvents.PROCESS_QUEUE, data: payload });
