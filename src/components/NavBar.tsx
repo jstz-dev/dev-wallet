@@ -1,42 +1,48 @@
 import { useQueryClient } from "@tanstack/react-query";
 
-import {Download, Plus} from "lucide-react";
+import { Download, Plus } from "lucide-react";
 import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { StorageKeys, type Accounts } from "~/lib/constants/storage";
 import { storageKeys, useStorageLocal } from "~/lib/hooks/useStorageLocal";
-import * as Vault from "~/lib/vault";
+import { useWallet } from "~/lib/hooks/useWallet";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 export default function NavBar() {
   const { accountAddress } = useParams<{ accountAddress: string }>();
-  const { data: accounts } = useStorageLocal<Accounts>(StorageKeys.ACCOUNTS);
 
+  const { data: accounts } = useStorageLocal<Accounts>(StorageKeys.ACCOUNTS);
   const { data: currentAddress, refetch } = useStorageLocal<string>(StorageKeys.CURRENT_ADDRESS);
 
-  useEffect(() => {
-    if (currentAddress && !accountAddress) return;
+  const wallet = useWallet();
 
-    chrome.storage.local.set({ [StorageKeys.CURRENT_ADDRESS]: accountAddress }).then(() => {
-      refetch();
-    });
+  useEffect(() => {
+    if (currentAddress || !accountAddress) return;
+
+    wallet.currentAddress = accountAddress;
+    refetch();
   }, [currentAddress, accountAddress]);
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  async function handleOnSelect(newValue: "generate" | (string & {})) {
-    if (newValue === "import") {
-      navigate('/import-wallet');
-      return
+  async function handleOnSelect(newValue: "generate" | "import" | (string & {})) {
+    switch (newValue) {
+      case "import":
+        navigate("/import-wallet");
+        break;
+
+      case "generate":
+        const newAccount = await wallet.spawn();
+        await queryClient.invalidateQueries({ queryKey: storageKeys.local(StorageKeys.ACCOUNTS) });
+
+        navigate(`/wallets/${newAccount.address}`);
+        break;
+
+      default:
+        navigate(`/wallets/${newValue}`);
     }
-    if (newValue !== "generate") return navigate(`/wallets/${newValue}`);
-
-    const newAccount = await Vault.spawnAndSave();
-    await queryClient.invalidateQueries({ queryKey: storageKeys.local(StorageKeys.ACCOUNTS) });
-
-    navigate(`/wallets/${newAccount.address}`);
   }
 
   return (
@@ -60,6 +66,7 @@ export default function NavBar() {
             <SelectItem value="generate">
               Generate <Plus />
             </SelectItem>
+
             <SelectItem value="import">
               Import <Download />
             </SelectItem>

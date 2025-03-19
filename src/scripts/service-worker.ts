@@ -1,28 +1,33 @@
-import {type Accounts, StorageKeys} from "~/lib/constants/storage";
-import { sign } from "~/lib/jstz";
+import { Wallet } from "~/lib/Wallet";
+import { type Accounts } from "~/lib/constants/storage";
 
-export enum WalletEvents {
+export enum WalletRequestEnum {
   SIGN = "SIGN",
   PROCESS_QUEUE = "PROCESS_QUEUE",
+  SIGN_DECLINE = "SIGN_DECLINE",
 }
 
-interface TEvent {
-  type: WalletEvents;
+interface WalletRequest {
+  type: WalletRequestEnum;
   data?: unknown;
 }
 
-interface SignEvent extends TEvent {
-  type: WalletEvents.SIGN;
+interface SignRequest extends WalletRequest {
+  type: WalletRequestEnum.SIGN;
   data: {
     accountAddress: string;
     operation: Record<string, unknown>;
   };
 }
 
-function openWalletDialog() {
-  const params = new URLSearchParams([["isPopup", "true"]]);
+function openWalletDialog(path = "") {
+  const params = new URLSearchParams([
+    ["isPopup", "true"],
+    ["path", path],
+  ]);
+
   void chrome.windows.create({
-    url: `index.html${params ? `?${params}` : ""}`,
+    url: `index.html?${params}`,
     type: "popup",
     focused: true,
     width: 400,
@@ -31,82 +36,100 @@ function openWalletDialog() {
   });
 }
 
-interface ProcessQueueEvent extends TEvent {
-  type: WalletEvents.PROCESS_QUEUE;
+interface ProcessQueueEvent extends WalletRequest {
+  type: WalletRequestEnum.PROCESS_QUEUE;
   data: Accounts[string];
 }
 
-interface SignRequest {
-  resolve: (res?: any) => void;
-  operation: unknown;
+interface DeclineSignEvent extends WalletRequest {
+  type: WalletRequestEnum.SIGN_DECLINE;
 }
 
-const signQueue: SignRequest[] = [];
+interface SignQueue {
+  resolve: (res?: any) => void;
+  operation: any;
+}
 
-chrome.runtime.onMessageExternal.addListener(async (request: SignEvent, _sender, sendResponse) => {
-  switch (request.type) {
-    case WalletEvents.SIGN: {
-      const { operation, accountAddress } = request.data ?? {};
+const wallet = Wallet.instance;
 
-      const { accounts = {}, currentAddress } = await chrome.storage.local.get([
-        StorageKeys.ACCOUNTS,
-        StorageKeys.CURRENT_ADDRESS,
-      ]);
+const signQueue: SignQueue[] = [];
 
-      if (Object.entries(accounts).length === 0) {
-        openWalletDialog();
+chrome.runtime.onMessageExternal.addListener(
+  async (request: SignRequest, _sender, sendResponse) => {
+    switch (request.type) {
+      case WalletRequestEnum.SIGN: {
+        const { operation } = request.data ?? {};
 
-        signQueue.push({ resolve: sendResponse, operation });
-        return;
+        const accounts = wallet.accounts;
+        const currentAddress = wallet.currentAddress;
+
+        if (Object.entries(accounts).length === 0) {
+          openWalletDialog();
+
+          signQueue.push({ resolve: sendResponse, operation: operation });
+          return;
+        }
+
+        if (!accounts || !currentAddress || !accounts[currentAddress]) {
+          openWalletDialog();
+          sendResponse({ error: "No account found" });
+          return;
+        }
+
+        const { publicKey, privateKey } = accounts[currentAddress] ?? {
+          publicKey: "",
+          privateKey: "",
+        };
+
+        if (!publicKey || !privateKey) {
+          sendResponse({ error: "No proper public/private keypair found" });
+          return;
+        }
+
+        openWalletDialog("confirmation-prompt");
+        signQueue.push({ resolve: sendResponse, operation: operation });
+        break;
       }
-
-      if (!accounts || !currentAddress || !accounts[currentAddress]) {
-        openWalletDialog();
-        sendResponse({ error: "No account found" });
-        return;
-      }
-
-      const { [StorageKeys.PUBLIC_KEY]: publicKey, [StorageKeys.PRIVATE_KEY]: privateKey } =
-          accounts[currentAddress] ?? {
-            publicKey: "",
-            privateKey: "",
-          };
-
-
-      if (!publicKey || !privateKey) {
-        sendResponse({ error: "No proper public/private keypair found" });
-        return;
-      }
-
-      const signature = sign(operation, privateKey);
-      sendResponse({ signature, publicKey: publicKey, accountAddress });
-      break;
     }
-  }
-});
+  },
+);
 
-chrome.runtime.onMessage.addListener(async (request: ProcessQueueEvent, _sender, sendResponse) => {
-  switch (request.type) {
-    case WalletEvents.PROCESS_QUEUE: {
-      while (signQueue.length > 0) {
-        const queueRequest = signQueue.shift();
-        if (!queueRequest) break;
+chrome.runtime.onMessage.addListener(
+  async (request: ProcessQueueEvent | DeclineSignEvent, _sender, sendResponse) => {
+    switch (request.type) {
+      case WalletRequestEnum.PROCESS_QUEUE: {
+        while (signQueue.length > 0) {
+          const queueRequest = signQueue.shift();
+          if (!queueRequest) break;
 
-        const account = request.data;
+          const account = request.data;
 
-        const signature = sign(
-          queueRequest.operation as Record<string, unknown>,
-          account.privateKey!,
-        );
+          const signature = wallet.sign(
+            account.privateKey!,
+            queueRequest.operation as Record<string, unknown>,
+          );
 
-        queueRequest.resolve({
-          signature,
-          publicKey: account.publicKey,
-        });
+          queueRequest.resolve({
+            signature,
+            publicKey: account.publicKey,
+          });
+        }
+
+        sendResponse({ message: "done" });
+        break;
       }
 
-      sendResponse({ message: "done" });
-      break;
+      case WalletRequestEnum.SIGN_DECLINE: {
+        while (signQueue.length > 0) {
+          const queueRequest = signQueue.shift();
+          if (!queueRequest) break;
+
+          queueRequest.resolve({ error: "Signage declined by user." });
+        }
+
+        sendResponse({ message: "done" });
+        break;
+      }
     }
-  }
-});
+  },
+);

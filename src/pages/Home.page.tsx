@@ -1,8 +1,8 @@
 import { redirect, useNavigate, type LoaderFunctionArgs } from "react-router";
 import { Button } from "~/components/ui/button";
+import { type WalletType } from "~/lib/Wallet";
 import { StorageKeys } from "~/lib/constants/storage";
-import * as Vault from "~/lib/vault";
-import type {WalletType} from "~/lib/vault";
+import { useWallet } from "~/lib/hooks/useWallet";
 
 export async function loader(_args: LoaderFunctionArgs<any>) {
   const { currentAddress } = await chrome.storage.local.get(StorageKeys.CURRENT_ADDRESS);
@@ -18,8 +18,10 @@ interface HomeProps {
 export default function Home({ onGenerate }: HomeProps) {
   const navigate = useNavigate();
 
+  const wallet = useWallet();
+
   async function handleGenerate() {
-    const newAccount = await Vault.spawnAndSave();
+    const newAccount = await wallet.spawn();
     navigate(`/wallets/${newAccount.address}`);
     onGenerate?.(newAccount);
   }
@@ -29,7 +31,7 @@ export default function Home({ onGenerate }: HomeProps) {
       <h2 className="text-lg">You don't have any account yet.</h2>
 
       <div className="flex items-center justify-between">
-        <Button onClick={onGenerate ?? handleGenerate}>Generate new wallet</Button>
+        <Button onClick={handleGenerate}>Generate new wallet</Button>
 
         <span className="text-xl font-semibold">- or -</span>
 
