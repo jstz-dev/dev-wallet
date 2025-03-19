@@ -56,6 +56,27 @@ export default tseslint.config(
       "react-compiler/react-compiler": "warn",
 
       "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-confusing-void-expression": ["error", { ignoreArrowShorthand: true }],
+      "@typescript-eslint/no-misused-promises": [
+        "error",
+        {
+          checksVoidReturn: {
+            arguments: false,
+            attributes: false,
+            inheritedMethods: true,
+            properties: true,
+            returns: true,
+            variables: true,
+          },
+        },
+      ],
+      "@typescript-eslint/restrict-template-expressions": [
+        "error",
+        {
+          allowNumber: true,
+          allow: [{ name: ["Error", "URL", "URLSearchParams"], from: "lib" }],
+        },
+      ],
     },
   },
   {
