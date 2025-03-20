@@ -40,12 +40,15 @@ export default function Home() {
   async function sendSigningRequest(runFunctionRequest: Jstz.Operation.RunFunction) {
     return sendMessage<
       | {
-          operation: Jstz.Operation;
-          signature: string;
-          publicKey: string;
-          accountAddress: string;
+          data: {
+            operation: Jstz.Operation;
+            signature: string;
+            publicKey: string;
+            accountAddress: string;
+          };
+          error: null;
         }
-      | { error: string }
+      | { data: null; error: string }
     >({
       type: WalletEvents.SIGN,
       data: { content: runFunctionRequest },
@@ -59,14 +62,14 @@ export default function Home() {
 
     try {
       setNotification("Sending a request to sign...");
-      const signingResponse = await sendSigningRequest(requestToSign);
+      const { data, error } = await sendSigningRequest(requestToSign);
 
-      if ("error" in signingResponse) {
-        setNotification("Error signing operation: " + signingResponse.error);
+      if (error !== null) {
+        setNotification("Error signing operation: " + error);
         return;
       }
 
-      const { operation, signature, publicKey, accountAddress } = signingResponse;
+      const { operation, signature, publicKey, accountAddress } = data;
 
       setNotification(`Operation signed with address: ${accountAddress}`);
 
