@@ -1,19 +1,45 @@
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
+import { Button } from "~/components/ui/button";
 import { StorageKeys, type Accounts, type KeyStorage } from "~/lib/constants/storage";
 import { useStorageLocal } from "~/lib/hooks/useStorageLocal";
+import { WalletRequestTypes } from "~/scripts/service-worker";
 
 export default function Wallet() {
   const { accountAddress } = useParams() as { accountAddress: string };
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const { data } = useStorageLocal<Accounts, KeyStorage | undefined>(StorageKeys.ACCOUNTS, {
-    select: (data) => {
-      const currentAddress = data[accountAddress];
-      if (!currentAddress) void navigate("/404");
+  const isPopup = searchParams.get("isPopup") === "true";
 
-      return currentAddress;
+  const { data: account } = useStorageLocal<Accounts, KeyStorage | undefined>(
+    StorageKeys.ACCOUNTS,
+    {
+      select: (data) => {
+        const currentAddress = data[accountAddress];
+        if (!currentAddress) void navigate("/404");
+
+        return currentAddress;
+      },
     },
-  });
+  );
+
+  async function handleConfirm() {
+    await chrome.runtime.sendMessage({
+      type: WalletRequestTypes.PROCESS_QUEUE,
+      data: {
+        address: accountAddress,
+        privateKey: account?.[StorageKeys.PRIVATE_KEY],
+        publicKey: account?.[StorageKeys.PUBLIC_KEY],
+      },
+    });
+
+    window.close();
+  }
+
+  async function handleReject() {
+    await chrome.runtime.sendMessage({ type: WalletRequestTypes.DECLINE });
+    window.close();
+  }
 
   return (
     <div className="flex flex-col gap-4 p-2">
@@ -23,13 +49,29 @@ export default function Wallet() {
 
       <div>
         <p>
-          <span className="font-bold">Private Key:</span> {data?.[StorageKeys.PRIVATE_KEY]}
+          <span className="font-bold">Private Key:</span> {account?.[StorageKeys.PRIVATE_KEY]}
         </p>
 
         <p>
-          <span className="font-bold">Public Key:</span> {data?.[StorageKeys.PUBLIC_KEY]}
+          <span className="font-bold">Public Key:</span> {account?.[StorageKeys.PUBLIC_KEY]}
         </p>
       </div>
+
+      {isPopup && (
+        <div className="flex min-h-full flex-col items-center justify-between p-4">
+          <h1 className="text-lg">
+            You&apos;re about to sign an operation. Do you want to proceed?
+          </h1>
+
+          <div className="flex w-full justify-center gap-4">
+            <Button variant="destructive" onClick={handleReject}>
+              No
+            </Button>
+
+            <Button onClick={handleConfirm}>Yes</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
