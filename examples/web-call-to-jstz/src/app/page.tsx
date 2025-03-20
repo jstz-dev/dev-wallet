@@ -40,10 +40,12 @@ export default function Home() {
   async function sendSigningRequest(runFunctionRequest: Jstz.Operation.RunFunction) {
     return sendMessage<
       | {
-          operation: Jstz.Operation;
-          signature: string;
-          publicKey: string;
-          accountAddress: string;
+          data: {
+            operation: Jstz.Operation;
+            signature: string;
+            publicKey: string;
+            accountAddress: string;
+          };
         }
       | { error: string }
     >({
@@ -59,14 +61,14 @@ export default function Home() {
 
     try {
       setNotification("Sending a request to sign...");
-      const signingResponse = await sendSigningRequest(requestToSign);
+      const response = await sendSigningRequest(requestToSign);
 
-      if ("error" in signingResponse) {
-        setNotification("Error signing operation: " + signingResponse.error);
+      if ("error" in response) {
+        setNotification("Error signing operation: " + response.error);
         return;
       }
 
-      const { operation, signature, publicKey, accountAddress } = signingResponse;
+      const { operation, signature, publicKey, accountAddress } = response.data;
 
       setNotification(`Operation signed with address: ${accountAddress}`);
 

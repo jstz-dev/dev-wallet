@@ -1,13 +1,10 @@
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { ImportWalletForm } from "~/components/ImportWallet.form.tsx";
-import { addAccountToStorage, type WalletType } from "~/lib/vault";
+import { addAccountToStorage } from "~/lib/vault";
 
-interface ImportWalletProps {
-  onGenerate?: (payload: WalletType) => void | Promise<void>;
-}
-
-export default function ImportWallet({ onGenerate }: ImportWalletProps) {
+export default function ImportWallet() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   async function onImportWalletSubmit(form: {
     address: string;
@@ -15,8 +12,7 @@ export default function ImportWallet({ onGenerate }: ImportWalletProps) {
     privateKey: string;
   }) {
     await addAccountToStorage(form);
-    void navigate(`/wallets/${form.address}`);
-    void onGenerate?.(form);
+    void navigate(`/wallets/${form.address}${location.search}`);
   }
 
   return (
