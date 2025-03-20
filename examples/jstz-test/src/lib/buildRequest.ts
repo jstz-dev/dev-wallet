@@ -2,23 +2,31 @@ import JstzType from "@jstz-dev/jstz-client";
 
 const encoder = new TextEncoder();
 
-export function buildRequest(
-  contractAddress: string,
-  path: string,
-  message: string = "",
-): JstzType.Operation.RunFunction {
+type RequestParams = Partial<JstzType.Operation.RunFunction> & {
+  smartFunctionAddress: string;
+  path: string;
+  message?: string;
+};
+
+export function buildRequest({
+  smartFunctionAddress,
+  path,
+  message = "",
+  ...rest
+}: RequestParams): JstzType.Operation.RunFunction {
   return {
     _type: "RunFunction",
     body: Array.from(
       encoder.encode(
         JSON.stringify({
-          message: message,
+          message,
         }),
       ),
     ),
     gas_limit: 55000,
     headers: {},
     method: "GET",
-    uri: `tezos://${contractAddress}${path}`,
+    uri: `tezos://${smartFunctionAddress}${path}`,
+    ...rest,
   };
 }
