@@ -139,8 +139,8 @@ function openWalletDialog() {
     url: `index.html?${params}`,
     type: "popup",
     focused: true,
-    width: 400,
-    height: 400,
+    width: 450,
+    height: 450,
     // incognito, top, left, ...
   });
 }
