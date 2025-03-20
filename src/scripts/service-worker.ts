@@ -37,9 +37,11 @@ const signQueue: SignRequest[] = [];
 
 chrome.runtime.onMessageExternal.addListener(
   async (request: SignEvent, _sender, sendResponse: (payload: SignResponse) => void) => {
-    switch (request.type) {
-      case WalletEvents.SIGN: {
-        const { content } = request.data ?? {};
+       switch (request.type) {
+           // Once we'll add more message types this will no longer be an issue.
+           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+           case WalletEvents.SIGN: {
+        const { content } = request.data;
 
         const { accounts = {}, currentAddress } = await chrome.storage.local.get([
           StorageKeys.ACCOUNTS,
@@ -77,8 +79,10 @@ interface ProcessQueueEvent extends TEvent {
   data: WalletType;
 }
 
-chrome.runtime.onMessage.addListener(async (request: ProcessQueueEvent, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((request: ProcessQueueEvent, _sender, sendResponse) => {
   switch (request.type) {
+    // Once we'll add more message types this will no longer be an issue.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     case WalletEvents.PROCESS_QUEUE: {
       while (signQueue.length > 0) {
         const queueRequest = signQueue.shift();

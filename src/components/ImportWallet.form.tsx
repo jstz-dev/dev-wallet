@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
-import {Label} from "~/components/ui/label";
-import {Input} from "~/components/ui/input";
-import type {WalletType} from "~/lib/vault";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import type { WalletType } from "~/lib/vault";
 
 type ImportWalletFormProps = {
   onSubmit: (form: WalletType) => void;
@@ -19,38 +19,42 @@ export function ImportWalletForm({ onSubmit }: ImportWalletFormProps) {
 
   return (
     <div>
-      <form className="fields space-y-4 max-w-96" >
-        <div className={"space-y-2"}>
+      <form className="fields max-w-96 space-y-4">
+        <div className="space-y-2">
           <Label>Jstz account address:</Label>
           <Input
             type="text"
             value={address}
             required
             onChange={(e) => setAddress(e.target.value)}
-          ></Input>
+          />
         </div>
-        <div className={"space-y-2"}>
 
-        <Label>Public key:</Label>
+        <div className="space-y-2">
+          <Label>Public key:</Label>
           <Input
             type="text"
             value={publicKey}
             required
             onChange={(e) => setPublicKey(e.target.value)}
-          ></Input>
+          />
         </div>
-        <div className={"space-y-2"}>
 
+        <div className="space-y-2">
           <Label>Secret key:</Label>
           <Input
             type="text"
             value={privateKey}
             required
             onChange={(e) => setPrivateKey(e.target.value)}
-          ></Input>
+          />
         </div>
 
-        <Button disabled={!address || !publicKey || !privateKey} type="button" onClick={() => onSubmit({ address, publicKey, privateKey })}>
+        <Button
+          disabled={!address || !publicKey || !privateKey}
+          type="button"
+          onClick={() => onSubmit({ address, publicKey, privateKey })}
+        >
           Add
         </Button>
       </form>

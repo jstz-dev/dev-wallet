@@ -5,27 +5,32 @@ import jsdoc from "eslint-plugin-jsdoc";
 import react from "eslint-plugin-react";
 import reactCompiler from "eslint-plugin-react-compiler";
 import reactHooks from "eslint-plugin-react-hooks";
-import reactRefresh from "eslint-plugin-react-refresh";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist"] },
+  { ignores: ["dist", "examples"] },
   {
     extends: [
       js.configs.recommended,
       ...tseslint.configs.strictTypeChecked,
       prettier,
       reactHooks.configs["recommended-latest"],
-      reactRefresh.configs["vite"],
       react.configs.flat.recommended,
       react.configs.flat["jsx-runtime"],
       reactCompiler.configs.recommended,
     ],
-    files: ["**/*.{ts,tsx,js,jsx}"],
+    settings: {
+      react: {
+        version: "detect",
+      },
+    },
+    files: ["src/**/*.{ts,tsx,js,jsx}"],
     languageOptions: {
       ecmaVersion: 2024,
       parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
         ecmaFeatures: {
           jsx: true,
         },
@@ -51,6 +56,27 @@ export default tseslint.config(
       "react-compiler/react-compiler": "warn",
 
       "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-confusing-void-expression": ["error", { ignoreArrowShorthand: true }],
+      "@typescript-eslint/no-misused-promises": [
+        "error",
+        {
+          checksVoidReturn: {
+            arguments: false,
+            attributes: false,
+            inheritedMethods: true,
+            properties: true,
+            returns: true,
+            variables: true,
+          },
+        },
+      ],
+      "@typescript-eslint/restrict-template-expressions": [
+        "error",
+        {
+          allowNumber: true,
+          allow: [{ name: ["Error", "URL", "URLSearchParams"], from: "lib" }],
+        },
+      ],
     },
   },
   {
