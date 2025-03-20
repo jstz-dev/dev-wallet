@@ -28,16 +28,18 @@ interface SignError {
 // extensionId can be obtained from chrome://extensions
 const extensionId = process.env.NEXT_PUBLIC_EXTENSION_ID;
 
+interface BuildRequestParams extends Partial<Jstz.Operation.RunFunction> {
+  smartFunctionAddress: string;
+  path?: string;
+  message?: string;
+}
+
 export function buildRequest({
   smartFunctionAddress,
   path,
   message = "",
   ...rest
-}: Partial<Jstz.Operation.RunFunction> & {
-  smartFunctionAddress: string;
-  path?: string;
-  message?: string;
-}): Jstz.Operation.RunFunction {
+}: BuildRequestParams): Jstz.Operation.RunFunction {
   return {
     _type: "RunFunction",
     body: Array.from(
@@ -68,11 +70,15 @@ export function sendMessage<T>(data: SignRequestPayload): Promise<T | SignError>
   });
 }
 
-export async function callSmartFunction(smartFunctionAddress: string, pathToCall?: string) {
-  const requestToSign = buildRequest({ smartFunctionAddress, path: pathToCall });
+export async function callSmartFunction(
+  smartFunctionAddress: string,
+  pathToCall?: string,
+  requestOptions: Partial<BuildRequestParams> = {},
+) {
+  const requestToSign = buildRequest({ smartFunctionAddress, path: pathToCall, ...requestOptions });
 
   try {
-    console.info("Sending a request to sign...");
+    console.info(`Sending a request to sign the smart function: ${smartFunctionAddress}`);
 
     const signingResponse = await sendMessage<SignResponse>({
       type: WalletEvents.SIGN,
@@ -86,12 +92,13 @@ export async function callSmartFunction(smartFunctionAddress: string, pathToCall
 
     const { operation, signature, publicKey, accountAddress } = signingResponse;
 
-    console.info(`Operation signed with address: ${accountAddress}`);
+    console.info(`Request signed with address: ${accountAddress}`);
 
     const jstzClient = new Jstz.Jstz({
       timeout: 6000,
     });
 
+    console.info(`Calling the smart function: ${smartFunctionAddress}`);
     const {
       result: { inner },
     } = await jstzClient.operations.injectAndPoll({
@@ -110,7 +117,7 @@ export async function callSmartFunction(smartFunctionAddress: string, pathToCall
       returnedMessage = inner;
     }
 
-    console.info(`Completed call. Response: ${returnedMessage}`);
+    console.info(`Call completed! Response: ${returnedMessage}`);
   } catch (err) {
     console.error(JSON.stringify(err));
   }
