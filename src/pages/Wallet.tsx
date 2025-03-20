@@ -48,7 +48,8 @@ export default function Wallet() {
 
   return (
     <div className="flex w-full flex-col gap-4 p-4">
-      <div className={"font-2xl font-bold"}>Your current wallet details</div>
+      <h3 className="text-2xl font-bold">Your current wallet details</h3>
+
       <div className={"flex w-full flex-col gap-2"}>
         <Label className="font-bold">Address</Label>
         {accountAddress}
@@ -77,14 +78,14 @@ export default function Wallet() {
 
       {isPopup && (
         <div className="flex flex-col gap-4">
-          <h1 className="text-lg">Do you want to sign with current wallet?</h1>
+          <h1 className="text-lg">Do you want to sign operation with current wallet?</h1>
 
-          <div className="flex w-full gap-4">
+          <div className="flex w-full justify-end gap-4">
             <Button variant="outline" onClick={handleReject}>
               Cancel
             </Button>
 
-            <Button onClick={handleConfirm}>Sign</Button>
+            <Button onClick={handleConfirm} variant={'jstz'}>Sign</Button>
           </div>
         </div>
       )}
