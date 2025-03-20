@@ -10,7 +10,7 @@ import { WalletEvents } from "./scripts/service-worker";
 async function onGenerate(payload: WalletType) {
   await chrome.runtime.sendMessage({ type: WalletEvents.PROCESS_QUEUE, data: payload });
 
-  chrome.storage.local.set({ [StorageKeys.CURRENT_ADDRESS]: payload.address });
+  void chrome.storage.local.set({ [StorageKeys.CURRENT_ADDRESS]: payload.address });
   window.close();
 }
 

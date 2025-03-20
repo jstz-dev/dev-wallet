@@ -16,7 +16,7 @@ export function seedToHDPrivateKey(seed: Uint8Array, hdAccIndex: number) {
   return seedToPrivateKey(deriveSeed(seed, getMainDerivationPath(hdAccIndex)));
 }
 
-function seedToPrivateKey(seed: Buffer<ArrayBufferLike>) {
+function seedToPrivateKey(seed: Buffer) {
   return TaquitoUtils.b58cencode(seed.subarray(0, 32), TaquitoUtils.prefix.edsk2);
 }
 
