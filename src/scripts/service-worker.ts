@@ -1,21 +1,21 @@
-import Jstz from "@jstz-dev/jstz-client";
+import { Jstz } from "@jstz-dev/jstz-client";
 
-import { type Accounts, StorageKeys } from "~/lib/constants/storage";
 import { sign } from "~/lib/jstz";
 import type { WalletType } from "~/lib/vault";
 
-export enum WalletEvents {
+export enum WalletRequestTypes {
   SIGN = "SIGN",
   PROCESS_QUEUE = "PROCESS_QUEUE",
+  DECLINE = "DECLINE",
 }
 
 interface TEvent {
-  type: WalletEvents;
+  type: WalletRequestTypes;
   data?: unknown;
 }
 
 interface SignEvent extends TEvent {
-  type: WalletEvents.SIGN;
+  type: WalletRequestTypes.SIGN;
   data: {
     content: Jstz.Operation.DeployFunction | Jstz.Operation.RunFunction;
   };
@@ -26,48 +26,31 @@ interface SignRequest {
   content: SignEvent["data"]["content"];
 }
 
-interface SignResponse {
-  operation: Jstz.Operation;
-  signature: string;
-  publicKey: string;
-  accountAddress: string;
-}
+type SignResponse =
+  | {
+      data: {
+        operation: Jstz.Operation;
+        signature: string;
+        publicKey: string;
+        accountAddress: string;
+      };
+    }
+  | {
+      error: string;
+    };
 
 const signQueue: SignRequest[] = [];
 
 chrome.runtime.onMessageExternal.addListener(
-  async (request: SignEvent, _sender, sendResponse: (payload: SignResponse) => void) => {
+  (request: SignEvent, _sender, sendResponse: (payload: SignResponse) => void) => {
     switch (request.type) {
       // Once we'll add more message types this will no longer be an issue.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      case WalletEvents.SIGN: {
+      case WalletRequestTypes.SIGN: {
         const { content } = request.data;
 
-        const { accounts = {}, currentAddress } = await chrome.storage.local.get<{
-          accounts?: Accounts;
-          currentAddress?: string;
-        }>([StorageKeys.ACCOUNTS, StorageKeys.CURRENT_ADDRESS]);
-
-        if (Object.entries(accounts).length === 0 || !currentAddress || !accounts[currentAddress]) {
-          openWalletDialog();
-
-          signQueue.push({ resolve: sendResponse, content });
-          return;
-        }
-
-        const operation = await createOperation({ content, address: currentAddress });
-
-        const { [StorageKeys.PUBLIC_KEY]: publicKey, [StorageKeys.PRIVATE_KEY]: privateKey } =
-          accounts[currentAddress];
-
-        const signature = sign(operation, privateKey);
-
-        sendResponse({
-          operation,
-          signature,
-          publicKey,
-          accountAddress: currentAddress,
-        });
+        openWalletDialog();
+        signQueue.push({ resolve: sendResponse, content });
         break;
       }
     }
@@ -75,41 +58,59 @@ chrome.runtime.onMessageExternal.addListener(
 );
 
 interface ProcessQueueEvent extends TEvent {
-  type: WalletEvents.PROCESS_QUEUE;
+  type: WalletRequestTypes.PROCESS_QUEUE;
   data: WalletType;
 }
 
-chrome.runtime.onMessage.addListener(async (request: ProcessQueueEvent, _sender, sendResponse) => {
-  switch (request.type) {
-    // Once we'll add more message types this will no longer be an issue.
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    case WalletEvents.PROCESS_QUEUE: {
-      while (signQueue.length > 0) {
-        const queueRequest = signQueue.shift();
-        if (!queueRequest) break;
+interface DeclineEvent extends TEvent {
+  type: WalletRequestTypes.DECLINE;
+}
 
-        const { address, publicKey, privateKey } = request.data;
+chrome.runtime.onMessage.addListener(
+  async (request: ProcessQueueEvent | DeclineEvent, _sender, sendResponse) => {
+    switch (request.type) {
+      case WalletRequestTypes.PROCESS_QUEUE: {
+        while (signQueue.length > 0) {
+          const queueRequest = signQueue.shift();
+          if (!queueRequest) break;
 
-        const operation = await createOperation({
-          content: queueRequest.content,
-          address: address,
-        });
+          const { address, publicKey, privateKey } = request.data;
 
-        const signature = sign(operation, privateKey);
+          const operation = await createOperation({
+            content: queueRequest.content,
+            address: address,
+          });
 
-        queueRequest.resolve({
-          operation,
-          signature,
-          publicKey: publicKey,
-          accountAddress: address,
-        });
+          const signature = sign(operation, privateKey);
+
+          queueRequest.resolve({
+            data: {
+              operation,
+              signature,
+              publicKey,
+              accountAddress: address,
+            },
+          });
+        }
+
+        sendResponse({ message: "done" });
+        break;
       }
 
-      sendResponse({ message: "done" });
-      break;
+      case WalletRequestTypes.DECLINE: {
+        while (signQueue.length > 0) {
+          const queueRequest = signQueue.shift();
+          if (!queueRequest) break;
+
+          queueRequest.resolve({ error: "User declined signage." });
+        }
+
+        sendResponse({ message: "done" });
+        break;
+      }
     }
-  }
-});
+  },
+);
 
 async function createOperation({
   content,
@@ -118,7 +119,7 @@ async function createOperation({
   content: SignRequest["content"];
   address: WalletType["address"];
 }): Promise<Jstz.Operation> {
-  const jstzClient = new Jstz.Jstz({
+  const jstzClient = new Jstz({
     timeout: 6000,
   });
 
@@ -133,6 +134,7 @@ async function createOperation({
 
 function openWalletDialog() {
   const params = new URLSearchParams([["isPopup", "true"]]);
+
   void chrome.windows.create({
     url: `index.html?${params}`,
     type: "popup",

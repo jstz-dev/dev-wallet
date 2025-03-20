@@ -14,6 +14,8 @@ export function useStorageLocal<T, D = T>(
   options: UseStorageLocalOptions<T, D> = {},
 ) {
   return useQuery({
+    // No idea why `data[keys]` should be specified as a dep since it's a local variable.
+    // eslint-disable-next-line @tanstack/query/exhaustive-deps
     queryKey: ["local", keys],
     queryFn: async () => {
       const data = await chrome.storage.local.get(keys);
