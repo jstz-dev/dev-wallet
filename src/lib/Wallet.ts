@@ -29,11 +29,11 @@ export class Wallet {
     chrome.storage.local
       .get<{
         [StorageKeys.ACCOUNTS]: Accounts;
-        [StorageKeys.CURRENT_ADDRESS]: string | null;
+        [StorageKeys.CURRENT_ADDRESS]: string;
       }>([StorageKeys.ACCOUNTS, StorageKeys.CURRENT_ADDRESS])
       .then(({ accounts, currentAddress }) => {
-        if (accounts) this.#accounts = accounts;
-        if (currentAddress) this.#currentAddress = currentAddress;
+        this.#accounts = accounts;
+        this.#currentAddress = currentAddress;
       });
 
     chrome.storage.local.onChanged.addListener(this.#storageListener);
@@ -89,18 +89,30 @@ export class Wallet {
     this.accounts = accounts;
   }
 
+  /**
+   * BUG: After clearing the storage manually this does not fire.
+   */
   #storageListener(changes: { [key: string]: chrome.storage.StorageChange }) {
-    for (const [key, { newValue }] of Object.entries(changes)) {
+    console.log("Storage changed.");
+    console.log(changes);
+
+    for (const [key, { newValue, oldValue }] of Object.entries(changes)) {
+      if (JSON.stringify(newValue) === JSON.stringify(oldValue)) continue;
+
       switch (key) {
         case StorageKeys.ACCOUNTS:
-          this.#accounts = newValue;
+          this.accounts = newValue;
           break;
 
         case StorageKeys.CURRENT_ADDRESS:
-          this.#accounts = newValue;
+          this.accounts = newValue;
           break;
       }
     }
+
+    console.log("After changes:");
+    console.log(this.accounts);
+    console.log(this.currentAddress);
   }
 
   public get accounts() {
@@ -108,7 +120,6 @@ export class Wallet {
   }
 
   public set accounts(newValue) {
-    this.#accounts = newValue;
     chrome.storage.local.set({ [StorageKeys.ACCOUNTS]: newValue });
   }
 
@@ -117,7 +128,6 @@ export class Wallet {
   }
 
   public set currentAddress(newValue) {
-    this.#currentAddress = newValue;
     chrome.storage.local.set({ [StorageKeys.CURRENT_ADDRESS]: newValue });
   }
 }
