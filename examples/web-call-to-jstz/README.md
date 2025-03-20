@@ -1,4 +1,14 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Web call to Jstz
+
+This is an example project to test a communication between a web application and the Jstz Chrome extension wallet.
+
+## Before you start
+
+Please make sure that you have followed the instructions in the [Jstz Chrome Extension Wallet README](../../README.md) to build the extension and add it to Chrome.
+
+Once extensions is added, you should be able to obtain the extension ID from browser on `chrome://extensions`.
+
+Copy content `.env.example` to `.env` and set the `NEXT_PUBLIC_EXTENSION_ID` to the extension ID.
 
 ## Getting Started
 
