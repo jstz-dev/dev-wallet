@@ -4,7 +4,7 @@ const encoder = new TextEncoder();
 
 type RequestParams = Partial<JstzType.Operation.RunFunction> & {
   smartFunctionAddress: string;
-  path: string;
+  path?: string;
   message?: string;
 };
 
@@ -26,7 +26,7 @@ export function buildRequest({
     gas_limit: 55000,
     headers: {},
     method: "GET",
-    uri: `tezos://${smartFunctionAddress}${path}`,
+    uri: `tezos://${smartFunctionAddress}${path ?? ''}`,
     ...rest,
   };
 }
