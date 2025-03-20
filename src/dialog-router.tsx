@@ -17,11 +17,12 @@ async function onGenerate(payload: WalletType) {
   void chrome.storage.local.set({ [StorageKeys.CURRENT_ADDRESS]: payload.address });
   window.close();
 }
+import NotFound from "./pages/NotFound";
 
 export const popupRouter = createBrowserRouter([
   {
     path: "/404",
-    element: <h1>Not found</h1>,
+    element: <NotFound />,
   },
 
   {
