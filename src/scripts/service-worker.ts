@@ -34,10 +34,8 @@ type SignResponse =
         publicKey: string;
         accountAddress: string;
       };
-      error: null;
     }
   | {
-      data: null;
       error: string;
     };
 
@@ -92,7 +90,6 @@ chrome.runtime.onMessage.addListener(
               publicKey,
               accountAddress: address,
             },
-            error: null,
           });
         }
 
@@ -105,7 +102,7 @@ chrome.runtime.onMessage.addListener(
           const queueRequest = signQueue.shift();
           if (!queueRequest) break;
 
-          queueRequest.resolve({ data: null, error: "User declined signage." });
+          queueRequest.resolve({ error: "User declined signage." });
         }
 
         sendResponse({ message: "done" });

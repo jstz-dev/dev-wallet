@@ -46,9 +46,8 @@ export default function Home() {
             publicKey: string;
             accountAddress: string;
           };
-          error: null;
         }
-      | { data: null; error: string }
+      | { error: string }
     >({
       type: WalletEvents.SIGN,
       data: { content: runFunctionRequest },
@@ -62,14 +61,14 @@ export default function Home() {
 
     try {
       setNotification("Sending a request to sign...");
-      const { data, error } = await sendSigningRequest(requestToSign);
+      const response = await sendSigningRequest(requestToSign);
 
-      if (error !== null) {
-        setNotification("Error signing operation: " + error);
+      if ("error" in response) {
+        setNotification("Error signing operation: " + response.error);
         return;
       }
 
-      const { operation, signature, publicKey, accountAddress } = data;
+      const { operation, signature, publicKey, accountAddress } = response.data;
 
       setNotification(`Operation signed with address: ${accountAddress}`);
 
