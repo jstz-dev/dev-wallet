@@ -9,7 +9,7 @@ export default function Wallet() {
   const { data } = useStorageLocal<Accounts, KeyStorage | undefined>(StorageKeys.ACCOUNTS, {
     select: (data) => {
       const currentAddress = data[accountAddress];
-      if (!currentAddress) navigate("/404");
+      if (!currentAddress) void navigate("/404");
 
       return currentAddress;
     },
