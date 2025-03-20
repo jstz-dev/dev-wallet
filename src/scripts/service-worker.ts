@@ -1,6 +1,6 @@
 import Jstz from "@jstz-dev/jstz-client";
 
-import { StorageKeys } from "~/lib/constants/storage";
+import { type Accounts, StorageKeys } from "~/lib/constants/storage";
 import { sign } from "~/lib/jstz";
 import type { WalletType } from "~/lib/vault";
 
@@ -37,16 +37,16 @@ const signQueue: SignRequest[] = [];
 
 chrome.runtime.onMessageExternal.addListener(
   async (request: SignEvent, _sender, sendResponse: (payload: SignResponse) => void) => {
-       switch (request.type) {
-           // Once we'll add more message types this will no longer be an issue.
-           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-           case WalletEvents.SIGN: {
+    switch (request.type) {
+      // Once we'll add more message types this will no longer be an issue.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      case WalletEvents.SIGN: {
         const { content } = request.data;
 
-        const { accounts = {}, currentAddress } = await chrome.storage.local.get([
-          StorageKeys.ACCOUNTS,
-          StorageKeys.CURRENT_ADDRESS,
-        ]);
+        const { accounts = {}, currentAddress } = await chrome.storage.local.get<{
+          accounts?: Accounts;
+          currentAddress?: string;
+        }>([StorageKeys.ACCOUNTS, StorageKeys.CURRENT_ADDRESS]);
 
         if (Object.entries(accounts).length === 0 || !currentAddress || !accounts[currentAddress]) {
           openWalletDialog();
@@ -79,7 +79,7 @@ interface ProcessQueueEvent extends TEvent {
   data: WalletType;
 }
 
-chrome.runtime.onMessage.addListener((request: ProcessQueueEvent, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener(async (request: ProcessQueueEvent, _sender, sendResponse) => {
   switch (request.type) {
     // Once we'll add more message types this will no longer be an issue.
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -95,7 +95,7 @@ chrome.runtime.onMessage.addListener((request: ProcessQueueEvent, _sender, sendR
           address: address,
         });
 
-        const signature = sign(operation, privateKey!);
+        const signature = sign(operation, privateKey);
 
         queueRequest.resolve({
           operation,
@@ -122,7 +122,7 @@ async function createOperation({
     timeout: 6000,
   });
 
-  const nonce = await jstzClient.accounts.getNonce(address).catch((_) => Promise.resolve(0));
+  const nonce = await jstzClient.accounts.getNonce(address).catch(() => Promise.resolve(0));
 
   return {
     content,
@@ -134,7 +134,7 @@ async function createOperation({
 function openWalletDialog() {
   const params = new URLSearchParams([["isPopup", "true"]]);
   void chrome.windows.create({
-    url: `index.html${params ? `?${params}` : ""}`,
+    url: `index.html?${params}`,
     type: "popup",
     focused: true,
     width: 400,
