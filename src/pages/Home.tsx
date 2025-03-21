@@ -1,23 +1,29 @@
 import { redirect, useLocation, useNavigate, type LoaderFunctionArgs } from "react-router";
 import { Button } from "~/components/ui/button";
-import { StorageKeys } from "~/lib/constants/storage";
 import * as Vault from "~/lib/vault";
+import { useVault, vault } from "~/lib/vaultStore";
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  const { currentAddress } = await chrome.storage.local.get(StorageKeys.CURRENT_ADDRESS);
+export function loader({ request }: LoaderFunctionArgs) {
+  const currentAddress = vault.getState().currentAddress;
   const searchParams = new URL(request.url).searchParams;
 
-  if (currentAddress) return redirect(`/wallets/${currentAddress}?${searchParams}`); return null;
+  if (currentAddress) return redirect(`/wallets/${currentAddress}?${searchParams}`);
+  return null;
 }
 
 export default function Home() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const setCurrentAddress = useVault.use.setCurrentAddress();
+  const addAccount = useVault.use.addAccount();
+
   async function handleGenerate() {
-    const newAccount = await Vault.spawnAndSave();
-    await chrome.storage.local.set({ currentAddress: newAccount.address });
-    void navigate(`/wallets/${newAccount.address}${location.search}`);
+    const account = await Vault.spawn();
+
+    addAccount(account);
+    setCurrentAddress(account.address);
+    void navigate(`/wallets/${account.address}${location.search}`);
   }
 
   return (

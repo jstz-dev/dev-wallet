@@ -1,59 +1,53 @@
-import { useQueryClient } from "@tanstack/react-query";
-
 import { Download, Plus } from "lucide-react";
-import { useEffect } from "react";
-import { useNavigate, useParams } from "react-router";
-import { StorageKeys, type Accounts } from "~/lib/constants/storage";
-import { storageKeys, useStorageLocal } from "~/lib/hooks/useStorageLocal";
+import { useLocation, useNavigate, useParams } from "react-router";
 import * as Vault from "~/lib/vault";
+import { useVault } from "~/lib/vaultStore";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 export default function NavBar() {
   const { accountAddress } = useParams<{ accountAddress: string }>();
-  const { data: accounts } = useStorageLocal<Accounts>(StorageKeys.ACCOUNTS);
-
-  const { data: currentAddress, refetch } = useStorageLocal<string>(StorageKeys.CURRENT_ADDRESS);
-
-  useEffect(() => {
-    if (currentAddress && !accountAddress) return;
-
-    void chrome.storage.local.set({ [StorageKeys.CURRENT_ADDRESS]: accountAddress }).then(() => {
-      void refetch();
-    });
-  }, [currentAddress, accountAddress, refetch]);
-
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const location = useLocation();
 
-  async function handleOnSelect(newValue: "generate" | (string & {})) {
-    if (newValue === "import") return navigate("/import-wallet");
+  const { accounts, setCurrentAddress, addAccount } = useVault((state) => state);
 
-    if (newValue !== "generate") return navigate(`/wallets/${newValue}`);
+  async function handleOnSelect(newValue: "generate" | "import" | (string & {})) {
+    switch (newValue) {
+      case "import":
+        void navigate(`/import-wallet${location.search}`);
+        break;
 
-    const newAccount = await Vault.spawnAndSave();
-    await queryClient.invalidateQueries({ queryKey: storageKeys.local(StorageKeys.ACCOUNTS) });
+      case "generate": {
+        const newAccount = await Vault.spawn();
+        addAccount(newAccount);
+        setCurrentAddress(newAccount.address);
+        void navigate(`/wallets/${newAccount.address}${location.search}`);
+        break;
+      }
 
-    return navigate(`/wallets/${newAccount.address}`);
+      default:
+        setCurrentAddress(newValue);
+        void navigate(`/wallets/${newValue}${location.search}`);
+    }
   }
 
   return (
     <div className="flex justify-between bg-slate-300 p-2">
       <h1 className="my-auto text-lg font-bold text-slate-900">Dev Wallet</h1>
 
-      {currentAddress && (
-        <Select value={currentAddress} onValueChange={handleOnSelect}>
+      {Object.keys(accounts).length > 0 && (
+        <Select value={accountAddress} onValueChange={handleOnSelect}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
 
           <SelectContent>
-            {accounts &&
-              Object.entries(accounts).map(([address], i) => (
-                <SelectItem value={address} key={address}>
-                  Account {i + 1}
-                </SelectItem>
-              ))}
+            {Object.entries(accounts).map(([address], i) => (
+              <SelectItem value={address} key={address}>
+                Account {i + 1}
+              </SelectItem>
+            ))}
 
             <SelectItem value="generate">
               Generate <Plus />

@@ -1,7 +1,8 @@
+import { useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { Button } from "~/components/ui/button";
-import { StorageKeys, type Accounts, type KeyStorage } from "~/lib/constants/storage";
-import { useStorageLocal } from "~/lib/hooks/useStorageLocal";
+import { StorageKeys } from "~/lib/constants/storage";
+import { useVault } from "~/lib/vaultStore";
 import { WalletRequestTypes } from "~/scripts/service-worker";
 
 export default function Wallet() {
@@ -11,17 +12,12 @@ export default function Wallet() {
 
   const isPopup = searchParams.get("isPopup") === "true";
 
-  const { data: account } = useStorageLocal<Accounts, KeyStorage | undefined>(
-    StorageKeys.ACCOUNTS,
-    {
-      select: (data) => {
-        const currentAddress = data[accountAddress];
-        if (!currentAddress) void navigate("/404");
+  const { accounts } = useVault((state) => state);
+  const account = accounts[accountAddress];
 
-        return currentAddress;
-      },
-    },
-  );
+  useEffect(() => {
+    if (!account) void navigate("/404");
+  }, [account, navigate]);
 
   async function handleConfirm() {
     await chrome.runtime.sendMessage({
