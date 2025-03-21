@@ -37,29 +37,50 @@ export default function Home() {
   const form = useWatch({ control });
   const [notification, setNotification] = useState("");
 
+  //TODO: abstract listeners to a lib or sdk
   useEffect(() => {
     if (!!window) {
-      window.addEventListener("message", onMessage);
+      window.addEventListener("SIGN_RESPONSE", ((
+        event: CustomEvent<
+          | {
+              type: WalletEvents.SIGN_RESPONSE;
+              data: {
+                operation: Jstz.Operation;
+                signature: string;
+                publicKey: string;
+                accountAddress: string;
+              };
+            }
+          | {
+              type: WalletEvents.SIGN_RESPONSE;
+              error: string;
+            }
+        >,
+      ) => {
+        onSignatureReceived(event);
+      }) as EventListener);
     }
-    return () => window.removeEventListener("message", onMessage);
+    return () =>
+      window.removeEventListener("SIGN_RESPONSE", ((
+        event: CustomEvent<
+          | {
+              type: WalletEvents.SIGN_RESPONSE;
+              data: {
+                operation: Jstz.Operation;
+                signature: string;
+                publicKey: string;
+                accountAddress: string;
+              };
+            }
+          | {
+              type: WalletEvents.SIGN_RESPONSE;
+              error: string;
+            }
+        >,
+      ) => {
+        onSignatureReceived(event);
+      }) as EventListener);
   }, []);
-
-  function onMessage(
-    event: MessageEvent<{
-      type: WalletEvents.SIGN_RESPONSE;
-      data: {
-        operation: Jstz.Operation;
-        signature: string;
-        publicKey: string;
-        accountAddress: string;
-      };
-    }>,
-  ) {
-    if (event.data.type === WalletEvents.SIGN_RESPONSE) {
-      void onSignatureReceived(event.data);
-      return;
-    }
-  }
 
   function callSmartFunction(pathToCall: string) {
     const { smartFunctionAddress } = form as Form;
@@ -69,27 +90,41 @@ export default function Home() {
 
   function requestSignature(requestToSign: Jstz.Operation.RunFunction) {
     setNotification("Sending a request to sign...");
-    window.postMessage({ type: WalletEvents.SIGN, data: { content: requestToSign } }, "*");
+
+    const signEvent = new CustomEvent<{ type: WalletEvents; content: Jstz.Operation.RunFunction }>(
+      WalletEvents.SIGN,
+      {
+        detail: { type: WalletEvents.SIGN, content: requestToSign },
+      },
+    );
+    window.dispatchEvent(signEvent);
+    // window.postMessage({ type: WalletEvents.SIGN, data: { content: requestToSign } }, "*");
   }
 
-  async function onSignatureReceived(response: {
-    type: WalletEvents.SIGN_RESPONSE;
-    data:
+  async function onSignatureReceived(
+    response: CustomEvent<
       | {
-          operation: Jstz.Operation;
-          signature: string;
-          publicKey: string;
-          accountAddress: string;
+          type: WalletEvents.SIGN_RESPONSE;
+          data: {
+            operation: Jstz.Operation;
+            signature: string;
+            publicKey: string;
+            accountAddress: string;
+          };
         }
-      | { error: string };
-  }) {
+      | {
+          type: WalletEvents.SIGN_RESPONSE;
+          error: string;
+        }
+    >,
+  ) {
     console.log(response);
-    if ("error" in response.data) {
-      setNotification("Error signing operation: " + response.data.error);
+    if ("error" in response.detail) {
+      setNotification("Error signing operation: " + response.detail.error);
       return;
     }
 
-    const { operation, signature, publicKey, accountAddress } = response.data;
+    const { operation, signature, publicKey, accountAddress } = response.detail.data;
 
     setNotification(`Operation signed with address: ${accountAddress}`);
 
