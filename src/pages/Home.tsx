@@ -27,10 +27,10 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col gap-2 p-4">
-      <h2 className="text-lg">You don&apos;t have any account yet.</h2>
+    <div className="flex flex-col gap-8 p-4 justify-center">
+      <h3 className="text-2xl font-bold">You don&apos;t have any account yet...</h3>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-center justify-between gap-3">
         <Button onClick={handleGenerate}>Generate new wallet</Button>
 
         <span className="text-xl font-semibold">- or -</span>

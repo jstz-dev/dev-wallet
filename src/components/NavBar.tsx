@@ -33,8 +33,12 @@ export default function NavBar() {
   }
 
   return (
-    <div className="flex justify-between bg-slate-300 p-2">
-      <h1 className="my-auto text-lg font-bold text-slate-900">Dev Wallet</h1>
+    <div className="flex justify-between bg-[#5271FF] p-2">
+      <div className="flex justify-start gap-4">
+        <img src="/jstz_icon.png" alt="jstz" className="size-10" />
+
+        <h1 className="my-auto text-lg font-bold text-[#000000]">Jstz wallet</h1>
+      </div>
 
       {Object.keys(accounts).length > 0 && (
         <Select value={accountAddress} onValueChange={handleOnSelect}>

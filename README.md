@@ -14,9 +14,8 @@ The extension is built using React, TypeScript, and Vite.
 
 ### Prerequisites
 
-- Node.js (v20 or higher)
-- npm (v10 or higher)
-- pnpm (v10 or higher)
+- Node.js (v22 or higher) - exact version specified in `.nvmrc`
+- pnpm (v10 or higher) - exact version + hash specified in `package.json`
 
 ### Installation
 

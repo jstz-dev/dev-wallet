@@ -9,17 +9,13 @@ type ImportWalletFormProps = {
 };
 
 export function ImportWalletForm({ onSubmit }: ImportWalletFormProps) {
-  const [address, setAddress] = useState("tz1NCmDSFAiAs7y8K6FFaa6U5717LbbinG3E");
-  const [publicKey, setPublicKey] = useState(
-    "edpkuKwgNv6LycVpNiMsqbDgvFkeLoaXD5tMkEwyoeUsY8MvD4yQrN",
-  );
-  const [privateKey, setPrivateKey] = useState(
-    "edsk3Q1dYQCiBNvXSYHSw56wBSi6PnsZkqdsqHsxTff9ZA1GhLNo1Z",
-  );
+  const [address, setAddress] = useState("");
+  const [publicKey, setPublicKey] = useState("");
+  const [privateKey, setPrivateKey] = useState("");
 
   return (
     <div>
-      <form className="fields max-w-96 space-y-4">
+      <form className="flex w-full max-w-96 flex-col gap-4">
         <div className="space-y-2">
           <Label>Jstz account address:</Label>
           <Input
@@ -50,13 +46,16 @@ export function ImportWalletForm({ onSubmit }: ImportWalletFormProps) {
           />
         </div>
 
-        <Button
-          disabled={!address || !publicKey || !privateKey}
-          type="button"
-          onClick={() => onSubmit({ address, publicKey, privateKey })}
-        >
-          Add
-        </Button>
+        <div className="flex justify-end">
+          <Button
+            disabled={!address || !publicKey || !privateKey}
+            type="button"
+            variant="jstz"
+            onClick={() => onSubmit({ address, publicKey, privateKey })}
+          >
+            Add
+          </Button>
+        </div>
       </form>
     </div>
   );
