@@ -1,11 +1,6 @@
 import { create } from "zustand";
 import type { StoreApi, UseBoundStore } from "zustand";
-import {
-  persist,
-  createJSONStorage,
-  type StateStorage,
-  type PersistStorage,
-} from "zustand/middleware";
+import { persist, type PersistStorage, type StorageValue } from "zustand/middleware";
 import { createStore } from "zustand/vanilla";
 
 import type { Accounts } from "./constants/storage";
@@ -30,7 +25,7 @@ type VaultStore = VaultStoreState & VaultStoreActions;
 const storageLocal: PersistStorage<VaultStore> = {
   getItem: async (key: string) => {
     const { [key]: value } = await chrome.storage.local.get(key);
-    return value;
+    return value as StorageValue<VaultStore>;
   },
 
   setItem: (key: string, value: unknown) => {
