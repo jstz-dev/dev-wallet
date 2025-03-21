@@ -12,7 +12,7 @@ export const router = createBrowserRouter([
 
   {
     path: "/index.html",
-    element: <Navigate to="/" />,
+    element: <Navigate to={`/${location.search}`} />,
   },
 
   {
