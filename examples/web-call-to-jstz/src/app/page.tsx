@@ -5,7 +5,7 @@ import Jstz from "@jstz-dev/jstz-client";
 import { Label } from "@radix-ui/react-label";
 
 import { TriangleAlert } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import z from "zod";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
@@ -37,45 +37,67 @@ export default function Home() {
   const form = useWatch({ control });
   const [notification, setNotification] = useState("");
 
-  async function sendSigningRequest(runFunctionRequest: Jstz.Operation.RunFunction) {
-    return sendMessage<
-      | {
-          data: {
-            operation: Jstz.Operation;
-            signature: string;
-            publicKey: string;
-            accountAddress: string;
-          };
-        }
-      | { error: string }
-    >({
-      type: WalletEvents.SIGN,
-      data: { content: runFunctionRequest },
-    });
+  useEffect(() => {
+    if (!!window) {
+      window.addEventListener("message", onMessage);
+    }
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
+  function onMessage(
+    event: MessageEvent<{
+      type: WalletEvents.SIGN_RESPONSE;
+      data: {
+        operation: Jstz.Operation;
+        signature: string;
+        publicKey: string;
+        accountAddress: string;
+      };
+    }>,
+  ) {
+    if (event.data.type === WalletEvents.SIGN_RESPONSE) {
+      void onSignatureReceived(event.data);
+      return;
+    }
   }
 
-  async function callSmartFunction(pathToCall: string) {
+  function callSmartFunction(pathToCall: string) {
     const { smartFunctionAddress } = form as Form;
 
-    const requestToSign = buildRequest({ smartFunctionAddress, path: pathToCall });
+    requestSignature(buildRequest({ smartFunctionAddress, path: pathToCall }));
+  }
+
+  function requestSignature(requestToSign: Jstz.Operation.RunFunction) {
+    setNotification("Sending a request to sign...");
+    window.postMessage({ type: WalletEvents.SIGN, data: { content: requestToSign } }, "*");
+  }
+
+  async function onSignatureReceived(response: {
+    type: WalletEvents.SIGN_RESPONSE;
+    data:
+      | {
+          operation: Jstz.Operation;
+          signature: string;
+          publicKey: string;
+          accountAddress: string;
+        }
+      | { error: string };
+  }) {
+    console.log(response);
+    if ("error" in response.data) {
+      setNotification("Error signing operation: " + response.data.error);
+      return;
+    }
+
+    const { operation, signature, publicKey, accountAddress } = response.data;
+
+    setNotification(`Operation signed with address: ${accountAddress}`);
+
+    const jstzClient = new Jstz.Jstz({
+      timeout: 6000,
+    });
 
     try {
-      setNotification("Sending a request to sign...");
-      const response = await sendSigningRequest(requestToSign);
-
-      if ("error" in response) {
-        setNotification("Error signing operation: " + response.error);
-        return;
-      }
-
-      const { operation, signature, publicKey, accountAddress } = response.data;
-
-      setNotification(`Operation signed with address: ${accountAddress}`);
-
-      const jstzClient = new Jstz.Jstz({
-        timeout: 6000,
-      });
-
       const {
         result: { inner },
       } = await jstzClient.operations.injectAndPoll({

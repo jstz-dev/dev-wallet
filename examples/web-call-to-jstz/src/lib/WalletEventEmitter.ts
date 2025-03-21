@@ -1,5 +1,6 @@
 export enum WalletEvents {
   SIGN = "SIGN",
+  SIGN_RESPONSE = "SIGN_RESPONSE",
 }
 
 interface Data {

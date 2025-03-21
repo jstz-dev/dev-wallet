@@ -1,7 +1,13 @@
 import { Jstz } from "@jstz-dev/jstz-client";
 
+
+
 import { sign } from "~/lib/jstz";
 import type { WalletType } from "~/lib/vault";
+
+
+
+
 
 export enum WalletRequestTypes {
   SIGN = "SIGN",
@@ -14,7 +20,7 @@ interface TEvent {
   data?: unknown;
 }
 
-interface SignEvent extends TEvent {
+export interface SignEvent extends TEvent {
   type: WalletRequestTypes.SIGN;
   data: {
     content: Jstz.Operation.DeployFunction | Jstz.Operation.RunFunction;
@@ -41,8 +47,33 @@ type SignResponse =
 
 const signQueue: SignRequest[] = [];
 
+chrome.runtime.onConnect.addListener((port) => {
+  port.onMessage.addListener((message: string) => {
+    console.log("Received request", message);
+    const request = JSON.parse(message) as SignEvent;
+    console.log(request)
+    switch (request.type) {
+      // Once we'll add more message types this will no longer be an issue.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      case WalletRequestTypes.SIGN: {
+        const { content } = request.data;
+
+        openWalletDialog();
+        signQueue.push({
+          resolve: (data: SignResponse) => {
+            port.postMessage(JSON.stringify({ type: "SIGN_RESPONSE", ...data }));
+          },
+          content,
+        });
+        break;
+      }
+    }
+  });
+});
+
 chrome.runtime.onMessageExternal.addListener(
   (request: SignEvent, _sender, sendResponse: (payload: SignResponse) => void) => {
+    console.log("Received request", request);
     switch (request.type) {
       // Once we'll add more message types this will no longer be an issue.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
