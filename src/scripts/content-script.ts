@@ -29,14 +29,9 @@ window.addEventListener(
       content: Jstz.Operation.RunFunction;
     }>,
   ) => {
-    try {
-      port.postMessage(
-          JSON.stringify({ type: event.detail.type, data: { content: event.detail.content } }),
-      );
-    } catch (err: any) {
-      alert(err.message)
-    }
-
+    port.postMessage(
+      JSON.stringify({ type: event.detail.type, data: { content: event.detail.content } }),
+    );
   }) as EventListener,
   false,
 );
