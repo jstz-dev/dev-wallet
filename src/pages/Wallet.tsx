@@ -5,7 +5,7 @@ import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label.tsx";
 import { StorageKeys, type Accounts, type KeyStorage } from "~/lib/constants/storage";
 import { useStorageLocal } from "~/lib/hooks/useStorageLocal";
-import { WalletRequestTypes } from "~/scripts/service-worker";
+import { WalletEventTypes } from "~/scripts/service-worker";
 
 export default function Wallet() {
   const { accountAddress } = useParams() as { accountAddress: string };
@@ -30,7 +30,7 @@ export default function Wallet() {
 
   async function handleConfirm() {
     await chrome.runtime.sendMessage({
-      type: WalletRequestTypes.PROCESS_QUEUE,
+      type: WalletEventTypes.PROCESS_QUEUE,
       data: {
         address: accountAddress,
         privateKey: account?.[StorageKeys.PRIVATE_KEY],
@@ -42,7 +42,7 @@ export default function Wallet() {
   }
 
   async function handleReject() {
-    await chrome.runtime.sendMessage({ type: WalletRequestTypes.DECLINE });
+    await chrome.runtime.sendMessage({ type: WalletEventTypes.DECLINE });
     window.close();
   }
 

@@ -6,11 +6,11 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8");
 
 export enum WalletEvents {
-    SIGN = "SIGN",
-    SIGN_RESPONSE = "SIGN_RESPONSE",
+    SIGN = "JSTZ_SIGN_REQUEST_TO_EXTENSION",
+    SIGN_RESPONSE = "JSTZ_SIGN_RESPONSE_FROM_EXTENSION",
 }
 
-interface SignResponse {
+export interface SignResponse {
     data: {
         operation: Jstz.Operation;
         signature: string;
@@ -19,46 +19,15 @@ interface SignResponse {
     };
 }
 
-interface SignError {
-    error: string;
-}
-
-type SignResponseEvent = CustomEvent<SignResponse | SignError>;
-
 export async function callSmartFunction({
-                                            smartFunctionAddress,
-                                            pathToCall,
-                                            message,
-                                            requestOptions = {},
+                                            smartFunctionRequest,
+                                            onSignatureReceived,
                                         }: {
-    smartFunctionAddress: string;
-    pathToCall?: string;
-    message?: string;
-    requestOptions?: Partial<Jstz.Operation.RunFunction>;
-}) {
-    try {
-        // Create a request to smart function to sign by extension
-        // and wait for the signed payload or error
-        const signatureResponse = await requestSignature({
-            _type: "RunFunction",
-            body: Array.from(
-                encoder.encode(
-                    JSON.stringify({
-                        message,
-                    }),
-                ),
-            ),
-            gas_limit: 55000,
-            headers: {},
-            method: "GET",
-            uri: `tezos://${smartFunctionAddress}${pathToCall ?? ""}`,
-            ...requestOptions,
-        });
-        // call the smart function with the signed payload
-        void onSignatureReceived(signatureResponse);
-    } catch (err: any) {
-        console.info("Error signing operation: ", err.message);
-    }
+    smartFunctionRequest: Jstz.Operation.RunFunction;
+    onSignatureReceived: (response: SignResponse) => void;
+}): Promise<void | Error> {
+    const signatureResponse = await requestSignature(smartFunctionRequest);
+    onSignatureReceived(signatureResponse);
 }
 
 function requestSignature(requestToSign: Jstz.Operation.RunFunction) {
@@ -78,11 +47,57 @@ function requestSignature(requestToSign: Jstz.Operation.RunFunction) {
         window.addEventListener(
             WalletEvents.SIGN_RESPONSE,
             ((event: SignResponseEvent) => {
-                return "error" in event.detail ? reject(new Error(event.detail.error)) : resolve(event.detail);
+                return "error" in event.detail
+                    ? reject(new Error(event.detail.error))
+                    : resolve(event.detail);
             }) as EventListener,
             { once: true },
         );
     });
+}
+
+// EXAMPLE IMPLEMENTATION
+
+export interface SignError {
+    error: string;
+}
+export type SignResponseEvent = CustomEvent<SignResponse | SignError>;
+
+async function callCounterSmartFunction({
+                                            smartFunctionAddress,
+                                            pathToCall,
+                                            message,
+                                            requestOptions = {},
+                                        }: {
+    smartFunctionAddress: string;
+    pathToCall?: string;
+    message?: string;
+    requestOptions?: Partial<Jstz.Operation.RunFunction>;
+}) {
+    try {
+        // Create a request to smart function to sign by extension
+        // and wait for the signed payload or error
+        await callSmartFunction({
+            smartFunctionRequest: {
+                _type: "RunFunction",
+                body: Array.from(
+                    encoder.encode(
+                        JSON.stringify({
+                            message,
+                        }),
+                    ),
+                ),
+                gas_limit: 55000,
+                headers: {},
+                method: "GET",
+                uri: `tezos://${smartFunctionAddress}${pathToCall ?? ""}`,
+                ...requestOptions,
+            },
+            onSignatureReceived,
+        });
+    } catch (err: any) {
+        console.info("Error signing operation: ", err.message);
+    }
 }
 
 async function onSignatureReceived(response: SignResponse) {
@@ -118,5 +133,6 @@ async function onSignatureReceived(response: SignResponse) {
         console.error(JSON.stringify(err));
     }
 }
+
 
 ```

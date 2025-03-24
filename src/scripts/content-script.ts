@@ -1,8 +1,8 @@
 import { Jstz } from "@jstz-dev/jstz-client";
 
 export enum EventTypesEnum {
-  SIGN = "SIGN",
-  SIGN_RESPONSE = "SIGN_RESPONSE",
+  SIGN = "JSTZ_SIGN_REQUEST_TO_EXTENSION",
+  SIGN_RESPONSE = "JSTZ_SIGN_RESPONSE_FROM_EXTENSION",
 }
 
 export type SignResponse = {
@@ -29,9 +29,14 @@ window.addEventListener(
       content: Jstz.Operation.RunFunction;
     }>,
   ) => {
-    port.postMessage(
-      JSON.stringify({ type: event.detail.type, data: { content: event.detail.content } }),
-    );
+    try {
+      port.postMessage(
+          JSON.stringify({ type: event.detail.type, data: { content: event.detail.content } }),
+      );
+    } catch (err: any) {
+      alert(err.message)
+    }
+
   }) as EventListener,
   false,
 );

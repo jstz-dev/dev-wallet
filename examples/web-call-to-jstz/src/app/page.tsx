@@ -5,16 +5,15 @@ import Jstz from "@jstz-dev/jstz-client";
 import { Label } from "@radix-ui/react-label";
 
 import { TriangleAlert } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import z from "zod";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
-import { sendMessage, WalletEvents } from "~/lib/WalletEventEmitter";
 import { buildRequest } from "~/lib/buildRequest";
-import {callSmartFunction} from "~/lib/web-call-to-justice.snippet";
+import { callSmartFunction, SignResponse } from "~/lib/jstz-extension-communication";
 
 const decoder = new TextDecoder("utf-8");
 
@@ -28,9 +27,9 @@ const schema = z.object({
 type Form = z.infer<typeof schema>;
 
 export default function Home() {
-  const { register, control } = useForm({
+  const { register, control, setError } = useForm({
     defaultValues: {
-      smartFunctionAddress: "KT1RtPzCe7MnGEcc1YhAS5RYK4VKFNXFvcKe",
+      smartFunctionAddress: "",
     },
     resolver: zodResolver(schema),
   });
@@ -38,48 +37,27 @@ export default function Home() {
   const form = useWatch({ control });
   const [notification, setNotification] = useState("");
 
-  // function callSmartFunction(pathToCall: string) {
-  //   const { smartFunctionAddress } = form as Form;
-  //
-  //   requestSignature(buildRequest({ smartFunctionAddress, path: pathToCall }));
-  // }
+  async function callCounterSmartFunction(path: string) {
+    const { smartFunctionAddress = "" } = form;
 
-  function requestSignature(requestToSign: Jstz.Operation.RunFunction) {
-    setNotification("Sending a request to sign...");
-
-    const signEvent = new CustomEvent<{ type: WalletEvents; content: Jstz.Operation.RunFunction }>(
-      WalletEvents.SIGN,
-      {
-        detail: { type: WalletEvents.SIGN, content: requestToSign },
-      },
-    );
-    window.dispatchEvent(signEvent);
-    // window.postMessage({ type: WalletEvents.SIGN, data: { content: requestToSign } }, "*");
-  }
-
-  async function onSignatureReceived(
-    response: CustomEvent<
-      | {
-          type: WalletEvents.SIGN_RESPONSE;
-          data: {
-            operation: Jstz.Operation;
-            signature: string;
-            publicKey: string;
-            accountAddress: string;
-          };
-        }
-      | {
-          type: WalletEvents.SIGN_RESPONSE;
-          error: string;
-        }
-    >,
-  ) {
-    if ("error" in response.detail) {
-      setNotification("Error signing operation: " + response.detail.error);
+    if (!smartFunctionAddress) {
+      setNotification("Smart function address is required");
       return;
     }
 
-    const { operation, signature, publicKey, accountAddress } = response.detail.data;
+    try {
+      setNotification("Waiting for your request to be signed by the extension...");
+      await callSmartFunction({
+        smartFunctionRequest: buildRequest({ smartFunctionAddress, path }),
+        onSignatureReceived,
+      });
+    } catch (err) {
+      setNotification("Error calling smart function: " + err);
+    }
+  }
+
+  async function onSignatureReceived(response: SignResponse) {
+    const { operation, signature, publicKey, accountAddress } = response.data;
 
     setNotification(`Operation signed with address: ${accountAddress}`);
 
@@ -96,7 +74,7 @@ export default function Home() {
         signature,
       });
 
-      let returnedMessage = "No message.";
+      let returnedMessage = "No message";
 
       if (typeof inner === "object" && "body" in inner) {
         returnedMessage = inner.body && JSON.parse(decoder.decode(new Uint8Array(inner.body)));
@@ -139,7 +117,7 @@ export default function Home() {
           <div className="mt-4 flex justify-between">
             <Button
               onClick={() => {
-                callSmartFunction({smartFunctionAddress: form.smartFunctionAddress ?? '', pathToCall: "/get"});
+                void callCounterSmartFunction("/get");
               }}
             >
               Get
@@ -147,7 +125,7 @@ export default function Home() {
 
             <Button
               onClick={() => {
-                callSmartFunction({smartFunctionAddress: form.smartFunctionAddress ?? '', pathToCall: "/increment"});
+                void callCounterSmartFunction("/increment");
               }}
             >
               Increment
@@ -155,7 +133,7 @@ export default function Home() {
 
             <Button
               onClick={() => {
-                callSmartFunction({smartFunctionAddress: form.smartFunctionAddress ?? '', pathToCall: "/decrement"});
+                void callCounterSmartFunction("/decrement");
               }}
             >
               Decrement
