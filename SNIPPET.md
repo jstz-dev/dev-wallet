@@ -6,122 +6,117 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8");
 
 export enum WalletEvents {
-  SIGN = "SIGN",
-}
-
-interface SignRequestPayload {
-  type: WalletEvents.SIGN;
-  data: {
-    content: Jstz.Operation.DeployFunction | Jstz.Operation.RunFunction;
-  };
+    SIGN = "SIGN",
+    SIGN_RESPONSE = "SIGN_RESPONSE",
 }
 
 interface SignResponse {
-  operation: Jstz.Operation;
-  signature: string;
-  publicKey: string;
-  accountAddress: string;
+    data: {
+        operation: Jstz.Operation;
+        signature: string;
+        publicKey: string;
+        accountAddress: string;
+    };
 }
 
 interface SignError {
-  error: string;
+    error: string;
 }
 
-// extensionId can be obtained from chrome://extensions
-const extensionId = process.env.NEXT_PUBLIC_EXTENSION_ID;
+type SignResponseEvent = CustomEvent<SignResponse | SignError>;
 
-interface BuildRequestParams extends Partial<Jstz.Operation.RunFunction> {
-  smartFunctionAddress: string;
-  path?: string;
-  message?: string;
-}
-
-export function buildRequest({
-  smartFunctionAddress,
-  path,
-  message = "",
-  ...rest
-}: BuildRequestParams): Jstz.Operation.RunFunction {
-  return {
-    _type: "RunFunction",
-    body: Array.from(
-      encoder.encode(
-        JSON.stringify({
-          message,
-        }),
-      ),
-    ),
-    gas_limit: 55000,
-    headers: {},
-    method: "GET",
-    uri: `tezos://${smartFunctionAddress}${path ?? ""}`,
-    ...rest,
-  };
-}
-
-/**
- * Sends a message to the Chrome extension. Resolves with the payload or error.
- * @param data
- */
-
-export function sendMessage<T>(data: SignRequestPayload): Promise<T | SignError> {
-  return new Promise((res) => {
-    chrome.runtime.sendMessage(extensionId, data, {}, (response) => {
-      res(response);
-    });
-  });
-}
-
-export async function callSmartFunction(
-  smartFunctionAddress: string,
-  pathToCall?: string,
-  requestOptions: Partial<BuildRequestParams> = {},
-) {
-  const requestToSign = buildRequest({ smartFunctionAddress, path: pathToCall, ...requestOptions });
-
-  try {
-    console.info(`Sending a request to sign the smart function: ${smartFunctionAddress}`);
-
-    const signingResponse = await sendMessage<SignResponse>({
-      type: WalletEvents.SIGN,
-      data: { content: requestToSign },
-    });
-
-    if ("error" in signingResponse) {
-      console.error(`Error signing operation: ${signingResponse.error}`);
-      return;
+export async function callSmartFunction({
+                                            smartFunctionAddress,
+                                            pathToCall,
+                                            message,
+                                            requestOptions = {},
+                                        }: {
+    smartFunctionAddress: string;
+    pathToCall?: string;
+    message?: string;
+    requestOptions?: Partial<Jstz.Operation.RunFunction>;
+}) {
+    try {
+        // Create a request to smart function to sign by extension
+        // and wait for the signed payload or error
+        const signatureResponse = await requestSignature({
+            _type: "RunFunction",
+            body: Array.from(
+                encoder.encode(
+                    JSON.stringify({
+                        message,
+                    }),
+                ),
+            ),
+            gas_limit: 55000,
+            headers: {},
+            method: "GET",
+            uri: `tezos://${smartFunctionAddress}${pathToCall ?? ""}`,
+            ...requestOptions,
+        });
+        // call the smart function with the signed payload
+        void onSignatureReceived(signatureResponse);
+    } catch (err: any) {
+        console.info("Error signing operation: ", err.message);
     }
+}
 
-    const { operation, signature, publicKey, accountAddress } = signingResponse;
+function requestSignature(requestToSign: Jstz.Operation.RunFunction) {
+    const signEvent = new CustomEvent<{ type: WalletEvents; content: Jstz.Operation.RunFunction }>(
+        WalletEvents.SIGN,
+        {
+            detail: { type: WalletEvents.SIGN, content: requestToSign },
+        },
+    );
+    console.info("Requesting signature from the extension...");
 
-    console.info(`Request signed with address: ${accountAddress}`);
+    window.dispatchEvent(signEvent);
+
+    console.info("Waiting for the signed payload...");
+
+    return new Promise<SignResponse>((resolve, reject) => {
+        window.addEventListener(
+            WalletEvents.SIGN_RESPONSE,
+            ((event: SignResponseEvent) => {
+                return "error" in event.detail ? reject(new Error(event.detail.error)) : resolve(event.detail);
+            }) as EventListener,
+            { once: true },
+        );
+    });
+}
+
+async function onSignatureReceived(response: SignResponse) {
+    const { operation, signature, publicKey, accountAddress } = response.data;
+
+    console.info(`Operation signed with address: ${accountAddress}`);
 
     const jstzClient = new Jstz.Jstz({
-      timeout: 6000,
+        timeout: 6000,
     });
 
-    console.info(`Calling the smart function: ${smartFunctionAddress}`);
-    const {
-      result: { inner },
-    } = await jstzClient.operations.injectAndPoll({
-      inner: operation,
-      public_key: publicKey,
-      signature,
-    });
+    try {
+        const {
+            result: { inner },
+        } = await jstzClient.operations.injectAndPoll({
+            inner: operation,
+            public_key: publicKey,
+            signature,
+        });
 
-    let returnedMessage = "No message.";
+        let returnedMessage = "No message.";
 
-    if (typeof inner === "object" && "body" in inner) {
-      returnedMessage = inner.body && JSON.parse(decoder.decode(new Uint8Array(inner.body)));
+        if (typeof inner === "object" && "body" in inner) {
+            returnedMessage = inner.body && JSON.parse(decoder.decode(new Uint8Array(inner.body)));
+        }
+
+        if (typeof inner === "string") {
+            returnedMessage = inner;
+        }
+
+        console.info(`Completed call. Response: ${returnedMessage}`);
+    } catch (err) {
+        console.error(JSON.stringify(err));
     }
-
-    if (typeof inner === "string") {
-      returnedMessage = inner;
-    }
-
-    console.info(`Call completed! Response: ${returnedMessage}`);
-  } catch (err) {
-    console.error(JSON.stringify(err));
-  }
 }
+
 ```

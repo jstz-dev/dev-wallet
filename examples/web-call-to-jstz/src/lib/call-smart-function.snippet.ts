@@ -1,3 +1,6 @@
+/**
+ * This solution requires explicitly provided Chrome extension ID
+ */
 import Jstz from "@jstz-dev/jstz-client";
 
 const encoder = new TextEncoder();

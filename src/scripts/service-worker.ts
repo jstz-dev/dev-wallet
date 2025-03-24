@@ -44,9 +44,7 @@ const signQueue: SignRequest[] = [];
 
 chrome.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener((message: string) => {
-    console.log("Received request", message);
     const request = JSON.parse(message) as SignEvent;
-    console.log(request);
     switch (request.type) {
       // Once we'll add more message types this will no longer be an issue.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -68,7 +66,6 @@ chrome.runtime.onConnect.addListener((port) => {
 
 chrome.runtime.onMessageExternal.addListener(
   (request: SignEvent, _sender, sendResponse: (payload: SignResponse) => void) => {
-    console.log("Received request", request);
     switch (request.type) {
       // Once we'll add more message types this will no longer be an issue.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
