@@ -61,7 +61,6 @@ interface ProcessQueueEvent extends TEvent {
   type: WalletRequestTypes.PROCESS_QUEUE;
   data: WalletType;
 }
-
 interface DeclineEvent extends TEvent {
   type: WalletRequestTypes.DECLINE;
 }
@@ -134,6 +133,7 @@ async function createOperation({
 
 function openWalletDialog() {
   const params = new URLSearchParams([["isPopup", "true"]]);
+
 
   void chrome.windows.create({
     url: `index.html?${params}`,

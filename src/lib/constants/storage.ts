@@ -11,3 +11,8 @@ export interface KeyStorage {
 }
 
 export type Accounts = Record<string, KeyStorage>;
+
+export type Account = Accounts[string] & {
+  address: string;
+};
+

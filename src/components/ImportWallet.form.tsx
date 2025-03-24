@@ -46,11 +46,11 @@ export function ImportWalletForm({ onSubmit }: ImportWalletFormProps) {
           />
         </div>
 
-        <div className={"flex justify-end"}>
+        <div className="flex justify-end">
           <Button
             disabled={!address || !publicKey || !privateKey}
             type="button"
-            variant={"jstz"}
+            variant="jstz"
             onClick={() => onSubmit({ address, publicKey, privateKey })}
           >
             Add
