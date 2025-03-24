@@ -1,5 +1,4 @@
 import js from "@eslint/js";
-import reactQuery from "@tanstack/eslint-plugin-query";
 
 import prettier from "eslint-config-prettier/flat";
 import jsdoc from "eslint-plugin-jsdoc";
@@ -20,7 +19,6 @@ export default tseslint.config(
       react.configs.flat.recommended,
       react.configs.flat["jsx-runtime"],
       reactCompiler.configs.recommended,
-      reactQuery.configs["flat/recommended"],
     ],
     settings: {
       react: {

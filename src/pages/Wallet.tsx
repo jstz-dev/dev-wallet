@@ -1,10 +1,11 @@
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label.tsx";
-import { StorageKeys, type Accounts, type KeyStorage } from "~/lib/constants/storage";
-import { useStorageLocal } from "~/lib/hooks/useStorageLocal";
+import { StorageKeys } from "~/lib/constants/storage";
+import { useVault } from "~/lib/vaultStore";
 import { WalletRequestTypes } from "~/scripts/service-worker";
 
 export default function Wallet() {
@@ -14,17 +15,12 @@ export default function Wallet() {
 
   const isPopup = searchParams.get("isPopup") === "true";
 
-  const { data: account } = useStorageLocal<Accounts, KeyStorage | undefined>(
-    StorageKeys.ACCOUNTS,
-    {
-      select: (data) => {
-        const currentAddress = data[accountAddress];
-        if (!currentAddress) void navigate("/404");
+  const { accounts } = useVault((state) => state);
+  const account = accounts[accountAddress];
 
-        return currentAddress;
-      },
-    },
-  );
+  useEffect(() => {
+    if (!account) void navigate("/404");
+  }, [account, navigate]);
 
   const [privateKeyVisible, setPrivateKeyVisible] = useState(false);
 
@@ -50,24 +46,21 @@ export default function Wallet() {
     <div className="flex w-full flex-col gap-4 p-4">
       <h3 className="text-2xl font-bold">Your current wallet details</h3>
 
-      <div className={"flex w-full flex-col gap-2"}>
+      <div className="flex w-full flex-col gap-2">
         <Label className="font-bold">Address</Label>
         {accountAddress}
       </div>
 
-      <div className={"flex w-full flex-col gap-2"}>
+      <div className="flex w-full flex-col gap-2">
         <Label className="font-bold">Public Key</Label>
         {account?.[StorageKeys.PRIVATE_KEY]}
       </div>
 
-      <div className={"flex w-full flex-col gap-2"}>
-        <div className={"flex flex-wrap gap-2 align-middle"}>
+      <div className="flex w-full flex-col gap-2">
+        <div className="flex flex-wrap gap-2 align-middle">
           <Label className="font-bold">Private Key</Label>
 
-          <div
-            className={"cursor-pointer"}
-            onClick={() => setPrivateKeyVisible(!privateKeyVisible)}
-          >
+          <div className="cursor-pointer" onClick={() => setPrivateKeyVisible(!privateKeyVisible)}>
             {privateKeyVisible ? <EyeOff size={20} /> : <Eye size={20} />}
           </div>
         </div>
@@ -85,7 +78,9 @@ export default function Wallet() {
               Cancel
             </Button>
 
-            <Button onClick={handleConfirm} variant={'jstz'}>Sign</Button>
+            <Button onClick={handleConfirm} variant="jstz">
+              Sign
+            </Button>
           </div>
         </div>
       )}

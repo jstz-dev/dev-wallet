@@ -11,10 +11,12 @@ export const router = createBrowserRouter([
     element: <NotFound />,
   },
 
+
   {
     path: "/index.html",
-    element: <Navigate to={`/${window.location.search}`} />,
+    element: <Navigate to={`/${location.search}`} />,
   },
+
 
   {
     path: "/",
@@ -26,10 +28,12 @@ export const router = createBrowserRouter([
         element: <Home />,
       },
 
+
       {
         path: "import-wallet",
         element: <ImportWallet />,
       },
+
 
       {
         path: "wallets/:accountAddress",
