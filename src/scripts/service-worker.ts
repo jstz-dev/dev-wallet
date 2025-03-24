@@ -101,7 +101,7 @@ chrome.runtime.onMessage.addListener(
           const queueRequest = signQueue.shift();
           if (!queueRequest) break;
 
-          queueRequest.resolve({ error: "User declined signage." });
+          queueRequest.resolve({ error: "Signing rejected by the user" });
         }
 
         sendResponse({ message: "done" });
