@@ -1,6 +1,3 @@
-# Call to smart function with chrome extension wallet signing
-
-```typescript
 import Jstz from "@jstz-dev/jstz-client";
 
 const encoder = new TextEncoder();
@@ -134,4 +131,3 @@ async function onSignatureReceived(response: SignResponse) {
     console.error(JSON.stringify(err));
   }
 }
-```
