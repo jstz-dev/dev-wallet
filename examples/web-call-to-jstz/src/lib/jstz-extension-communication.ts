@@ -30,10 +30,10 @@ export async function callSmartFunction({
 
 function requestSignature(requestToSign: Jstz.Operation.RunFunction) {
   const signEvent = new CustomEvent<{ type: WalletEvents; content: Jstz.Operation.RunFunction }>(
-      WalletEvents.SIGN,
-      {
-        detail: { type: WalletEvents.SIGN, content: requestToSign },
-      },
+    WalletEvents.SIGN,
+    {
+      detail: { type: WalletEvents.SIGN, content: requestToSign },
+    },
   );
   console.info("Requesting signature from the extension...");
 
@@ -43,13 +43,13 @@ function requestSignature(requestToSign: Jstz.Operation.RunFunction) {
 
   return new Promise<SignResponse>((resolve, reject) => {
     window.addEventListener(
-        WalletEvents.SIGN_RESPONSE,
-        ((event: SignResponseEvent) => {
-          return "error" in event.detail
-              ? reject(new Error(event.detail.error))
-              : resolve(event.detail);
-        }) as EventListener,
-        { once: true },
+      WalletEvents.SIGN_RESPONSE,
+      ((event: SignResponseEvent) => {
+        return "error" in event.detail
+          ? reject(new Error(event.detail.error))
+          : resolve(event.detail);
+      }) as EventListener,
+      { once: true },
     );
   });
 }

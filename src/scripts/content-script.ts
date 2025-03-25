@@ -38,7 +38,7 @@ window.addEventListener(
 
 const port = chrome.runtime.connect();
 // Listener to messages received from the background script (service-worker.ts)
-port.onMessage.addListener(function (msg: string) {
+port.onMessage.addListener((msg: string)=> {
   const response = JSON.parse(msg) as SignResponse | SignError;
   switch (response.type) {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
