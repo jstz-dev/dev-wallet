@@ -3,19 +3,20 @@ import { Jstz } from "@jstz-dev/jstz-client";
 import { sign } from "~/lib/jstz";
 import type { WalletType } from "~/lib/vault";
 
-export enum WalletRequestTypes {
-  SIGN = "SIGN",
+export enum WalletEventTypes {
+  SIGN = "JSTZ_SIGN_REQUEST_TO_EXTENSION",
   PROCESS_QUEUE = "PROCESS_QUEUE",
+  SIGN_RESPONSE = "JSTZ_SIGN_RESPONSE_FROM_EXTENSION",
   DECLINE = "DECLINE",
 }
 
-interface TEvent {
-  type: WalletRequestTypes;
+interface WalletEvent {
+  type: WalletEventTypes;
   data?: unknown;
 }
 
-interface SignEvent extends TEvent {
-  type: WalletRequestTypes.SIGN;
+export interface SignEvent extends WalletEvent {
+  type: WalletEventTypes.SIGN;
   data: {
     content: Jstz.Operation.DeployFunction | Jstz.Operation.RunFunction;
   };
@@ -41,34 +42,41 @@ type SignResponse =
 
 const signQueue: SignRequest[] = [];
 
-chrome.runtime.onMessageExternal.addListener(
-  (request: SignEvent, _sender, sendResponse: (payload: SignResponse) => void) => {
+chrome.runtime.onConnect.addListener((port) => {
+  port.onMessage.addListener((message: string) => {
+    const request = JSON.parse(message) as SignEvent;
     switch (request.type) {
       // Once we'll add more message types this will no longer be an issue.
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      case WalletRequestTypes.SIGN: {
+      case WalletEventTypes.SIGN: {
         const { content } = request.data;
 
         openWalletDialog();
-        signQueue.push({ resolve: sendResponse, content });
+        signQueue.push({
+          resolve: (data: SignResponse) => {
+            port.postMessage(JSON.stringify({ type: WalletEventTypes.SIGN_RESPONSE, ...data }));
+          },
+          content,
+        });
         break;
       }
     }
-  },
-);
+  });
+});
 
-interface ProcessQueueEvent extends TEvent {
-  type: WalletRequestTypes.PROCESS_QUEUE;
+interface ProcessQueueEvent extends WalletEvent {
+  type: WalletEventTypes.PROCESS_QUEUE;
   data: WalletType;
 }
-interface DeclineEvent extends TEvent {
-  type: WalletRequestTypes.DECLINE;
+
+interface DeclineEvent extends WalletEvent {
+  type: WalletEventTypes.DECLINE;
 }
 
 chrome.runtime.onMessage.addListener(
   async (request: ProcessQueueEvent | DeclineEvent, _sender, sendResponse) => {
     switch (request.type) {
-      case WalletRequestTypes.PROCESS_QUEUE: {
+      case WalletEventTypes.PROCESS_QUEUE: {
         while (signQueue.length > 0) {
           const queueRequest = signQueue.shift();
           if (!queueRequest) break;
@@ -96,7 +104,7 @@ chrome.runtime.onMessage.addListener(
         break;
       }
 
-      case WalletRequestTypes.DECLINE: {
+      case WalletEventTypes.DECLINE: {
         while (signQueue.length > 0) {
           const queueRequest = signQueue.shift();
           if (!queueRequest) break;
@@ -133,7 +141,6 @@ async function createOperation({
 
 function openWalletDialog() {
   const params = new URLSearchParams([["isPopup", "true"]]);
-
 
   void chrome.windows.create({
     url: `index.html?${params}`,

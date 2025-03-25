@@ -22,11 +22,13 @@ export default defineConfig({
       input: {
         main: "index.html",
         "service-worker": "src/scripts/service-worker.ts",
+        "content-script": "src/scripts/content-script.ts",
       },
       output: {
         entryFileNames: (chunkInfo) => {
           switch (chunkInfo.name) {
             case "service-worker":
+            case "content-script":
               return `scripts/${chunkInfo.name}.js`;
             default:
               return `assets/${chunkInfo.name}.js`;

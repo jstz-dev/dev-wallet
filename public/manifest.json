@@ -17,6 +17,18 @@
   "externally_connectable": {
     "matches": ["https://*/*", "http://*/*"]
   },
+  "content_scripts": [
+    {
+      "matches": ["https://*/*", "http://*/*"],
+      "js": ["./scripts/content-script.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/scripts/*"],
+      "matches": ["https://*/*", "http://*/*"]
+    }
+  ],
   "background": {
     "service_worker": "./scripts/service-worker.js",
     "type": "module"
