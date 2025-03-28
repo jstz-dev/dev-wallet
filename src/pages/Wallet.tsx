@@ -69,7 +69,7 @@ export default function Wallet() {
   );
 }
 
-function OperationSignageDialog({
+function OperationSigningDialog({
   account,
   accountAddress,
 }: {
