@@ -55,10 +55,10 @@ export default function Wallet() {
       {isPopup &&
         (() => {
           switch (searchParams.get("flow")) {
-            case "sign":
-              return <OperationSignageDialog accountAddress={accountAddress} account={account} />;
+            case WalletEventTypes.SIGN:
+              return <OperationSigningDialog accountAddress={accountAddress} account={account} />;
 
-            case "getAddress":
+            case WalletEventTypes.GET_ADDRESS:
               return <GetAddressDialog currentAddress={accountAddress} />;
 
             default:
