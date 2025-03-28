@@ -1,15 +1,18 @@
 import { Jstz } from "@jstz-dev/jstz-client";
 
-enum EventTypesEnum {
+enum WalletEventTypes {
   SIGN = "JSTZ_SIGN_REQUEST_TO_EXTENSION",
   SIGN_RESPONSE = "JSTZ_SIGN_RESPONSE_FROM_EXTENSION",
 
   GET_ADDRESS = "JSTZ_GET_ADDRESS_REQUEST_TO_EXTENSION",
   GET_ADDRESS_RESPONSE = "JSTZ_GET_ADDRESS_RESPONSE_FROM_EXTENSION",
+
+  PROCESS_QUEUE = "PROCESS_QUEUE",
+  DECLINE = "DECLINE",
 }
 
 export interface SignResponse {
-  type: EventTypesEnum.SIGN_RESPONSE;
+  type: WalletEventTypes.SIGN_RESPONSE;
   data: {
     operation: Jstz.Operation;
     signature: string;
@@ -19,12 +22,12 @@ export interface SignResponse {
 }
 
 interface SignError {
-  type: EventTypesEnum.SIGN_RESPONSE;
+  type: WalletEventTypes.SIGN_RESPONSE;
   error: string;
 }
 
 export interface GetAddressResponse {
-  type: EventTypesEnum.GET_ADDRESS_RESPONSE;
+  type: WalletEventTypes.GET_ADDRESS_RESPONSE;
   data: {
     accountAddress: string;
   };
@@ -32,10 +35,10 @@ export interface GetAddressResponse {
 
 // Listener for the global window messages
 window.addEventListener(
-  EventTypesEnum.SIGN,
+  WalletEventTypes.SIGN,
   ((
     event: CustomEvent<{
-      type: EventTypesEnum.SIGN;
+      type: WalletEventTypes.SIGN;
       content: Jstz.Operation.RunFunction;
     }>,
   ) => {
@@ -48,10 +51,10 @@ window.addEventListener(
 
 // Listener for the global window messages
 window.addEventListener(
-  EventTypesEnum.GET_ADDRESS,
+  WalletEventTypes.GET_ADDRESS,
   ((
     event: CustomEvent<{
-      type: EventTypesEnum.GET_ADDRESS;
+      type: WalletEventTypes.GET_ADDRESS;
     }>,
   ) => {
     port.postMessage(JSON.stringify({ type: event.detail.type }));
@@ -65,15 +68,16 @@ port.onMessage.addListener((msg: string) => {
   const response = JSON.parse(msg) as SignResponse | SignError | GetAddressResponse;
 
   switch (response.type) {
-    case EventTypesEnum.SIGN_RESPONSE: {
-      const signResponseEvent = new CustomEvent(EventTypesEnum.SIGN_RESPONSE, { detail: response });
+    case WalletEventTypes.SIGN_RESPONSE: {
+      const signResponseEvent = new CustomEvent(WalletEventTypes.SIGN_RESPONSE, {
+        detail: response,
+      });
       window.dispatchEvent(signResponseEvent);
       break;
     }
 
-    case EventTypesEnum.GET_ADDRESS_RESPONSE: {
-      console.log(response);
-      const getAddressResponseEvent = new CustomEvent(EventTypesEnum.GET_ADDRESS_RESPONSE, {
+    case WalletEventTypes.GET_ADDRESS_RESPONSE: {
+      const getAddressResponseEvent = new CustomEvent(WalletEventTypes.GET_ADDRESS_RESPONSE, {
         detail: response,
       });
 
