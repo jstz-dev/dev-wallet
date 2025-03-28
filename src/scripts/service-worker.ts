@@ -31,11 +31,13 @@ export interface GetAddressEvent extends WalletEvent {
 }
 
 interface SignRequest {
+  type: WalletEventTypes.SIGN;
   resolve: (res: SignResponse) => void;
   content: SignEvent["data"]["content"];
 }
 
 interface GetAddressRequest {
+  type: WalletEventTypes.GET_ADDRESS;
   resolve: (res: GetAddressResponse) => void;
 }
 
@@ -62,9 +64,7 @@ type GetAddressResponse =
       error: string;
     };
 
-const signQueue: SignRequest[] = [];
-
-const getAddressQueue: GetAddressRequest[] = [];
+let queue: Array<SignRequest | GetAddressRequest> = [];
 
 chrome.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener((message: string) => {
@@ -74,8 +74,9 @@ chrome.runtime.onConnect.addListener((port) => {
       case WalletEventTypes.SIGN: {
         const { content } = request.data;
 
-        openWalletDialog({ flow: "sign" });
-        signQueue.push({
+        openWalletDialog({ flow: WalletEventTypes.SIGN });
+        queue.push({
+          type: WalletEventTypes.SIGN,
           resolve: (data: SignResponse) => {
             port.postMessage(JSON.stringify({ type: WalletEventTypes.SIGN_RESPONSE, ...data }));
           },
@@ -85,14 +86,16 @@ chrome.runtime.onConnect.addListener((port) => {
       }
 
       case WalletEventTypes.GET_ADDRESS: {
-        openWalletDialog({ flow: "getAddress" });
-        getAddressQueue.push({
+        openWalletDialog({ flow: WalletEventTypes.GET_ADDRESS });
+        queue.push({
+          type: WalletEventTypes.GET_ADDRESS,
           resolve: (data) => {
             port.postMessage(
               JSON.stringify({ type: WalletEventTypes.GET_ADDRESS_RESPONSE, ...data }),
             );
           },
         });
+        break;
       }
     }
   });
@@ -115,66 +118,72 @@ interface GetAddressResponseEvent extends WalletEvent {
 }
 
 chrome.runtime.onMessage.addListener(
-  async (
-    request: ProcessQueueEvent | DeclineEvent | GetAddressResponseEvent,
-    _sender,
-    sendResponse,
-  ) => {
+  (request: ProcessQueueEvent | DeclineEvent | GetAddressResponseEvent, _sender, sendResponse) => {
     switch (request.type) {
       case WalletEventTypes.PROCESS_QUEUE: {
-        while (signQueue.length > 0) {
-          const queueRequest = signQueue.shift();
-          if (!queueRequest) break;
+        queue = queue.reduce((acc: GetAddressRequest[], queueRequest) => {
+          if (queueRequest.type !== WalletEventTypes.SIGN) {
+            acc.push(queueRequest);
+            return acc;
+          }
 
           const { address, publicKey, privateKey } = request.data;
 
-          const operation = await createOperation({
+          void createOperation({
             content: queueRequest.content,
             address: address,
+          }).then((operation) => {
+            const signature = sign(operation, privateKey);
+
+            queueRequest.resolve({
+              data: {
+                operation,
+                signature,
+                publicKey,
+                accountAddress: address,
+              },
+            });
           });
 
-          const signature = sign(operation, privateKey);
-
-          queueRequest.resolve({
-            data: {
-              operation,
-              signature,
-              publicKey,
-              accountAddress: address,
-            },
-          });
-        }
+          return acc;
+        }, []);
 
         sendResponse({ message: "done" });
         break;
       }
 
       case WalletEventTypes.DECLINE: {
-        while (signQueue.length > 0) {
-          const queueRequest = signQueue.shift();
-          if (!queueRequest) break;
+        queue = queue.reduce((acc: GetAddressRequest[], queueRequest) => {
+          if (queueRequest.type !== WalletEventTypes.SIGN) {
+            acc.push(queueRequest);
+            return acc;
+          }
 
           queueRequest.resolve({ error: "Signing rejected by the user" });
-        }
+          return acc;
+        }, []);
 
         sendResponse({ message: "done" });
         break;
       }
 
       case WalletEventTypes.GET_ADDRESS_RESPONSE: {
-        while (getAddressQueue.length > 0) {
-          const queueRequest = getAddressQueue.shift();
-          if (!queueRequest) break;
+        queue = queue.reduce((acc: SignRequest[], queueRequest) => {
+          if (queueRequest.type !== WalletEventTypes.GET_ADDRESS) {
+            acc.push(queueRequest);
+            return acc;
+          }
 
           const { accountAddress } = request.data;
-          console.log(accountAddress);
 
           queueRequest.resolve({
             data: {
               accountAddress,
             },
           });
-        }
+
+          return acc;
+        }, []);
 
         sendResponse({ message: "done" });
         break;
