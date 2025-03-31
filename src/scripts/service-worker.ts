@@ -5,8 +5,12 @@ import type { WalletType } from "~/lib/vault";
 
 export enum WalletEventTypes {
   SIGN = "JSTZ_SIGN_REQUEST_TO_EXTENSION",
-  PROCESS_QUEUE = "PROCESS_QUEUE",
   SIGN_RESPONSE = "JSTZ_SIGN_RESPONSE_FROM_EXTENSION",
+
+  GET_ADDRESS = "JSTZ_GET_ADDRESS_REQUEST_TO_EXTENSION",
+  GET_ADDRESS_RESPONSE = "JSTZ_GET_ADDRESS_RESPONSE_FROM_EXTENSION",
+
+  PROCESS_QUEUE = "PROCESS_QUEUE",
   DECLINE = "DECLINE",
 }
 
@@ -22,9 +26,19 @@ export interface SignEvent extends WalletEvent {
   };
 }
 
+export interface GetAddressEvent extends WalletEvent {
+  type: WalletEventTypes.GET_ADDRESS;
+}
+
 interface SignRequest {
+  type: WalletEventTypes.SIGN;
   resolve: (res: SignResponse) => void;
   content: SignEvent["data"]["content"];
+}
+
+interface GetAddressRequest {
+  type: WalletEventTypes.GET_ADDRESS;
+  resolve: (res: GetAddressResponse) => void;
 }
 
 type SignResponse =
@@ -40,23 +54,46 @@ type SignResponse =
       error: string;
     };
 
-const signQueue: SignRequest[] = [];
+type GetAddressResponse =
+  | {
+      data: {
+        accountAddress: string;
+      };
+    }
+  | {
+      error: string;
+    };
+
+let queue: Array<SignRequest | GetAddressRequest> = [];
 
 chrome.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener((message: string) => {
-    const request = JSON.parse(message) as SignEvent;
+    const request = JSON.parse(message) as SignEvent | GetAddressEvent;
+
     switch (request.type) {
-      // Once we'll add more message types this will no longer be an issue.
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       case WalletEventTypes.SIGN: {
         const { content } = request.data;
 
-        openWalletDialog();
-        signQueue.push({
+        openWalletDialog({ flow: WalletEventTypes.SIGN });
+        queue.push({
+          type: WalletEventTypes.SIGN,
           resolve: (data: SignResponse) => {
             port.postMessage(JSON.stringify({ type: WalletEventTypes.SIGN_RESPONSE, ...data }));
           },
           content,
+        });
+        break;
+      }
+
+      case WalletEventTypes.GET_ADDRESS: {
+        openWalletDialog({ flow: WalletEventTypes.GET_ADDRESS });
+        queue.push({
+          type: WalletEventTypes.GET_ADDRESS,
+          resolve: (data) => {
+            port.postMessage(
+              JSON.stringify({ type: WalletEventTypes.GET_ADDRESS_RESPONSE, ...data }),
+            );
+          },
         });
         break;
       }
@@ -73,44 +110,80 @@ interface DeclineEvent extends WalletEvent {
   type: WalletEventTypes.DECLINE;
 }
 
+interface GetAddressResponseEvent extends WalletEvent {
+  type: WalletEventTypes.GET_ADDRESS_RESPONSE;
+  data: {
+    accountAddress: string;
+  };
+}
+
 chrome.runtime.onMessage.addListener(
-  async (request: ProcessQueueEvent | DeclineEvent, _sender, sendResponse) => {
+  (request: ProcessQueueEvent | DeclineEvent | GetAddressResponseEvent, _sender, sendResponse) => {
     switch (request.type) {
       case WalletEventTypes.PROCESS_QUEUE: {
-        while (signQueue.length > 0) {
-          const queueRequest = signQueue.shift();
-          if (!queueRequest) break;
+        queue = queue.reduce((acc: GetAddressRequest[], queueRequest) => {
+          if (queueRequest.type !== WalletEventTypes.SIGN) {
+            acc.push(queueRequest);
+            return acc;
+          }
 
           const { address, publicKey, privateKey } = request.data;
 
-          const operation = await createOperation({
+          void createOperation({
             content: queueRequest.content,
             address: address,
+          }).then((operation) => {
+            const signature = sign(operation, privateKey);
+
+            queueRequest.resolve({
+              data: {
+                operation,
+                signature,
+                publicKey,
+                accountAddress: address,
+              },
+            });
           });
 
-          const signature = sign(operation, privateKey);
-
-          queueRequest.resolve({
-            data: {
-              operation,
-              signature,
-              publicKey,
-              accountAddress: address,
-            },
-          });
-        }
+          return acc;
+        }, []);
 
         sendResponse({ message: "done" });
         break;
       }
 
       case WalletEventTypes.DECLINE: {
-        while (signQueue.length > 0) {
-          const queueRequest = signQueue.shift();
-          if (!queueRequest) break;
+        queue = queue.reduce((acc: GetAddressRequest[], queueRequest) => {
+          if (queueRequest.type !== WalletEventTypes.SIGN) {
+            acc.push(queueRequest);
+            return acc;
+          }
 
           queueRequest.resolve({ error: "Signing rejected by the user" });
-        }
+          return acc;
+        }, []);
+
+        sendResponse({ message: "done" });
+        break;
+      }
+
+      case WalletEventTypes.GET_ADDRESS_RESPONSE: {
+        queue = queue.reduce((acc: SignRequest[], queueRequest) => {
+          if (queueRequest.type !== WalletEventTypes.GET_ADDRESS) {
+            acc.push(queueRequest);
+            return acc;
+          }
+
+          const { accountAddress } = request.data;
+
+          queueRequest.resolve({
+            data: {
+              accountAddress,
+            },
+          });
+
+          return acc;
+        }, []);
 
         sendResponse({ message: "done" });
         break;
@@ -139,8 +212,8 @@ async function createOperation({
   };
 }
 
-function openWalletDialog() {
-  const params = new URLSearchParams([["isPopup", "true"]]);
+function openWalletDialog(searchParams: Record<string, string> = {}) {
+  const params = new URLSearchParams({ isPopup: "true", ...searchParams });
 
   void chrome.windows.create({
     url: `index.html?${params}`,
