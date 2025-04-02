@@ -13,7 +13,8 @@ import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { buildRequest } from "~/lib/buildRequest";
-import { callSmartFunction, SignResponse } from "~/lib/jstz-extension-communication";
+import { callSmartFunction } from "~/lib/jstz-extension-communication";
+import {SignResponse} from "~/lib/jstz-signer";
 
 const decoder = new TextDecoder("utf-8");
 
@@ -36,16 +37,6 @@ export default function Home() {
 
   const form = useWatch({ control });
   const [notification, setNotification] = useState("");
-
-  function sendMessage<T>(data: unknown): Promise<T> {
-    console.log("Extension id", chrome.runtime.id);
-    const extensionId = localStorage.getItem("jstz-signer-extension-id");
-    return new Promise((res) => {
-      chrome.runtime.sendMessage(extensionId, data, {}, (response) => {
-        res(response as T);
-      });
-    });
-  }
 
   async function callCounterSmartFunction(path: string) {
     const { smartFunctionAddress = "" } = form;
