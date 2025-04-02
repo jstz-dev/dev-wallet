@@ -3,19 +3,82 @@ import Jstz from "@jstz-dev/jstz-client";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8");
 
-export enum WalletEvents {
-  SIGN = "JSTZ_SIGN_REQUEST_TO_EXTENSION",
+enum SignerResponseEventTypes {
   SIGN_RESPONSE = "JSTZ_SIGN_RESPONSE_FROM_EXTENSION",
+  GET_ADDRESS_RESPONSE = "JSTZ_GET_ADDRESS_RESPONSE_FROM_EXTENSION",
+  ERROR = "JSTZ_ERROR_FROM_EXTENSION",
 }
 
-export interface SignResponse {
-  data: {
+enum SignerRequestEventTypes {
+  SIGN = "JSTZ_SIGN_REQUEST_TO_EXTENSION",
+  GET_ADDRESS = "JSTZ_GET_ADDRESS_REQUEST_TO_EXTENSION",
+}
+
+export interface ExtensionError {
+  error: string;
+}
+
+export interface ExtensionResponse<T = unknown> {
+  type: SignerResponseEventTypes;
+  data: T;
+}
+
+export interface SignResponse
+  extends ExtensionResponse<{
     operation: Jstz.Operation;
     signature: string;
     publicKey: string;
     accountAddress: string;
-  };
+  }> {}
+
+export interface GetAddressResponse
+  extends ExtensionResponse<{
+    accountAddress: string;
+  }> {}
+
+interface SignRequestCall {
+  type: SignerRequestEventTypes.SIGN;
+  content: Jstz.Operation.RunFunction;
 }
+
+interface GetSignerAddressCall {
+  type: SignerRequestEventTypes.GET_ADDRESS;
+}
+
+export class JstzSigner {
+  private getResponseType(reqType: SignerRequestEventTypes) {
+    switch (reqType) {
+      case SignerRequestEventTypes.SIGN:
+        return SignerResponseEventTypes.SIGN_RESPONSE;
+      case SignerRequestEventTypes.GET_ADDRESS:
+        return SignerResponseEventTypes.GET_ADDRESS_RESPONSE;
+      default:
+        throw new Error("Unknown request type");
+    }
+  }
+
+  public callExtension<T = unknown>(payload: SignRequestCall | GetSignerAddressCall) {
+    const event = new CustomEvent<typeof payload>(payload.type, {
+      detail: payload,
+    });
+
+    window.dispatchEvent(event);
+
+    return new Promise<ExtensionResponse<T>>((resolve, reject) => {
+      window.addEventListener(
+        this.getResponseType(payload.type),
+        ((event: CustomEvent<ExtensionError | ExtensionResponse<T>>) => {
+          return "error" in event.detail
+            ? reject(new Error(event.detail.error))
+            : resolve(event.detail);
+        }) as EventListener,
+        { once: true },
+      );
+    });
+  }
+}
+
+// EXAMPLE IMPLEMENTATION
 
 export async function callSmartFunction({
   smartFunctionRequest,
@@ -24,42 +87,18 @@ export async function callSmartFunction({
   smartFunctionRequest: Jstz.Operation.RunFunction;
   onSignatureReceived: (response: SignResponse) => void;
 }): Promise<void | Error> {
-  const signatureResponse = await requestSignature(smartFunctionRequest);
-  onSignatureReceived(signatureResponse);
+  const { data } = await requestSignature(smartFunctionRequest);
+  onSignatureReceived(data);
 }
 
 function requestSignature(requestToSign: Jstz.Operation.RunFunction) {
-  const signEvent = new CustomEvent<{ type: WalletEvents; content: Jstz.Operation.RunFunction }>(
-    WalletEvents.SIGN,
-    {
-      detail: { type: WalletEvents.SIGN, content: requestToSign },
-    },
-  );
-  console.info("Requesting signature from the extension...");
+  const jstzSigner = new JstzSigner();
 
-  window.dispatchEvent(signEvent);
-
-  console.info("Waiting for the signed payload...");
-
-  return new Promise<SignResponse>((resolve, reject) => {
-    window.addEventListener(
-      WalletEvents.SIGN_RESPONSE,
-      ((event: SignResponseEvent) => {
-        return "error" in event.detail
-          ? reject(new Error(event.detail.error))
-          : resolve(event.detail);
-      }) as EventListener,
-      { once: true },
-    );
+  return jstzSigner.callExtension<SignResponse>({
+    type: SignerRequestEventTypes.SIGN,
+    content: requestToSign,
   });
 }
-
-// EXAMPLE IMPLEMENTATION
-
-export interface SignError {
-  error: string;
-}
-export type SignResponseEvent = CustomEvent<SignResponse | SignError>;
 
 async function callCounterSmartFunction({
   smartFunctionAddress,

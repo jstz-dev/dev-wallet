@@ -57,12 +57,6 @@ export default function Home() {
 
     try {
       setNotification("Waiting for your request to be signed by the extension...");
-      // const response = await sendMessage({
-      //   type: "JSTZ_SIGN_REQUEST_TO_EXTENSION",
-      //   data: buildRequest({ smartFunctionAddress, path }),
-      // });
-      //
-      // console.log('response', response);
 
       await callSmartFunction({
         smartFunctionRequest: buildRequest({ smartFunctionAddress, path }),
