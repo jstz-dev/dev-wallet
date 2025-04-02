@@ -66,41 +66,6 @@ type GetAddressResponse =
 
 let queue: Array<SignRequest | GetAddressRequest> = [];
 
-chrome.runtime.onConnect.addListener((port) => {
-  port.onMessage.addListener((message: string) => {
-    const request = JSON.parse(message) as SignEvent | GetAddressEvent;
-
-    switch (request.type) {
-      case WalletEventTypes.SIGN: {
-        const { content } = request.data;
-
-        openWalletDialog({ flow: WalletEventTypes.SIGN });
-        queue.push({
-          type: WalletEventTypes.SIGN,
-          resolve: (data: SignResponse) => {
-            port.postMessage(JSON.stringify({ type: WalletEventTypes.SIGN_RESPONSE, ...data }));
-          },
-          content,
-        });
-        break;
-      }
-
-      case WalletEventTypes.GET_ADDRESS: {
-        openWalletDialog({ flow: WalletEventTypes.GET_ADDRESS });
-        queue.push({
-          type: WalletEventTypes.GET_ADDRESS,
-          resolve: (data) => {
-            port.postMessage(
-              JSON.stringify({ type: WalletEventTypes.GET_ADDRESS_RESPONSE, ...data }),
-            );
-          },
-        });
-        break;
-      }
-    }
-  });
-});
-
 interface ProcessQueueEvent extends WalletEvent {
   type: WalletEventTypes.PROCESS_QUEUE;
   data: WalletType;
@@ -117,9 +82,58 @@ interface GetAddressResponseEvent extends WalletEvent {
   };
 }
 
+function onContentScriptMessage(
+  request: SignEvent | GetAddressEvent,
+  sendResponse: (response: string) => void,
+) {
+  switch (request.type) {
+    case WalletEventTypes.SIGN: {
+      const { content } = request.data;
+
+      openWalletDialog({ flow: WalletEventTypes.SIGN });
+      queue.push({
+        type: WalletEventTypes.SIGN,
+        resolve: (data: SignResponse) => {
+          sendResponse(JSON.stringify({ type: WalletEventTypes.SIGN_RESPONSE, ...data }));
+        },
+        content,
+      });
+      break;
+    }
+
+    case WalletEventTypes.GET_ADDRESS: {
+      openWalletDialog({ flow: WalletEventTypes.GET_ADDRESS });
+      queue.push({
+        type: WalletEventTypes.GET_ADDRESS,
+        resolve: (data) => {
+          sendResponse(JSON.stringify({ type: WalletEventTypes.GET_ADDRESS_RESPONSE, ...data }));
+        },
+      });
+      break;
+    }
+  }
+}
+
 chrome.runtime.onMessage.addListener(
-  (request: ProcessQueueEvent | DeclineEvent | GetAddressResponseEvent, _sender, sendResponse) => {
+  (
+    request:
+      | SignEvent
+      | GetAddressEvent
+      | ProcessQueueEvent
+      | DeclineEvent
+      | GetAddressResponseEvent,
+    _sender,
+    sendResponse,
+  ) => {
+    console.log("Received request from internal:", request);
+
     switch (request.type) {
+      case WalletEventTypes.GET_ADDRESS:
+      case WalletEventTypes.SIGN:
+        onContentScriptMessage(request, sendResponse);
+        break;
+
+      //TODO: refactor
       case WalletEventTypes.PROCESS_QUEUE: {
         queue = queue.reduce((acc: GetAddressRequest[], queueRequest) => {
           if (queueRequest.type !== WalletEventTypes.SIGN) {
@@ -189,6 +203,8 @@ chrome.runtime.onMessage.addListener(
         break;
       }
     }
+
+    return true; // Keep the message channel open for sendResponse
   },
 );
 
