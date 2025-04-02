@@ -2,8 +2,6 @@ import Jstz from "@jstz-dev/jstz-client";
 
 import { SignerRequestEventTypes, SignResponse } from "~/lib/jstz-signer";
 
-import "./jstz";
-
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8");
 
@@ -15,8 +13,8 @@ export async function callSmartFunction({
   smartFunctionRequest: Jstz.Operation.RunFunction;
   onSignatureReceived: (response: SignResponse) => void;
 }): Promise<void | Error> {
-  const { data } = await requestSignature(smartFunctionRequest);
-  onSignatureReceived(data);
+  const request = await requestSignature(smartFunctionRequest);
+  onSignatureReceived(request);
 }
 
 function requestSignature(requestToSign: Jstz.Operation.RunFunction) {
@@ -65,6 +63,7 @@ async function callCounterSmartFunction({
 }
 
 async function onSignatureReceived(response: SignResponse) {
+  console.log(response);
   const { operation, signature, publicKey, accountAddress } = response.data;
 
   console.info(`Operation signed with address: ${accountAddress}`);

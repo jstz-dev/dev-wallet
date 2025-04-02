@@ -85,7 +85,3 @@ export {
   type SignResponse,
   type GetAddressResponse,
 };
-
-// TODO: requires .d.ts
-// @ts-expect-error - potential way to reveal the call method from the extension
-window.jstzCallSignerExtension = callSignerExtension;
