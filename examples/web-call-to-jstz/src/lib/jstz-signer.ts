@@ -1,52 +1,44 @@
 import Jstz from "@jstz-dev/jstz-client";
 
-enum SignerResponseEventTypes {
-  SIGN_RESPONSE = "JSTZ_SIGN_RESPONSE_FROM_EXTENSION",
-  GET_ADDRESS_RESPONSE = "JSTZ_GET_ADDRESS_RESPONSE_FROM_EXTENSION",
-}
+export module JstzSigner {
+  export enum SignerResponseEventTypes {
+    SIGN_RESPONSE = "JSTZ_SIGN_RESPONSE_FROM_EXTENSION",
+    GET_ADDRESS_RESPONSE = "JSTZ_GET_ADDRESS_RESPONSE_FROM_EXTENSION",
+  }
 
-enum SignerRequestEventTypes {
-  SIGN = "JSTZ_SIGN_REQUEST_TO_EXTENSION",
-  GET_ADDRESS = "JSTZ_GET_ADDRESS_REQUEST_TO_EXTENSION",
-}
+  export enum SignerRequestEventTypes {
+    SIGN = "JSTZ_SIGN_REQUEST_TO_EXTENSION",
+    GET_ADDRESS = "JSTZ_GET_ADDRESS_REQUEST_TO_EXTENSION",
+  }
 
-interface ExtensionError {
-  error: string;
-}
+  export interface ExtensionError {
+    error: string;
+  }
 
-interface ExtensionResponse<T = unknown> {
-  type: SignerResponseEventTypes;
-  data: T;
-}
+  export interface ExtensionResponse<T = unknown> {
+    type: SignerResponseEventTypes;
+    data: T;
+  }
 
-interface SignRequestCall {
-  type: SignerRequestEventTypes.SIGN;
-  content: Jstz.Operation.RunFunction;
-}
+  export interface SignRequestCall {
+    type: SignerRequestEventTypes.SIGN;
+    content: Jstz.Operation.RunFunction;
+  }
 
-interface GetSignerAddressCall {
-  type: SignerRequestEventTypes.GET_ADDRESS;
-}
+  export interface GetSignerAddressCall {
+    type: SignerRequestEventTypes.GET_ADDRESS;
+  }
 
-interface SignResponse {
-  operation: Jstz.Operation;
-  signature: string;
-  publicKey: string;
-  accountAddress: string;
-};
+  export interface SignResponse {
+    operation: Jstz.Operation;
+    signature: string;
+    publicKey: string;
+    accountAddress: string;
+  }
 
-interface GetAddressResponse {
-  accountAddress: string;
-};
-
-function callSignerExtension<T = SignResponse | GetAddressResponse>(
-    payload: SignRequestCall | GetSignerAddressCall,
-) {
-  const event = new CustomEvent<typeof payload>(payload.type, {
-    detail: payload,
-  });
-
-  window.dispatchEvent(event);
+  export interface GetAddressResponse {
+    accountAddress: string;
+  }
 
   function getResponseType(reqType: SignerRequestEventTypes) {
     switch (reqType) {
@@ -59,8 +51,17 @@ function callSignerExtension<T = SignResponse | GetAddressResponse>(
     }
   }
 
-  return new Promise<ExtensionResponse<T>>((resolve, reject) => {
-    window.addEventListener(
+  export function callSignerExtension<T = SignResponse | GetAddressResponse>(
+    payload: SignRequestCall | GetSignerAddressCall,
+  ) {
+    const event = new CustomEvent<typeof payload>(payload.type, {
+      detail: payload,
+    });
+
+    window.dispatchEvent(event);
+
+    return new Promise<ExtensionResponse<T>>((resolve, reject) => {
+      window.addEventListener(
         getResponseType(payload.type),
         ((event: CustomEvent<ExtensionError | ExtensionResponse<T>>) => {
           if ("error" in event.detail) {
@@ -70,26 +71,17 @@ function callSignerExtension<T = SignResponse | GetAddressResponse>(
           }
         }) as EventListener,
         { once: true },
-    );
-  });
+      );
+    });
+  }
 }
 
-export {
-  callSignerExtension,
-  SignerResponseEventTypes,
-  SignerRequestEventTypes,
-  type ExtensionResponse,
-  type ExtensionError,
-  type SignRequestCall,
-  type GetSignerAddressCall,
-  type SignResponse,
-  type GetAddressResponse,
-};
+export default JstzSigner;
 
 declare global {
   interface Window {
-    jstzCallSignerExtension: <T = SignResponse | GetAddressResponse>(
-        payload: SignRequestCall | GetSignerAddressCall,
-    ) => Promise<ExtensionResponse<T>>;
+    jstzCallSignerExtension: <T = JstzSigner.SignResponse | JstzSigner.GetAddressResponse>(
+      payload: JstzSigner.SignRequestCall | JstzSigner.GetSignerAddressCall,
+    ) => Promise<JstzSigner.ExtensionResponse<T>>;
   }
 }

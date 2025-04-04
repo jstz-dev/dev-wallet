@@ -1,6 +1,6 @@
 import Jstz from "@jstz-dev/jstz-client";
 
-import { SignerRequestEventTypes, SignResponse } from "~/lib/jstz-signer";
+import JstzSigner from "~/lib/jstz-signer";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8");
@@ -11,15 +11,15 @@ export async function callSmartFunction({
   onSignatureReceived,
 }: {
   smartFunctionRequest: Jstz.Operation.RunFunction;
-  onSignatureReceived: (response: { data: SignResponse }) => void;
+  onSignatureReceived: (response: { data: JstzSigner.SignResponse }) => void;
 }): Promise<void | Error> {
   const request = await requestSignature(smartFunctionRequest);
   onSignatureReceived(request);
 }
 
 function requestSignature(requestToSign: Jstz.Operation.RunFunction) {
-  return window.jstzCallSignerExtension<SignResponse>({
-    type: SignerRequestEventTypes.SIGN,
+  return window.jstzCallSignerExtension<JstzSigner.SignResponse>({
+    type: JstzSigner.SignerRequestEventTypes.SIGN,
     content: requestToSign,
   });
 }
@@ -61,11 +61,8 @@ async function callCounterSmartFunction({
   }
 }
 
-async function onSignatureReceived(response: { data: SignResponse }) {
-  console.log(response);
+async function onSignatureReceived(response: { data: JstzSigner.SignResponse }) {
   const { operation, signature, publicKey, accountAddress } = response.data;
-
-  console.info(`Operation signed with address: ${accountAddress}`);
 
   const jstzClient = new Jstz.Jstz({
     timeout: 6000,
