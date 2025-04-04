@@ -13,7 +13,8 @@ import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { buildRequest } from "~/lib/buildRequest";
-import { callSmartFunction, SignResponse } from "~/lib/jstz-extension-communication";
+import { callSmartFunction } from "~/lib/jstz-extension-communication";
+import { JstzSigner } from "~/lib/jstz-signer";
 
 const decoder = new TextDecoder("utf-8");
 
@@ -38,7 +39,6 @@ export default function Home() {
   const [notification, setNotification] = useState("");
 
   function sendMessage<T>(data: unknown): Promise<T> {
-    console.log("Extension id", chrome.runtime.id);
     const extensionId = localStorage.getItem("jstz-signer-extension-id");
     return new Promise((res) => {
       chrome.runtime.sendMessage(extensionId, data, {}, (response) => {
@@ -57,12 +57,6 @@ export default function Home() {
 
     try {
       setNotification("Waiting for your request to be signed by the extension...");
-      // const response = await sendMessage({
-      //   type: "JSTZ_SIGN_REQUEST_TO_EXTENSION",
-      //   data: buildRequest({ smartFunctionAddress, path }),
-      // });
-      //
-      // console.log('response', response);
 
       await callSmartFunction({
         smartFunctionRequest: buildRequest({ smartFunctionAddress, path }),
@@ -73,7 +67,7 @@ export default function Home() {
     }
   }
 
-  async function onSignatureReceived(response: SignResponse) {
+  async function onSignatureReceived(response: { data: JstzSigner.SignResponse }) {
     const { operation, signature, publicKey, accountAddress } = response.data;
 
     setNotification(`Operation signed with address: ${accountAddress}`);
