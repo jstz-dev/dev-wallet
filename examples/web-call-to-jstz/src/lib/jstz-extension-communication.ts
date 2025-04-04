@@ -11,14 +11,13 @@ export async function callSmartFunction({
   onSignatureReceived,
 }: {
   smartFunctionRequest: Jstz.Operation.RunFunction;
-  onSignatureReceived: (response: SignResponse) => void;
+  onSignatureReceived: (response: { data: SignResponse }) => void;
 }): Promise<void | Error> {
   const request = await requestSignature(smartFunctionRequest);
   onSignatureReceived(request);
 }
 
 function requestSignature(requestToSign: Jstz.Operation.RunFunction) {
-  //@ts-expect-error - d.ts should handle the issue
   return window.jstzCallSignerExtension<SignResponse>({
     type: SignerRequestEventTypes.SIGN,
     content: requestToSign,
@@ -62,7 +61,7 @@ async function callCounterSmartFunction({
   }
 }
 
-async function onSignatureReceived(response: SignResponse) {
+async function onSignatureReceived(response: { data: SignResponse }) {
   console.log(response);
   const { operation, signature, publicKey, accountAddress } = response.data;
 

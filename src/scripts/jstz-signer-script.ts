@@ -74,6 +74,13 @@ function callSignerExtension<T = SignResponse | GetAddressResponse>(
   });
 }
 
-// TODO: requires .d.ts
-// @ts-expect-error - potential way to reveal the call method from the extension
+declare global {
+  interface Window {
+    jstzCallSignerExtension: <T = SignResponse | GetAddressResponse>(
+        payload: SignRequestCall | GetSignerAddressCall,
+    ) => Promise<ExtensionResponse<T>>;
+  }
+}
+
+
 window.jstzCallSignerExtension = callSignerExtension;

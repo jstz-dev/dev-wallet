@@ -28,16 +28,16 @@ interface GetSignerAddressCall {
   type: SignerRequestEventTypes.GET_ADDRESS;
 }
 
-type SignResponse = ExtensionResponse<{
+interface SignResponse {
   operation: Jstz.Operation;
   signature: string;
   publicKey: string;
   accountAddress: string;
-}>;
+};
 
-type GetAddressResponse = ExtensionResponse<{
+interface GetAddressResponse {
   accountAddress: string;
-}>;
+};
 
 function callSignerExtension<T = SignResponse | GetAddressResponse>(
     payload: SignRequestCall | GetSignerAddressCall,
@@ -85,3 +85,11 @@ export {
   type SignResponse,
   type GetAddressResponse,
 };
+
+declare global {
+  interface Window {
+    jstzCallSignerExtension: <T = SignResponse | GetAddressResponse>(
+        payload: SignRequestCall | GetSignerAddressCall,
+    ) => Promise<ExtensionResponse<T>>;
+  }
+}
