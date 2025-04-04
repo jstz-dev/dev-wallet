@@ -3,192 +3,177 @@ import { Jstz } from "@jstz-dev/jstz-client";
 import { sign } from "~/lib/jstz";
 import type { WalletType } from "~/lib/vault";
 
-export enum WalletEventTypes {
+export enum RequestEventTypes {
   SIGN = "JSTZ_SIGN_REQUEST_TO_EXTENSION",
-  SIGN_RESPONSE = "JSTZ_SIGN_RESPONSE_FROM_EXTENSION",
-
   GET_ADDRESS = "JSTZ_GET_ADDRESS_REQUEST_TO_EXTENSION",
-  GET_ADDRESS_RESPONSE = "JSTZ_GET_ADDRESS_RESPONSE_FROM_EXTENSION",
+}
 
+export enum ResponseEventTypes {
+  SIGN_RESPONSE = "JSTZ_SIGN_RESPONSE_FROM_EXTENSION",
+  GET_ADDRESS_RESPONSE = "JSTZ_GET_ADDRESS_RESPONSE_FROM_EXTENSION",
   PROCESS_QUEUE = "PROCESS_QUEUE",
   DECLINE = "DECLINE",
 }
 
-interface WalletEvent {
-  type: WalletEventTypes;
-  data?: unknown;
+interface RequestEvent {
+  type: RequestEventTypes;
 }
 
-export interface SignEvent extends WalletEvent {
-  type: WalletEventTypes.SIGN;
+export interface SignEvent extends RequestEvent {
+  type: RequestEventTypes.SIGN;
   data: {
     content: Jstz.Operation.DeployFunction | Jstz.Operation.RunFunction;
   };
 }
 
-export interface GetAddressEvent extends WalletEvent {
-  type: WalletEventTypes.GET_ADDRESS;
+export interface GetAddressEvent extends RequestEvent {
+  type: RequestEventTypes.GET_ADDRESS;
 }
 
-interface SignRequest {
-  type: WalletEventTypes.SIGN;
-  resolve: (res: SignResponse) => void;
+interface ErrorResponse {
+  error: string;
+}
+
+interface SignResponse {
+  data: {
+    operation: Jstz.Operation;
+    signature: string;
+    publicKey: string;
+    accountAddress: string;
+  };
+}
+
+interface GetAddressResponse {
+  data: {
+    accountAddress: string;
+  };
+}
+
+interface QueuedSignRequest {
+  type: RequestEventTypes.SIGN;
+  resolve: (res: SignResponse | ErrorResponse) => void;
   content: SignEvent["data"]["content"];
 }
 
-interface GetAddressRequest {
-  type: WalletEventTypes.GET_ADDRESS;
-  resolve: (res: GetAddressResponse) => void;
+interface QueuedGetAddressRequest {
+  type: RequestEventTypes.GET_ADDRESS;
+  resolve: (res: GetAddressResponse | ErrorResponse) => void;
 }
 
-type SignResponse =
-  | {
-      data: {
-        operation: Jstz.Operation;
-        signature: string;
-        publicKey: string;
-        accountAddress: string;
-      };
-    }
-  | {
-      error: string;
-    };
+let queuedRequest: QueuedSignRequest | QueuedGetAddressRequest | null = null;
 
-type GetAddressResponse =
-  | {
-      data: {
-        accountAddress: string;
-      };
-    }
-  | {
-      error: string;
-    };
-
-let queue: Array<SignRequest | GetAddressRequest> = [];
-
-chrome.runtime.onConnect.addListener((port) => {
-  port.onMessage.addListener((message: string) => {
-    const request = JSON.parse(message) as SignEvent | GetAddressEvent;
-
-    switch (request.type) {
-      case WalletEventTypes.SIGN: {
-        const { content } = request.data;
-
-        openWalletDialog({ flow: WalletEventTypes.SIGN });
-        queue.push({
-          type: WalletEventTypes.SIGN,
-          resolve: (data: SignResponse) => {
-            port.postMessage(JSON.stringify({ type: WalletEventTypes.SIGN_RESPONSE, ...data }));
-          },
-          content,
-        });
-        break;
-      }
-
-      case WalletEventTypes.GET_ADDRESS: {
-        openWalletDialog({ flow: WalletEventTypes.GET_ADDRESS });
-        queue.push({
-          type: WalletEventTypes.GET_ADDRESS,
-          resolve: (data) => {
-            port.postMessage(
-              JSON.stringify({ type: WalletEventTypes.GET_ADDRESS_RESPONSE, ...data }),
-            );
-          },
-        });
-        break;
-      }
-    }
-  });
-});
-
-interface ProcessQueueEvent extends WalletEvent {
-  type: WalletEventTypes.PROCESS_QUEUE;
+interface ResponseEvent {
+  type: ResponseEventTypes;
+}
+interface ProcessQueueEvent extends ResponseEvent {
+  type: ResponseEventTypes.PROCESS_QUEUE;
   data: WalletType;
 }
 
-interface DeclineEvent extends WalletEvent {
-  type: WalletEventTypes.DECLINE;
+interface DeclineEvent extends ResponseEvent {
+  type: ResponseEventTypes.DECLINE;
 }
 
-interface GetAddressResponseEvent extends WalletEvent {
-  type: WalletEventTypes.GET_ADDRESS_RESPONSE;
+interface GetAddressResponseEvent extends ResponseEvent {
+  type: ResponseEventTypes.GET_ADDRESS_RESPONSE;
   data: {
     accountAddress: string;
   };
 }
 
 chrome.runtime.onMessage.addListener(
-  (request: ProcessQueueEvent | DeclineEvent | GetAddressResponseEvent, _sender, sendResponse) => {
+  (
+    request:
+      | SignEvent
+      | GetAddressEvent
+      | ProcessQueueEvent
+      | DeclineEvent
+      | GetAddressResponseEvent,
+    _sender,
+    sendResponse,
+  ) => {
+    // content script to sw communication
     switch (request.type) {
-      case WalletEventTypes.PROCESS_QUEUE: {
-        queue = queue.reduce((acc: GetAddressRequest[], queueRequest) => {
-          if (queueRequest.type !== WalletEventTypes.SIGN) {
-            acc.push(queueRequest);
-            return acc;
-          }
+      case RequestEventTypes.SIGN: {
+        const { content } = request.data;
 
-          const { address, publicKey, privateKey } = request.data;
-
-          void createOperation({
-            content: queueRequest.content,
-            address: address,
-          }).then((operation) => {
-            const signature = sign(operation, privateKey);
-
-            queueRequest.resolve({
-              data: {
-                operation,
-                signature,
-                publicKey,
-                accountAddress: address,
-              },
-            });
-          });
-
-          return acc;
-        }, []);
-
-        sendResponse({ message: "done" });
-        break;
+        openWalletDialog({ flow: RequestEventTypes.SIGN });
+        queuedRequest = {
+          type: RequestEventTypes.SIGN,
+          resolve: (data) => {
+            sendResponse(JSON.stringify({ type: ResponseEventTypes.SIGN_RESPONSE, ...data }));
+          },
+          content,
+        };
+        return true;
       }
 
-      case WalletEventTypes.DECLINE: {
-        queue = queue.reduce((acc: GetAddressRequest[], queueRequest) => {
-          if (queueRequest.type !== WalletEventTypes.SIGN) {
-            acc.push(queueRequest);
-            return acc;
-          }
-
-          queueRequest.resolve({ error: "Signing rejected by the user" });
-          return acc;
-        }, []);
-
-        sendResponse({ message: "done" });
-        break;
+      case RequestEventTypes.GET_ADDRESS: {
+        openWalletDialog({ flow: RequestEventTypes.GET_ADDRESS });
+        queuedRequest = {
+          type: RequestEventTypes.GET_ADDRESS,
+          resolve: (data) => {
+            sendResponse(
+              JSON.stringify({ type: ResponseEventTypes.GET_ADDRESS_RESPONSE, ...data }),
+            );
+          },
+        };
+        return true;
       }
+    }
 
-      case WalletEventTypes.GET_ADDRESS_RESPONSE: {
-        queue = queue.reduce((acc: SignRequest[], queueRequest) => {
-          if (queueRequest.type !== WalletEventTypes.GET_ADDRESS) {
-            acc.push(queueRequest);
-            return acc;
-          }
+    if (!queuedRequest) {
+      sendResponse({ error: "No request to sign" });
+      return;
+    }
 
-          const { accountAddress } = request.data;
+    // dialog to sw communication
+    switch (request.type) {
+      case ResponseEventTypes.PROCESS_QUEUE: {
+        const { address, publicKey, privateKey } = request.data;
 
-          queueRequest.resolve({
+        const { content, resolve } = queuedRequest as QueuedSignRequest;
+        void createOperation({
+          content,
+          address: address,
+        }).then((operation) => {
+          const signature = sign(operation, privateKey);
+
+          resolve({
             data: {
-              accountAddress,
+              operation,
+              signature,
+              publicKey,
+              accountAddress: address,
             },
           });
+        });
 
-          return acc;
-        }, []);
+        break;
+      }
 
-        sendResponse({ message: "done" });
+      case ResponseEventTypes.DECLINE: {
+        queuedRequest.resolve({ error: "Signing rejected by the user" });
+        break;
+      }
+
+      case ResponseEventTypes.GET_ADDRESS_RESPONSE: {
+        const { accountAddress } = request.data;
+
+        const { resolve } = queuedRequest as QueuedGetAddressRequest;
+
+        resolve({
+          data: {
+            accountAddress,
+          },
+        });
         break;
       }
     }
+
+    sendResponse({ message: "done" });
+
+    return true; // Keep the message channel open for sendResponse
   },
 );
 
@@ -196,7 +181,7 @@ async function createOperation({
   content,
   address,
 }: {
-  content: SignRequest["content"];
+  content: QueuedSignRequest["content"];
   address: WalletType["address"];
 }): Promise<Jstz.Operation> {
   const jstzClient = new Jstz({

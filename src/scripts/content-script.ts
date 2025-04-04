@@ -1,18 +1,27 @@
 import { Jstz } from "@jstz-dev/jstz-client";
 
-enum WalletEventTypes {
-  SIGN = "JSTZ_SIGN_REQUEST_TO_EXTENSION",
+enum ResponseEventTypes {
   SIGN_RESPONSE = "JSTZ_SIGN_RESPONSE_FROM_EXTENSION",
-
-  GET_ADDRESS = "JSTZ_GET_ADDRESS_REQUEST_TO_EXTENSION",
   GET_ADDRESS_RESPONSE = "JSTZ_GET_ADDRESS_RESPONSE_FROM_EXTENSION",
+  ERROR = "JSTZ_ERROR_FROM_EXTENSION",
+}
 
-  PROCESS_QUEUE = "PROCESS_QUEUE",
-  DECLINE = "DECLINE",
+enum RequestEventTypes {
+  SIGN = "JSTZ_SIGN_REQUEST_TO_EXTENSION",
+  GET_ADDRESS = "JSTZ_GET_ADDRESS_REQUEST_TO_EXTENSION",
+}
+
+interface SignRequest {
+  type: RequestEventTypes.SIGN;
+  content: Jstz.Operation.RunFunction;
+}
+
+interface AddressRequest {
+  type: RequestEventTypes.GET_ADDRESS;
 }
 
 export interface SignResponse {
-  type: WalletEventTypes.SIGN_RESPONSE;
+  type: ResponseEventTypes.SIGN_RESPONSE;
   data: {
     operation: Jstz.Operation;
     signature: string;
@@ -21,68 +30,51 @@ export interface SignResponse {
   };
 }
 
-interface SignError {
-  type: WalletEventTypes.SIGN_RESPONSE;
+interface ErrorResponse {
+  type: ResponseEventTypes;
   error: string;
 }
 
 export interface GetAddressResponse {
-  type: WalletEventTypes.GET_ADDRESS_RESPONSE;
+  type: ResponseEventTypes.GET_ADDRESS_RESPONSE;
   data: {
     accountAddress: string;
   };
 }
 
-// Listener for the global window messages
-window.addEventListener(
-  WalletEventTypes.SIGN,
-  ((
-    event: CustomEvent<{
-      type: WalletEventTypes.SIGN;
-      content: Jstz.Operation.RunFunction;
-    }>,
-  ) => {
-    port.postMessage(
-      JSON.stringify({ type: event.detail.type, data: { content: event.detail.content } }),
-    );
-  }) as EventListener,
-  false,
-);
+function sendEventToClient(payload: SignResponse | ErrorResponse | GetAddressResponse) {
+  const responseEvent = new CustomEvent(payload.type, {
+    detail: payload,
+  });
 
-// Listener for the global window messages
-window.addEventListener(
-  WalletEventTypes.GET_ADDRESS,
-  ((
-    event: CustomEvent<{
-      type: WalletEventTypes.GET_ADDRESS;
-    }>,
-  ) => {
-    port.postMessage(JSON.stringify({ type: event.detail.type }));
-  }) as EventListener,
-  false,
-);
+  window.dispatchEvent(responseEvent);
+}
 
-const port = chrome.runtime.connect();
-// Listener to messages received from the background script (service-worker.ts)
-port.onMessage.addListener((msg: string) => {
-  const response = JSON.parse(msg) as SignResponse | SignError | GetAddressResponse;
-
-  switch (response.type) {
-    case WalletEventTypes.SIGN_RESPONSE: {
-      const signResponseEvent = new CustomEvent(WalletEventTypes.SIGN_RESPONSE, {
-        detail: response,
-      });
-      window.dispatchEvent(signResponseEvent);
-      break;
-    }
-
-    case WalletEventTypes.GET_ADDRESS_RESPONSE: {
-      const getAddressResponseEvent = new CustomEvent(WalletEventTypes.GET_ADDRESS_RESPONSE, {
-        detail: response,
-      });
-
-      window.dispatchEvent(getAddressResponseEvent);
-      break;
-    }
+function onExtensionResponse(response?: string) {
+  if (!response) {
+    sendEventToClient({ type: ResponseEventTypes.ERROR, error: "No response from extension" });
+    return;
   }
+
+  sendEventToClient(JSON.parse(response) as SignResponse | ErrorResponse | GetAddressResponse);
+}
+
+async function postMessage(payload: unknown) {
+  try {
+    const response: string = await chrome.runtime.sendMessage(chrome.runtime.id, payload);
+    onExtensionResponse(response);
+  } catch (e) {
+    console.error("Error while sending sign request to background script", e);
+  }
+}
+
+// Listener for all the global window messages of type: WalletEventTypes
+Object.entries(RequestEventTypes).forEach(([_, eventType]) => {
+  window.addEventListener(
+    eventType,
+    ((event: CustomEvent<SignRequest | AddressRequest>) => {
+      void postMessage({ type: event.detail.type, data: event.detail });
+    }) as EventListener,
+    false,
+  );
 });
