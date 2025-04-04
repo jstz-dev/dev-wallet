@@ -31,6 +31,7 @@ export interface GetAddressEvent extends RequestEvent {
 }
 
 interface ErrorResponse {
+  type: ResponseEventTypes;
   error: string;
 }
 
@@ -153,7 +154,10 @@ chrome.runtime.onMessage.addListener(
       }
 
       case ResponseEventTypes.DECLINE: {
-        queuedRequest.resolve({ error: "Signing rejected by the user" });
+        queuedRequest.resolve({
+          type: ResponseEventTypes.SIGN_RESPONSE,
+          error: "Signing rejected by the user",
+        });
         break;
       }
 

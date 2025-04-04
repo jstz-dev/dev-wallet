@@ -52,6 +52,8 @@ export default tseslint.config(
       "react/no-unstable-nested-components": ["error", { allowAsProps: true }],
       "react/self-closing-comp": "error",
       "react/prop-types": "off",
+      "@typescript-eslint/prefer-namespace-keyword": "off",
+      "@typescript-eslint/no-namespace": "off",
 
       "react-compiler/react-compiler": "warn",
 

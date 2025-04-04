@@ -1,65 +1,28 @@
 import Jstz from "@jstz-dev/jstz-client";
 
+import JstzSigner from "~/lib/jstz-signer";
+
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8");
 
-export enum WalletEvents {
-  SIGN = "JSTZ_SIGN_REQUEST_TO_EXTENSION",
-  SIGN_RESPONSE = "JSTZ_SIGN_RESPONSE_FROM_EXTENSION",
-}
-
-export interface SignResponse {
-  data: {
-    operation: Jstz.Operation;
-    signature: string;
-    publicKey: string;
-    accountAddress: string;
-  };
-}
-
+// EXAMPLE IMPLEMENTATION
 export async function callSmartFunction({
   smartFunctionRequest,
   onSignatureReceived,
 }: {
   smartFunctionRequest: Jstz.Operation.RunFunction;
-  onSignatureReceived: (response: SignResponse) => void;
+  onSignatureReceived: (response: { data: JstzSigner.SignResponse }) => void;
 }): Promise<void | Error> {
-  const signatureResponse = await requestSignature(smartFunctionRequest);
-  onSignatureReceived(signatureResponse);
+  const request = await requestSignature(smartFunctionRequest);
+  onSignatureReceived(request);
 }
 
 function requestSignature(requestToSign: Jstz.Operation.RunFunction) {
-  const signEvent = new CustomEvent<{ type: WalletEvents; content: Jstz.Operation.RunFunction }>(
-    WalletEvents.SIGN,
-    {
-      detail: { type: WalletEvents.SIGN, content: requestToSign },
-    },
-  );
-  console.info("Requesting signature from the extension...");
-
-  window.dispatchEvent(signEvent);
-
-  console.info("Waiting for the signed payload...");
-
-  return new Promise<SignResponse>((resolve, reject) => {
-    window.addEventListener(
-      WalletEvents.SIGN_RESPONSE,
-      ((event: SignResponseEvent) => {
-        return "error" in event.detail
-          ? reject(new Error(event.detail.error))
-          : resolve(event.detail);
-      }) as EventListener,
-      { once: true },
-    );
+  return window.jstzCallSignerExtension<JstzSigner.SignResponse>({
+    type: JstzSigner.SignerRequestEventTypes.SIGN,
+    content: requestToSign,
   });
 }
-
-// EXAMPLE IMPLEMENTATION
-
-export interface SignError {
-  error: string;
-}
-export type SignResponseEvent = CustomEvent<SignResponse | SignError>;
 
 async function callCounterSmartFunction({
   smartFunctionAddress,
@@ -98,10 +61,8 @@ async function callCounterSmartFunction({
   }
 }
 
-async function onSignatureReceived(response: SignResponse) {
+async function onSignatureReceived(response: { data: JstzSigner.SignResponse }) {
   const { operation, signature, publicKey, accountAddress } = response.data;
-
-  console.info(`Operation signed with address: ${accountAddress}`);
 
   const jstzClient = new Jstz.Jstz({
     timeout: 6000,

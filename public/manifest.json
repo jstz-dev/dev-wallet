@@ -21,6 +21,11 @@
     {
       "matches": ["<all_urls>"],
       "js": ["./scripts/content-script.js"]
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["./scripts/jstz-signer-script.js"],
+      "world": "MAIN"
     }
   ],
   "web_accessible_resources": [
