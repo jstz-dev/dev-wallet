@@ -1,6 +1,5 @@
 import Jstz from "@jstz-dev/jstz-client";
 
-//eslint-disable @typescript-eslint/prefer-namespace-keyword
 export module JstzSigner {
   export enum SignerResponseEventTypes {
     SIGN_RESPONSE = "JSTZ_SIGN_RESPONSE_FROM_EXTENSION",
