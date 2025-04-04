@@ -38,6 +38,16 @@ export default function Home() {
   const form = useWatch({ control });
   const [notification, setNotification] = useState("");
 
+  function sendMessage<T>(data: unknown): Promise<T> {
+    console.log("Extension id", chrome.runtime.id);
+    const extensionId = localStorage.getItem("jstz-signer-extension-id");
+    return new Promise((res) => {
+      chrome.runtime.sendMessage(extensionId, data, {}, (response) => {
+        res(response as T);
+      });
+    });
+  }
+
   async function callCounterSmartFunction(path: string) {
     const { smartFunctionAddress = "" } = form;
 

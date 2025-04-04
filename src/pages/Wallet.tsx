@@ -35,7 +35,7 @@ export default function Wallet() {
 
       <div className="flex w-full flex-col gap-2">
         <Label className="font-bold">Public Key</Label>
-        {account?.[StorageKeys.PRIVATE_KEY]}
+        {account?.[StorageKeys.PUBLIC_KEY]}
       </div>
 
       <div className="flex w-full flex-col gap-2">
@@ -48,7 +48,7 @@ export default function Wallet() {
         </div>
 
         <div>
-          {privateKeyVisible ? account?.[StorageKeys.PUBLIC_KEY] : "*****************************"}
+          {privateKeyVisible ? account?.[StorageKeys.PRIVATE_KEY] : "*****************************"}
         </div>
       </div>
 
