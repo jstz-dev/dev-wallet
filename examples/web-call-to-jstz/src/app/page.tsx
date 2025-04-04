@@ -37,6 +37,16 @@ export default function Home() {
   const form = useWatch({ control });
   const [notification, setNotification] = useState("");
 
+  function sendMessage<T>(data: unknown): Promise<T> {
+    console.log("Extension id", chrome.runtime.id);
+    const extensionId = localStorage.getItem("jstz-signer-extension-id");
+    return new Promise((res) => {
+      chrome.runtime.sendMessage(extensionId, data, {}, (response) => {
+        res(response as T);
+      });
+    });
+  }
+
   async function callCounterSmartFunction(path: string) {
     const { smartFunctionAddress = "" } = form;
 
@@ -47,6 +57,13 @@ export default function Home() {
 
     try {
       setNotification("Waiting for your request to be signed by the extension...");
+      // const response = await sendMessage({
+      //   type: "JSTZ_SIGN_REQUEST_TO_EXTENSION",
+      //   data: buildRequest({ smartFunctionAddress, path }),
+      // });
+      //
+      // console.log('response', response);
+
       await callSmartFunction({
         smartFunctionRequest: buildRequest({ smartFunctionAddress, path }),
         onSignatureReceived,

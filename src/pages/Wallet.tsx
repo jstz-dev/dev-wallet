@@ -6,7 +6,7 @@ import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label.tsx";
 import { StorageKeys, type KeyStorage } from "~/lib/constants/storage";
 import { useVault } from "~/lib/vaultStore";
-import { WalletEventTypes } from "~/scripts/service-worker";
+import { RequestEventTypes, ResponseEventTypes } from "~/scripts/service-worker";
 
 export default function Wallet() {
   const { accountAddress } = useParams() as { accountAddress: string };
@@ -55,10 +55,10 @@ export default function Wallet() {
       {isPopup &&
         (() => {
           switch (searchParams.get("flow")) {
-            case WalletEventTypes.SIGN:
+            case RequestEventTypes.SIGN:
               return <OperationSigningDialog accountAddress={accountAddress} account={account} />;
 
-            case WalletEventTypes.GET_ADDRESS:
+            case RequestEventTypes.GET_ADDRESS:
               return <GetAddressDialog currentAddress={accountAddress} />;
 
             default:
@@ -78,7 +78,7 @@ function OperationSigningDialog({
 }) {
   async function handleConfirm() {
     await chrome.runtime.sendMessage({
-      type: WalletEventTypes.PROCESS_QUEUE,
+      type: ResponseEventTypes.PROCESS_QUEUE,
       data: {
         address: accountAddress,
         privateKey: account?.[StorageKeys.PRIVATE_KEY],
@@ -90,7 +90,7 @@ function OperationSigningDialog({
   }
 
   async function handleReject() {
-    await chrome.runtime.sendMessage({ type: WalletEventTypes.DECLINE });
+    await chrome.runtime.sendMessage({ type: ResponseEventTypes.DECLINE });
     window.close();
   }
 
@@ -114,7 +114,7 @@ function OperationSigningDialog({
 function GetAddressDialog({ currentAddress }: { currentAddress: string }) {
   async function handleGetAddress() {
     await chrome.runtime.sendMessage({
-      type: WalletEventTypes.GET_ADDRESS_RESPONSE,
+      type: ResponseEventTypes.GET_ADDRESS_RESPONSE,
       data: { accountAddress: currentAddress },
     });
     window.close();
