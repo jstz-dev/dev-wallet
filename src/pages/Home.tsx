@@ -28,14 +28,12 @@ export default function Home() {
 
   return (
     <div className="flex flex-col gap-8 p-4 justify-center">
-      <h3 className="text-2xl font-bold">You don&apos;t have any account yet...</h3>
+      <h3 className="text-2xl font-bold">No accounts</h3>
 
       <div className="flex flex-col items-center justify-between gap-3">
-        <Button onClick={handleGenerate}>Generate new wallet</Button>
+        <Button onClick={handleGenerate}>Generate account</Button>
 
-        <span className="text-xl font-semibold">- or -</span>
-
-        <Button onClick={() => navigate("import-wallet")}>Import existing wallet</Button>
+        <Button onClick={() => navigate("import-wallet")}>Import existing account</Button>
       </div>
     </div>
   );

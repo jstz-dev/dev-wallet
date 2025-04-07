@@ -26,7 +26,7 @@ export default function Wallet() {
 
   return (
     <div className="flex w-full flex-col gap-4 p-4">
-      <h3 className="text-2xl font-bold">Your current wallet details</h3>
+      <h3 className="text-2xl font-bold">Current account</h3>
 
       <div className="flex w-full flex-col gap-2">
         <Label className="font-bold">Address</Label>
@@ -34,13 +34,13 @@ export default function Wallet() {
       </div>
 
       <div className="flex w-full flex-col gap-2">
-        <Label className="font-bold">Public Key</Label>
+        <Label className="font-bold">Public key</Label>
         {account?.[StorageKeys.PUBLIC_KEY]}
       </div>
 
       <div className="flex w-full flex-col gap-2">
         <div className="flex flex-wrap gap-2 align-middle">
-          <Label className="font-bold">Private Key</Label>
+          <Label className="font-bold">Private key</Label>
 
           <div className="cursor-pointer" onClick={() => setPrivateKeyVisible(!privateKeyVisible)}>
             {privateKeyVisible ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -96,7 +96,7 @@ function OperationSigningDialog({
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-lg">Do you want to sign operation with current wallet?</h1>
+      <h1 className="text-lg">Do you want to sign the operation with the current address?</h1>
 
       <div className="flex w-full justify-end gap-4">
         <Button variant="outline" onClick={handleReject}>
