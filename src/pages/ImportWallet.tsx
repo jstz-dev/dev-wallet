@@ -27,7 +27,7 @@ export default function ImportWallet() {
     <div className="flex w-full flex-col gap-4 p-4">
       <ArrowLeft onClick={() => navigate(-1)} className="cursor-pointer" />
 
-      <h3 className="text-2xl font-bold">Provide details of the imported wallet</h3>
+      <h3 className="text-2xl font-bold">Import account</h3>
 
       <ImportWalletForm onSubmit={onImportWalletSubmit} />
     </div>
