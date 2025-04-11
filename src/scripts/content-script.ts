@@ -54,9 +54,8 @@ module JstzSigner {
   }
 }
 
-(function checkAvailability() {
-  void postMessage({ type: JstzSigner.SignerRequestEventTypes.CHECK_STATUS });
-})();
+ // check availability
+ void postMessage({ type: JstzSigner.SignerRequestEventTypes.CHECK_STATUS });
 
 function sendEventToClient(
   payload:
