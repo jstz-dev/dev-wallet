@@ -3,12 +3,14 @@ import Jstz from "@jstz-dev/jstz-client";
 // TODO: move to jstz-client
 module JstzSigner {
   export enum SignerResponseEventTypes {
+    CHECK_STATUS_RESPONSE = "JSTZ_CHECK_EXTENSION_AVAILABILITY_RESPONSE_FROM_EXTENSION",
     SIGN_RESPONSE = "JSTZ_SIGN_RESPONSE_FROM_EXTENSION",
     GET_ADDRESS_RESPONSE = "JSTZ_GET_ADDRESS_RESPONSE_FROM_EXTENSION",
     ERROR = "JSTZ_ERROR_FROM_EXTENSION",
   }
 
   export enum SignerRequestEventTypes {
+    CHECK_STATUS = "JSTZ_CHECK_EXTENSION_AVAILABILITY_REQUEST_TO_EXTENSION",
     SIGN = "JSTZ_SIGN_REQUEST_TO_EXTENSION",
     GET_ADDRESS = "JSTZ_GET_ADDRESS_REQUEST_TO_EXTENSION",
   }
@@ -32,6 +34,10 @@ module JstzSigner {
     type: SignerRequestEventTypes.GET_ADDRESS;
   }
 
+  export interface CheckStatusCall {
+    type: SignerRequestEventTypes.CHECK_STATUS;
+  }
+
   export interface SignResponse {
     operation: Jstz.Operation;
     signature: string;
@@ -42,11 +48,20 @@ module JstzSigner {
   export interface GetAddressResponse {
     accountAddress: string;
   }
+
+  export interface CheckStatusResponse {
+    success: boolean;
+  }
 }
+
+ // check availability
+ void postMessage({ type: JstzSigner.SignerRequestEventTypes.CHECK_STATUS });
 
 function sendEventToClient(
   payload:
-    | JstzSigner.ExtensionResponse<JstzSigner.SignResponse | JstzSigner.GetAddressResponse>
+    | JstzSigner.ExtensionResponse<
+        JstzSigner.SignResponse | JstzSigner.GetAddressResponse | JstzSigner.CheckStatusResponse
+      >
     | JstzSigner.ExtensionError,
 ) {
   const responseEvent = new CustomEvent(payload.type, {
@@ -67,7 +82,9 @@ function onExtensionResponse(response?: string) {
 
   sendEventToClient(
     JSON.parse(response) as
-      | JstzSigner.ExtensionResponse<JstzSigner.SignResponse | JstzSigner.GetAddressResponse>
+      | JstzSigner.ExtensionResponse<
+          JstzSigner.SignResponse | JstzSigner.GetAddressResponse | JstzSigner.CheckStatusResponse
+        >
       | JstzSigner.ExtensionError,
   );
 }
@@ -85,7 +102,11 @@ async function postMessage(payload: unknown) {
 Object.entries(JstzSigner.SignerRequestEventTypes).forEach(([_, eventType]) => {
   window.addEventListener(
     eventType,
-    ((event: CustomEvent<JstzSigner.SignRequestCall | JstzSigner.GetSignerAddressCall>) => {
+    ((
+      event: CustomEvent<
+        JstzSigner.SignRequestCall | JstzSigner.GetSignerAddressCall | JstzSigner.CheckStatusCall
+      >,
+    ) => {
       void postMessage({ type: event.detail.type, data: event.detail });
     }) as EventListener,
     false,
