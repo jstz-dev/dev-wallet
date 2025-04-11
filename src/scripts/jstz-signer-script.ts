@@ -76,7 +76,7 @@ export module JstzSigner {
 
     window.dispatchEvent(event);
 
-    const { timeout = 5000 } = options || {};
+    const { timeout = 5000 } = options ?? {};
 
     return new Promise<ExtensionResponse<T>>((resolve, reject) => {
       let eventFired = false;
