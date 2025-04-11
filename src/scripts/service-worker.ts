@@ -4,6 +4,7 @@ import { sign } from "~/lib/jstz";
 import type { WalletType } from "~/lib/vault";
 
 export enum RequestEventTypes {
+  CHECK_STATUS = "JSTZ_CHECK_EXTENSION_AVAILABILITY_REQUEST_TO_EXTENSION",
   SIGN = "JSTZ_SIGN_REQUEST_TO_EXTENSION",
   GET_ADDRESS = "JSTZ_GET_ADDRESS_REQUEST_TO_EXTENSION",
 }
@@ -11,6 +12,7 @@ export enum RequestEventTypes {
 export enum ResponseEventTypes {
   SIGN_RESPONSE = "JSTZ_SIGN_RESPONSE_FROM_EXTENSION",
   GET_ADDRESS_RESPONSE = "JSTZ_GET_ADDRESS_RESPONSE_FROM_EXTENSION",
+  CHECK_STATUS_RESPONSE = "JSTZ_CHECK_EXTENSION_AVAILABILITY_RESPONSE_FROM_EXTENSION",
   PROCESS_QUEUE = "PROCESS_QUEUE",
   DECLINE = "DECLINE",
 }
@@ -24,6 +26,10 @@ export interface SignEvent extends RequestEvent {
   data: {
     content: Jstz.Operation.DeployFunction | Jstz.Operation.RunFunction;
   };
+}
+
+export interface CheckStatusCall extends RequestEvent {
+  type: RequestEventTypes.CHECK_STATUS;
 }
 
 export interface GetAddressEvent extends RequestEvent {
@@ -82,11 +88,19 @@ interface GetAddressResponseEvent extends ResponseEvent {
   };
 }
 
+export interface CheckStatusResponse extends ResponseEvent {
+  type: ResponseEventTypes.CHECK_STATUS_RESPONSE;
+  data: {
+    success: true;
+  };
+}
+
 chrome.runtime.onMessage.addListener(
   (
     request:
       | SignEvent
       | GetAddressEvent
+      | CheckStatusCall
       | ProcessQueueEvent
       | DeclineEvent
       | GetAddressResponseEvent,
@@ -95,6 +109,16 @@ chrome.runtime.onMessage.addListener(
   ) => {
     // content script to sw communication
     switch (request.type) {
+      case RequestEventTypes.CHECK_STATUS: {
+        sendResponse(
+          JSON.stringify({
+            type: ResponseEventTypes.CHECK_STATUS_RESPONSE,
+            data: { success: true },
+          }),
+        );
+        return false;
+      }
+
       case RequestEventTypes.SIGN: {
         const { content } = request.data;
 
