@@ -1,57 +1,68 @@
 import Jstz from "@jstz-dev/jstz-client";
 
-export module JstzSigner {
-  export enum SignerResponseEventTypes {
-    CHECK_STATUS_RESPONSE = "JSTZ_CHECK_EXTENSION_AVAILABILITY_RESPONSE_FROM_EXTENSION",
-    SIGN_RESPONSE = "JSTZ_SIGN_RESPONSE_FROM_EXTENSION",
-    GET_ADDRESS_RESPONSE = "JSTZ_GET_ADDRESS_RESPONSE_FROM_EXTENSION",
-    ERROR = "JSTZ_ERROR_FROM_EXTENSION",
+// Extension events
+enum SignerRequestEventTypes {
+  CHECK_STATUS = 'JSTZ_CHECK_EXTENSION_AVAILABILITY_REQUEST_TO_EXTENSION',
+  SIGN = 'JSTZ_SIGN_REQUEST_TO_EXTENSION',
+  GET_ADDRESS = 'JSTZ_GET_ADDRESS_REQUEST_TO_EXTENSION',
+}
+
+enum SignerResponseEventTypes {
+  CHECK_STATUS_RESPONSE = 'JSTZ_CHECK_EXTENSION_AVAILABILITY_RESPONSE_FROM_EXTENSION',
+  SIGN_RESPONSE = 'JSTZ_SIGN_RESPONSE_FROM_EXTENSION',
+  GET_ADDRESS_RESPONSE = 'JSTZ_GET_ADDRESS_RESPONSE_FROM_EXTENSION',
+}
+
+interface ExtensionError {
+  type: SignerResponseEventTypes;
+  error: string;
+}
+
+// Signer requests
+interface SignRequestCall {
+  type: SignerRequestEventTypes.SIGN;
+  content: unknown;
+}
+
+interface CheckStatusCall {
+  type: SignerRequestEventTypes.CHECK_STATUS;
+}
+
+interface GetSignerAddressCall {
+  type: SignerRequestEventTypes.GET_ADDRESS;
+}
+
+// Extension responses
+interface ExtensionResponse<T = unknown> {
+  type: SignerResponseEventTypes;
+  data: T;
+}
+
+interface SignResponse {
+  operation: Jstz.Operation;
+  signature: string;
+  publicKey: string;
+  accountAddress: string;
+}
+
+interface GetAddressResponse {
+  accountAddress: string;
+}
+
+interface CheckStatusResponse {
+  success: boolean;
+}
+
+/**
+ * An event dispatcher for Signer extensions
+ */
+export class JstzSigner {
+  eventTarget: EventTarget;
+  constructor(eventTarget: EventTarget) {
+    this.eventTarget = eventTarget;
   }
 
-  export enum SignerRequestEventTypes {
-    CHECK_STATUS = "JSTZ_CHECK_EXTENSION_AVAILABILITY_REQUEST_TO_EXTENSION",
-    SIGN = "JSTZ_SIGN_REQUEST_TO_EXTENSION",
-    GET_ADDRESS = "JSTZ_GET_ADDRESS_REQUEST_TO_EXTENSION",
-  }
-
-  export interface ExtensionError {
-    type: SignerResponseEventTypes;
-    error: string;
-  }
-
-  export interface ExtensionResponse<T = unknown> {
-    type: SignerResponseEventTypes;
-    data: T;
-  }
-
-  export interface SignRequestCall {
-    type: SignerRequestEventTypes.SIGN;
-    content: Jstz.Operation.RunFunction;
-  }
-
-  export interface CheckStatusCall {
-    type: SignerRequestEventTypes.CHECK_STATUS;
-  }
-  export interface GetSignerAddressCall {
-    type: SignerRequestEventTypes.GET_ADDRESS;
-  }
-
-  export interface SignResponse {
-    operation: Jstz.Operation;
-    signature: string;
-    publicKey: string;
-    accountAddress: string;
-  }
-
-  export interface GetAddressResponse {
-    accountAddress: string;
-  }
-
-  export interface CheckStatusResponse {
-    success: boolean;
-  }
-
-  function getResponseType(reqType: SignerRequestEventTypes) {
+  private getResponseType(reqType: SignerRequestEventTypes) {
     switch (reqType) {
       case SignerRequestEventTypes.SIGN:
         return SignerResponseEventTypes.SIGN_RESPONSE;
@@ -60,24 +71,49 @@ export module JstzSigner {
       case SignerRequestEventTypes.CHECK_STATUS:
         return SignerResponseEventTypes.CHECK_STATUS_RESPONSE;
       default:
-        throw new Error("Unknown request type");
+        throw new Error('Unknown request type');
     }
   }
 
-  export function callSignerExtension<T = SignResponse | GetAddressResponse | CheckStatusResponse>(
+  /**
+   * Dispatch a Signer request event on `this.eventTarget`.
+   * Returns a Promise listening for the corresponding `ExtensionResponse` event.
+   *
+   * Signer extensions (typically, a browser wallet) should listen for the given payloads
+   * on `this.eventTarget` and emit an `ExtensionResponse<T>` if succesfully handled or
+   * `ExtensionError` if not
+   */
+  public callSignerExtension<T = SignResponse | GetAddressResponse | CheckStatusResponse>(
       payload: SignRequestCall | GetSignerAddressCall | CheckStatusCall,
-  ) {
+      options?: {
+        timeout?: number;
+      },
+  ): Promise<ExtensionResponse<T>> {
     const event = new CustomEvent<typeof payload>(payload.type, {
       detail: payload,
     });
 
-    window.dispatchEvent(event);
+    this.eventTarget.dispatchEvent(event);
+
+    const { timeout } = options || {};
 
     return new Promise<ExtensionResponse<T>>((resolve, reject) => {
-      window.addEventListener(
-          getResponseType(payload.type),
+      let eventFired = false;
+
+      if (timeout) {
+        setTimeout(() => {
+          if (!eventFired) {
+            reject(new Error('Extension is not responding'));
+          }
+        }, timeout);
+      }
+
+      this.eventTarget.addEventListener(
+          this.getResponseType(payload.type),
           ((event: CustomEvent<ExtensionError | ExtensionResponse<T>>) => {
-            if ("error" in event.detail) {
+            eventFired = true;
+
+            if ('error' in event.detail) {
               reject(new Error(event.detail.error));
             } else {
               resolve(event.detail);
@@ -89,17 +125,15 @@ export module JstzSigner {
   }
 }
 
-export default JstzSigner;
-
-declare global {
-  interface Window {
-    jstzCallSignerExtension: <
-        T = JstzSigner.SignResponse | JstzSigner.GetAddressResponse | JstzSigner.CheckStatusResponse,
-    >(
-        payload:
-            | JstzSigner.SignRequestCall
-            | JstzSigner.GetSignerAddressCall
-            | JstzSigner.CheckStatusCall,
-    ) => Promise<JstzSigner.ExtensionResponse<T>>;
-  }
-}
+export {
+  SignerResponseEventTypes,
+  SignerRequestEventTypes,
+  type ExtensionError,
+  type SignRequestCall,
+  type GetSignerAddressCall,
+  type ExtensionResponse,
+  type SignResponse,
+  type GetAddressResponse,
+  type CheckStatusCall,
+  type CheckStatusResponse,
+};
