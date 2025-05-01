@@ -1,17 +1,18 @@
-// import { useEffect } from "react";
+import { useEffect } from "react";
 import { Outlet } from "react-router";
 import NavBar from "~/components/NavBar";
-// import { WalletEventTypes } from "~/scripts/service-worker.ts";
+import { ResponseEventTypes } from "~/scripts/service-worker.ts";
 
 export default function RootLayout() {
-  // useEffect(() => {
-  //   window.addEventListener("close", onClose);
-  //   return () => window.removeEventListener("close", onClose);
-  // }, []);
-  //
-  // function onClose() {
-  //   void chrome.runtime.sendMessage({ type: WalletEventTypes.DECLINE });
-  // }
+  useEffect(() => {
+    window.addEventListener("beforeunload", onClose, {once: true});
+  }, []);
+
+  function onClose() {
+    void chrome.runtime.sendMessage({ type: ResponseEventTypes.DECLINE });
+    window.close()
+    return false;
+  }
 
   return (
     <div className="flex min-w-100 flex-col pb-4">

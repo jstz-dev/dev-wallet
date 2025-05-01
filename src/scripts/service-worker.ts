@@ -95,6 +95,19 @@ export interface CheckStatusResponse extends ResponseEvent {
   };
 }
 
+function getResponseType(reqType: RequestEventTypes) {
+  switch (reqType) {
+    case RequestEventTypes.SIGN:
+      return ResponseEventTypes.SIGN_RESPONSE;
+    case RequestEventTypes.GET_ADDRESS:
+      return ResponseEventTypes.GET_ADDRESS_RESPONSE;
+    case RequestEventTypes.CHECK_STATUS:
+      return ResponseEventTypes.CHECK_STATUS_RESPONSE;
+    default:
+      throw new Error("Unknown request type");
+  }
+}
+
 chrome.runtime.onMessage.addListener(
   (
     request:
@@ -179,8 +192,8 @@ chrome.runtime.onMessage.addListener(
 
       case ResponseEventTypes.DECLINE: {
         queuedRequest.resolve({
-          type: ResponseEventTypes.SIGN_RESPONSE,
-          error: "Signing rejected by the user",
+          type: getResponseType(queuedRequest.type),
+          error: "Request rejected by the user",
         });
         break;
       }
