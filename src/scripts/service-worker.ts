@@ -109,7 +109,7 @@ function getResponseType(reqType: RequestEventTypes) {
 }
 
 chrome.runtime.onMessage.addListener(
-  async (
+  (
     request:
       | SignEvent
       | GetAddressEvent
@@ -135,9 +135,7 @@ chrome.runtime.onMessage.addListener(
       case RequestEventTypes.SIGN: {
         const { content } = request.data;
 
-        await openWalletDialog({ flow: RequestEventTypes.SIGN });
-        await afterOpenDialog()
-
+        openWalletDialog({ flow: RequestEventTypes.SIGN });
         queuedRequest = {
           type: RequestEventTypes.SIGN,
           resolve: (data) => {
@@ -149,9 +147,7 @@ chrome.runtime.onMessage.addListener(
       }
 
       case RequestEventTypes.GET_ADDRESS: {
-
-        await openWalletDialog({ flow: RequestEventTypes.GET_ADDRESS });
-        await afterOpenDialog()
+        openWalletDialog({ flow: RequestEventTypes.GET_ADDRESS });
         queuedRequest = {
           type: RequestEventTypes.GET_ADDRESS,
           resolve: (data) => {
@@ -242,36 +238,15 @@ async function createOperation({
   };
 }
 
-// FIXME: temporary solution. We need to find a reason for multiple popups to appear
-async function afterOpenDialog() {
-  const windows = await chrome.windows.getAll();
-
-  const windowsToRemove = windows.filter((window, i) => window.type === "popup" && i !== windows.length - 1);
-
-  for (const window of windowsToRemove) {
-    if (window.type === "popup") {
-      try {
-        await chrome.windows.remove(Number(window.id));
-      } catch (e) {
-        console.warn(e)
-      }
-    }
-  }
-}
-
-async function openWalletDialog(
-  searchParams: Record<string, string> = {},
-) {
+function openWalletDialog(searchParams: Record<string, string> = {}) {
   const params = new URLSearchParams({ isPopup: "true", ...searchParams });
 
-  await chrome.windows.create(
-    {
-      url: `index.html?${params}`,
-      type: "popup",
-      focused: true,
-      width: 450,
-      height: 500,
-      // incognito, top, left, ...
-    }
-  );
+  void chrome.windows.create({
+    url: `index.html?${params}`,
+    type: "popup",
+    focused: true,
+    width: 450,
+    height: 500,
+    // incognito, top, left, ...
+  });
 }
