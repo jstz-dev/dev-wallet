@@ -1,6 +1,6 @@
 import Jstz from "@jstz-dev/jstz-client";
 
-import JstzSigner from "~/lib/jstz-signer";
+import * as JstzSigner from "./jstz-signer";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8");
@@ -18,7 +18,8 @@ export async function callSmartFunction({
 }
 
 function requestSignature(requestToSign: Jstz.Operation.RunFunction) {
-  return window.jstzCallSignerExtension<JstzSigner.SignResponse>({
+  const jstzSigner = new JstzSigner.JstzSigner(window);
+  return jstzSigner.callSignerExtension<JstzSigner.SignResponse>({
     type: JstzSigner.SignerRequestEventTypes.SIGN,
     content: requestToSign,
   });
