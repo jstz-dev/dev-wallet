@@ -109,7 +109,7 @@ function getResponseType(reqType: RequestEventTypes) {
 }
 
 chrome.runtime.onMessage.addListener(
-  (
+  async (
     request:
       | SignEvent
       | GetAddressEvent
@@ -135,7 +135,9 @@ chrome.runtime.onMessage.addListener(
       case RequestEventTypes.SIGN: {
         const { content } = request.data;
 
-        openWalletDialog({ flow: RequestEventTypes.SIGN });
+        await openWalletDialog({ flow: RequestEventTypes.SIGN });
+        await afterOpenDialog()
+
         queuedRequest = {
           type: RequestEventTypes.SIGN,
           resolve: (data) => {
@@ -147,7 +149,9 @@ chrome.runtime.onMessage.addListener(
       }
 
       case RequestEventTypes.GET_ADDRESS: {
-        openWalletDialog({ flow: RequestEventTypes.GET_ADDRESS });
+
+        await openWalletDialog({ flow: RequestEventTypes.GET_ADDRESS });
+        await afterOpenDialog()
         queuedRequest = {
           type: RequestEventTypes.GET_ADDRESS,
           resolve: (data) => {
@@ -238,15 +242,36 @@ async function createOperation({
   };
 }
 
-function openWalletDialog(searchParams: Record<string, string> = {}) {
+// FIXME: temporary solution. We need to find a reason for multiple popups to appear
+async function afterOpenDialog() {
+  const windows = await chrome.windows.getAll();
+
+  const windowsToRemove = windows.filter((window, i) => window.type === "popup" && i !== windows.length - 1);
+
+  for (const window of windowsToRemove) {
+    if (window.type === "popup") {
+      try {
+        await chrome.windows.remove(Number(window.id));
+      } catch (e) {
+        console.warn(e)
+      }
+    }
+  }
+}
+
+async function openWalletDialog(
+  searchParams: Record<string, string> = {},
+) {
   const params = new URLSearchParams({ isPopup: "true", ...searchParams });
 
-  void chrome.windows.create({
-    url: `index.html?${params}`,
-    type: "popup",
-    focused: true,
-    width: 450,
-    height: 500,
-    // incognito, top, left, ...
-  });
+  await chrome.windows.create(
+    {
+      url: `index.html?${params}`,
+      type: "popup",
+      focused: true,
+      width: 450,
+      height: 500,
+      // incognito, top, left, ...
+    }
+  );
 }
