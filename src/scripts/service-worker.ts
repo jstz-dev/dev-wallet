@@ -135,7 +135,9 @@ chrome.runtime.onMessage.addListener(
       case RequestEventTypes.SIGN: {
         const { content } = request.data;
 
-        openWalletDialog({ flow: RequestEventTypes.SIGN });
+        openWalletDialog({ flow: RequestEventTypes.SIGN }, (window?: chrome.windows.Window) =>
+          closeDuplicateWindows(window?.id),
+        );
         queuedRequest = {
           type: RequestEventTypes.SIGN,
           resolve: (data) => {
@@ -147,7 +149,11 @@ chrome.runtime.onMessage.addListener(
       }
 
       case RequestEventTypes.GET_ADDRESS: {
-        openWalletDialog({ flow: RequestEventTypes.GET_ADDRESS });
+        openWalletDialog(
+          { flow: RequestEventTypes.GET_ADDRESS },
+          (window?: chrome.windows.Window) => closeDuplicateWindows(window?.id),
+        );
+
         queuedRequest = {
           type: RequestEventTypes.GET_ADDRESS,
           resolve: (data) => {
@@ -238,15 +244,35 @@ async function createOperation({
   };
 }
 
-function openWalletDialog(searchParams: Record<string, string> = {}) {
+async function closeDuplicateWindows(currentWindowId?: number) {
+  const windows = await chrome.windows.getAll();
+
+  const popupsToDelete = windows.filter(
+    (window) => window.type === "popup" && window.id !== currentWindowId,
+  );
+
+  for (const popup of popupsToDelete) {
+    if (popup.id) {
+      await chrome.windows.remove(popup.id);
+    }
+  }
+}
+
+function openWalletDialog(
+  searchParams: Record<string, string> = {},
+  callback: (window?: chrome.windows.Window) => void,
+) {
   const params = new URLSearchParams({ isPopup: "true", ...searchParams });
 
-  void chrome.windows.create({
-    url: `index.html?${params}`,
-    type: "popup",
-    focused: true,
-    width: 450,
-    height: 500,
-    // incognito, top, left, ...
-  });
+  chrome.windows.create(
+    {
+      url: `index.html?${params}`,
+      type: "popup",
+      focused: true,
+      width: 450,
+      height: 500,
+      // incognito, top, left, ...
+    },
+    callback,
+  );
 }
