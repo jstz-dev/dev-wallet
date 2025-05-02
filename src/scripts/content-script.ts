@@ -86,12 +86,30 @@ function onExtensionResponse(response?: string) {
   );
 }
 
+async function wakeUpExtension(attempt = 0) {
+  const maxAttempts = 10;
+
+  try {
+    await chrome.runtime.sendMessage(chrome.runtime.id, {
+      type: JstzSigner.SignerRequestEventTypes.CHECK_STATUS,
+    });
+  } catch (e) {
+    console.log(`${attempt + 1} to wake up extension failed. Retrying...`);
+    if (attempt >= maxAttempts) {
+      console.error("Failed to wake up extension after multiple attempts.");
+      throw new Error("Failed to wake up extension.");
+    }
+    await wakeUpExtension(attempt + 1)
+  }
+}
+
 async function postMessage(payload: unknown) {
   try {
+    await wakeUpExtension();
     const response: string = await chrome.runtime.sendMessage(chrome.runtime.id, payload);
     onExtensionResponse(response);
   } catch (e) {
-    console.error("Error while sending sign request to background script", e);
+    console.error("Error while sending request to background script", e);
   }
 }
 
