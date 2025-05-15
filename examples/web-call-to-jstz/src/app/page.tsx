@@ -30,7 +30,7 @@ type Form = z.infer<typeof schema>;
 export default function Home() {
   const { register, control, setError } = useForm({
     defaultValues: {
-      smartFunctionAddress: "",
+      smartFunctionAddress: "KT19W9WFsyFPAFSSuZ4FSpmTWppXg69RPbod",
     },
     resolver: zodResolver(schema),
   });
@@ -81,7 +81,6 @@ export default function Home() {
         result: { inner },
       } = await jstzClient.operations.injectAndPoll({
         inner: operation,
-        public_key: publicKey,
         signature,
       });
 

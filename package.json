@@ -10,7 +10,7 @@
     "postinstall": "patch-package"
   },
   "dependencies": {
-    "@jstz-dev/jstz-client": "^0.1.1-alpha.0",
+    "@jstz-dev/jstz-client": "0.1.1-alpha.1",
     "@radix-ui/react-label": "^2.1.2",
     "@radix-ui/react-select": "^2.1.6",
     "@radix-ui/react-slot": "^1.1.2",
@@ -43,7 +43,7 @@
     "eslint-plugin-react-compiler": "19.0.0-beta-bafa41b-20250307",
     "eslint-plugin-react-hooks": "^5.1.0",
     "globals": "^16.0.0",
-    "jstz_sdk": "^0.1.0-alpha.0",
+    "jstz_sdk": "^0.1.1-alpha.1",
     "patch-package": "^8.0.0",
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.6.11",

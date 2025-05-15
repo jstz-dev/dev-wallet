@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@jstz-dev/jstz-client':
-        specifier: ^0.1.1-alpha.0
-        version: 0.1.1-alpha.0
+        specifier: 0.1.1-alpha.1
+        version: 0.1.1-alpha.1
       '@radix-ui/react-label':
         specifier: ^2.1.2
         version: 2.1.2(@types/react-dom@19.0.4(@types/react@19.0.10))(@types/react@19.0.10)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -103,8 +103,8 @@ importers:
         specifier: ^16.0.0
         version: 16.0.0
       jstz_sdk:
-        specifier: ^0.1.0-alpha.0
-        version: 0.1.0-alpha.0
+        specifier: ^0.1.1-alpha.1
+        version: 0.1.1-alpha.1
       patch-package:
         specifier: ^8.0.0
         version: 8.0.0
@@ -492,8 +492,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.25':
     resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==}
 
-  '@jstz-dev/jstz-client@0.1.1-alpha.0':
-    resolution: {integrity: sha512-xUrc7Cbc9vNRe1xy/CSPTu0aZ3fm9OaAfsEQ+ixtHRjKmuTzB4f6U9FapSiIaDaY8N/cVQtDzJe0LVL+UVckKg==}
+  '@jstz-dev/jstz-client@0.1.1-alpha.1':
+    resolution: {integrity: sha512-ukTuUopIDM2jtvkMQY6gZXcdb9So+0WQ48BQ+wCcEsdOLwdyhoC2pZVMLWiqKiPHHk0GdODA0umnqmQiW15pUA==}
 
   '@noble/hashes@1.7.1':
     resolution: {integrity: sha512-B8XBPsn4vT/KJAGqDzbwztd+6Yte3P4V7iafm24bxgDe/mlRuK6xmWPuCNrKt2vDafZ8MfJLlchDG/vYafQEjQ==}
@@ -2117,8 +2117,8 @@ packages:
   jsonify@0.0.1:
     resolution: {integrity: sha512-2/Ki0GcmuqSrgFyelQq9M05y7PS0mEwuIzrf3f1fPqkVDVRvZrPZtVSMHxdgo8Aq0sxAOb/cr2aqqA3LeWHVPg==}
 
-  jstz_sdk@0.1.0-alpha.0:
-    resolution: {integrity: sha512-xBax5a2HBN/b78QxU60HwyLI2u50nCylop8Pj6MIXGjpNWfnofGooRp5VFsEuZNnQHMh5ERlrpYeFmPiLIod2w==}
+  jstz_sdk@0.1.1-alpha.1:
+    resolution: {integrity: sha512-WdXLhG9zfo6xa2bnHC1okK7ej38Er7BePpzjg4fr3z4SMYRVL8rwwWWfLazUuvZtfjPtgLLKa6Y+2a7nlQA21A==}
 
   jsx-ast-utils@3.3.5:
     resolution: {integrity: sha512-ZZow9HBI5O6EPgSJLUb8n2NKgmVWTwCvHGwFuJlMjvLFqlGG6pjirPhtdsseaLZjSibD8eegzmYpUZwoIlj2cQ==}
@@ -2280,6 +2280,7 @@ packages:
   node-domexception@1.0.0:
     resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}
     engines: {node: '>=10.5.0'}
+    deprecated: Use your platform's native DOMException instead
 
   node-fetch@2.7.0:
     resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
@@ -3399,7 +3400,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
 
-  '@jstz-dev/jstz-client@0.1.1-alpha.0':
+  '@jstz-dev/jstz-client@0.1.1-alpha.1':
     dependencies:
       '@types/node': 20.17.24
       '@types/node-fetch': 2.6.12
@@ -5252,7 +5253,7 @@ snapshots:
 
   jsonify@0.0.1: {}
 
-  jstz_sdk@0.1.0-alpha.0: {}
+  jstz_sdk@0.1.1-alpha.1: {}
 
   jsx-ast-utils@3.3.5:
     dependencies:
