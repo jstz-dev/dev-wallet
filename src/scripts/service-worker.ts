@@ -179,19 +179,26 @@ chrome.runtime.onMessage.addListener(
         const { content, resolve } = queuedRequest as QueuedSignRequest;
         void createOperation({
           content,
-          address: address,
-        }).then((operation) => {
-          const signature = sign(operation, privateKey);
+          address,
+          publicKey
+        })
+          .then((operation) => {
+            const signature = sign(operation, privateKey);
 
-          resolve({
-            data: {
-              operation,
-              signature,
-              publicKey,
-              accountAddress: address,
-            },
+            console.log(`Signature: ${signature}`);
+
+            resolve({
+              data: {
+                operation,
+                signature,
+                publicKey,
+                accountAddress: address,
+              },
+            });
+          })
+          .catch((err: unknown) => {
+            resolve({ type: ResponseEventTypes.SIGN_RESPONSE, error: (err as Error).message });
           });
-        });
 
         break;
       }
@@ -227,9 +234,11 @@ chrome.runtime.onMessage.addListener(
 async function createOperation({
   content,
   address,
+                                 publicKey
 }: {
   content: QueuedSignRequest["content"];
   address: WalletType["address"];
+  publicKey: string
 }): Promise<Jstz.Operation> {
   const jstzClient = new Jstz({
     timeout: 6000,
@@ -240,7 +249,7 @@ async function createOperation({
   return {
     content,
     nonce,
-    source: address,
+    publicKey,
   };
 }
 

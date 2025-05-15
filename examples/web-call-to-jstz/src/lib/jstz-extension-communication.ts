@@ -49,7 +49,7 @@ async function callCounterSmartFunction({
             }),
           ),
         ),
-        gas_limit: 55000,
+        gasLimit: 55000,
         headers: {},
         method: "GET",
         uri: `tezos://${smartFunctionAddress}${pathToCall ?? ""}`,
