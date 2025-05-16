@@ -180,7 +180,7 @@ chrome.runtime.onMessage.addListener(
         void createOperation({
           content,
           address,
-          publicKey
+          publicKey,
         })
           .then((operation) => {
             const signature = sign(operation, privateKey);
@@ -234,13 +234,16 @@ chrome.runtime.onMessage.addListener(
 async function createOperation({
   content,
   address,
-                                 publicKey
+  publicKey,
 }: {
   content: QueuedSignRequest["content"];
   address: WalletType["address"];
-  publicKey: string
+  publicKey: string;
 }): Promise<Jstz.Operation> {
   const jstzClient = new Jstz({
+    baseURL:
+      (import.meta.env.NEXT_PUBLIC_JSTZ_NODE_ENDPOINT as string | undefined) ??
+      "https://sandbox.jstz.info",
     timeout: 6000,
   });
 
