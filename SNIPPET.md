@@ -76,7 +76,7 @@ async function callCounterSmartFunction({
                         }),
                     ),
                 ),
-                gas_limit: 55000,
+                gasLimit: 55000,
                 headers: {},
                 method: "GET",
                 uri: `tezos://${smartFunctionAddress}${pathToCall ?? ""}`,
@@ -103,7 +103,6 @@ async function onSignatureReceived(response: SignResponse) {
             result: { inner },
         } = await jstzClient.operations.injectAndPoll({
             inner: operation,
-            public_key: publicKey,
             signature,
         });
 
