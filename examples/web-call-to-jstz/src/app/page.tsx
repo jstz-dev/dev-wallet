@@ -68,7 +68,7 @@ export default function Home() {
   }
 
   async function onSignatureReceived(response: { data: JstzSigner.SignResponse }) {
-    const { operation, signature, publicKey, accountAddress } = response.data;
+    const { operation, signature, accountAddress } = response.data;
 
     setNotification(`Operation signed with address: ${accountAddress}`);
 

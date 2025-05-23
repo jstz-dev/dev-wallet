@@ -63,7 +63,7 @@ async function callCounterSmartFunction({
 }
 
 async function onSignatureReceived(response: { data: JstzSigner.SignResponse }) {
-  const { operation, signature, publicKey, accountAddress } = response.data;
+  const { operation, signature } = response.data;
 
   const jstzClient = new Jstz.Jstz({
     timeout: 6000,
@@ -74,7 +74,6 @@ async function onSignatureReceived(response: { data: JstzSigner.SignResponse }) 
       result: { inner },
     } = await jstzClient.operations.injectAndPoll({
       inner: operation,
-      public_key: publicKey,
       signature,
     });
 
