@@ -11,21 +11,7 @@ This extension is a development tool and is not yet ready for production deploym
 To avoid exposing your private keys, do not import keys for accounts that you are using on Tezos Mainnet into this extension.
 This extension does not support integration with hardware wallets such as Ledger.
 
-## Project structure
-
-- `src/`: Source code for the extension
-- `public/`: Static assets and manifest file
-- `dist/`: Build output directory
-- `examples/`: Example projects to interact with the extension
-
-## Getting started
-
-### Prerequisites
-
-- Node.js (v22 or higher) - exact version specified in `.nvmrc`
-- pnpm (v10 or higher) - exact version + hash specified in `package.json`
-- Google Chrome browser - Chrome is the only supported browser
-### Installation
+## Installation of the pre-built extension
 
 1. Download the extension file from [here](https://github.com/jstz-dev/dev-wallet/raw/refs/heads/main/dist.zip)
 2. Unzip the downloaded file to a directory of your choice.
@@ -35,7 +21,23 @@ This extension does not support integration with hardware wallets such as Ledger
 6. Select the directory where you unzipped the extension files.
 7. The extension should now appear in the extensions toolbar in the browser.
 
-### Building from source
+
+## Project structure
+
+- `src/`: Source code for the extension
+- `public/`: Static assets and manifest file
+- `dist/`: Build output directory
+- `examples/`: Example projects to interact with the extension
+
+## Building from source
+
+### Prerequisites
+
+- Node.js (v22 or higher) - exact version specified in `.nvmrc`
+- pnpm (v10 or higher) - exact version + hash specified in `package.json`
+- Google Chrome browser - Chrome is the only supported browser
+
+### Building
 
 Follow these steps to build the extension and install it in Google Chrome:
 
@@ -56,7 +58,7 @@ Follow these steps to build the extension and install it in Google Chrome:
    ```
    The build output is in the `dist/` directory.
 
-4. Add the extension to Chrome:
+### Installation
 
    1. Open Chrome and navigate to `chrome://extensions/`.
    2. Enable "Developer mode" by toggling the switch in the top right corner.
