@@ -27,7 +27,13 @@ This extension does not support integration with hardware wallets such as Ledger
 - Google Chrome browser - Chrome is the only supported browser
 ### Installation
 
-1. Download the extension file from [here](./dist.zip)
+1. Download the extension file from [here](https://github.com/jstz-dev/dev-wallet/raw/refs/heads/main/dist.zip)
+2. Unzip the downloaded file to a directory of your choice.
+3. Open Google Chrome and navigate to `chrome://extensions/`.
+4. Enable "Developer mode" by toggling the switch in the top right corner.
+5. Click the "Load unpacked" button.
+6. Select the directory where you unzipped the extension files.
+7. The extension should now appear in the extensions toolbar in the browser.
 
 ### Building from source
 
