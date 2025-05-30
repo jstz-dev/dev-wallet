@@ -25,8 +25,11 @@ This extension does not support integration with hardware wallets such as Ledger
 - Node.js (v22 or higher) - exact version specified in `.nvmrc`
 - pnpm (v10 or higher) - exact version + hash specified in `package.json`
 - Google Chrome browser - Chrome is the only supported browser
-
 ### Installation
+
+1. Download the extension file from [here](./dist.zip)
+
+### Building from source
 
 Follow these steps to build the extension and install it in Google Chrome:
 
