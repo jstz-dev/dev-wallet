@@ -11,18 +11,24 @@ export async function callSmartFunction({
   onSignatureReceived,
 }: {
   smartFunctionRequest: Jstz.Operation.RunFunction;
-  onSignatureReceived: (response: { data: JstzSigner.SignResponse }) => void;
-}): Promise<void | Error> {
-  const request = await requestSignature(smartFunctionRequest);
-  onSignatureReceived(request);
-}
-
-function requestSignature(requestToSign: Jstz.Operation.RunFunction) {
+  onSignatureReceived: (
+    response: { data: JstzSigner.SignResponse },
+    jstzClient: Jstz,
+  ) => Promise<void>;
+}) {
   const jstzSigner = new JstzSigner.JstzSigner(window);
-  return jstzSigner.callSignerExtension<JstzSigner.SignResponse>({
+  const request = await jstzSigner.callSignerExtension<JstzSigner.SignResponse>({
     type: JstzSigner.SignerRequestEventTypes.SIGN,
-    content: requestToSign,
+    content: smartFunctionRequest,
+  }, {timeout: 1000 * 60});
+
+  const jstzClient = new Jstz.Jstz({
+    baseURL:
+      (process.env.NEXT_PUBLIC_JSTZ_NODE_ENDPOINT as string | undefined) ??
+      "https://sandbox.jstz.info",
+    timeout: 6000,
   });
+  await onSignatureReceived(request, jstzClient);
 }
 
 async function callCounterSmartFunction({
@@ -66,6 +72,9 @@ async function onSignatureReceived(response: { data: JstzSigner.SignResponse }) 
   const { operation, signature } = response.data;
 
   const jstzClient = new Jstz.Jstz({
+    baseURL:
+      (process.env.NEXT_PUBLIC_JSTZ_NODE_ENDPOINT as string | undefined) ??
+      "https://sandbox.jstz.info",
     timeout: 6000,
   });
 

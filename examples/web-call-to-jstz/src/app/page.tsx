@@ -14,7 +14,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/componen
 import { Input } from "~/components/ui/input";
 import { buildRequest } from "~/lib/buildRequest";
 import { callSmartFunction } from "~/lib/jstz-extension-communication";
-import { JstzSigner } from "~/lib/jstz-signer";
+import { type SignResponse } from "~/lib/jstz-signer";
 
 const decoder = new TextDecoder("utf-8");
 
@@ -30,22 +30,13 @@ type Form = z.infer<typeof schema>;
 export default function Home() {
   const { register, control, setError } = useForm({
     defaultValues: {
-      smartFunctionAddress: "KT19W9WFsyFPAFSSuZ4FSpmTWppXg69RPbod",
+      smartFunctionAddress: "KT1TwbfyAuAWE4CTYswUrnHZWiVVY9Brue6r",
     },
     resolver: zodResolver(schema),
   });
 
   const form = useWatch({ control });
   const [notification, setNotification] = useState("");
-
-  function sendMessage<T>(data: unknown): Promise<T> {
-    const extensionId = localStorage.getItem("jstz-signer-extension-id");
-    return new Promise((res) => {
-      chrome.runtime.sendMessage(extensionId, data, {}, (response) => {
-        res(response as T);
-      });
-    });
-  }
 
   async function callCounterSmartFunction(path: string) {
     const { smartFunctionAddress = "" } = form;
@@ -67,12 +58,15 @@ export default function Home() {
     }
   }
 
-  async function onSignatureReceived(response: { data: JstzSigner.SignResponse }) {
+  async function onSignatureReceived(response: { data: SignResponse }) {
     const { operation, signature, accountAddress } = response.data;
 
     setNotification(`Operation signed with address: ${accountAddress}`);
 
     const jstzClient = new Jstz.Jstz({
+      baseURL:
+        (process.env.NEXT_PUBLIC_JSTZ_NODE_ENDPOINT as string | undefined) ??
+        "https://sandbox.jstz.info",
       timeout: 6000,
     });
 
@@ -96,6 +90,11 @@ export default function Home() {
 
       setNotification(`Completed call. Response: ${returnedMessage}`);
     } catch (err) {
+      console.log(err)
+      if (err instanceof Error) {
+        setNotification("Error calling signature: " + err.message);
+        return
+      }
       setNotification(JSON.stringify(err));
     }
   }

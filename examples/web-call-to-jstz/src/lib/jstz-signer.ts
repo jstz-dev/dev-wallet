@@ -84,10 +84,10 @@ export class JstzSigner {
    * `ExtensionError` if not
    */
   public callSignerExtension<T = SignResponse | GetAddressResponse | CheckStatusResponse>(
-      payload: SignRequestCall | GetSignerAddressCall | CheckStatusCall,
-      options?: {
-        timeout?: number;
-      },
+    payload: SignRequestCall | GetSignerAddressCall | CheckStatusCall,
+    options?: {
+      timeout?: number;
+    },
   ): Promise<ExtensionResponse<T>> {
     const event = new CustomEvent<typeof payload>(payload.type, {
       detail: payload,
@@ -109,17 +109,17 @@ export class JstzSigner {
       }
 
       this.eventTarget.addEventListener(
-          this.getResponseType(payload.type),
-          ((event: CustomEvent<ExtensionError | ExtensionResponse<T>>) => {
-            eventFired = true;
+        this.getResponseType(payload.type),
+        ((event: CustomEvent<ExtensionError | ExtensionResponse<T>>) => {
+          eventFired = true;
 
-            if ('error' in event.detail) {
-              reject(new Error(event.detail.error));
-            } else {
-              resolve(event.detail);
-            }
-          }) as EventListener,
-          { once: true },
+          if ('error' in event.detail) {
+            reject(new Error(event.detail.error));
+          } else {
+            resolve(event.detail);
+          }
+        }) as EventListener,
+        { once: true },
       );
     });
   }
