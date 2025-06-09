@@ -30,7 +30,7 @@ type Form = z.infer<typeof schema>;
 export default function Home() {
   const { register, control, setError } = useForm({
     defaultValues: {
-      smartFunctionAddress: "KT1TwbfyAuAWE4CTYswUrnHZWiVVY9Brue6r",
+      smartFunctionAddress: "KT1JL1TbXBfWQWmNxX11V8EcxPhhs95NPSen",
     },
     resolver: zodResolver(schema),
   });
