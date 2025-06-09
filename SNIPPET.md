@@ -79,7 +79,7 @@ async function callCounterSmartFunction({
                 gasLimit: 55000,
                 headers: {},
                 method: "GET",
-                uri: `tezos://${smartFunctionAddress}${pathToCall ?? ""}`,
+                uri: `jstz://${smartFunctionAddress}${pathToCall ?? ""}`,
                 ...requestOptions,
             },
             onSignatureReceived,
@@ -95,6 +95,7 @@ async function onSignatureReceived(response: SignResponse) {
     console.info(`Operation signed with address: ${accountAddress}`);
 
     const jstzClient = new Jstz.Jstz({
+        baseURL: "https://sandbox.jstz.info", //for the remote rpc. Without "baseURL" attribute, Jstz will fallback to default localhost:8933
         timeout: 6000,
     });
 

@@ -26,7 +26,7 @@ export function buildRequest({
     gasLimit: 55000,
     headers: {},
     method: "GET",
-    uri: `tezos://${smartFunctionAddress}${path ?? ''}`,
+    uri: `jstz://${smartFunctionAddress}${path ?? ''}`,
     ...rest,
   };
 }
