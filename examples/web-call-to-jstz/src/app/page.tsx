@@ -30,7 +30,7 @@ type Form = z.infer<typeof schema>;
 export default function Home() {
   const { register, control, setError } = useForm({
     defaultValues: {
-      smartFunctionAddress: "KT1JL1TbXBfWQWmNxX11V8EcxPhhs95NPSen",
+      smartFunctionAddress: "KT1TwbfyAuAWE4CTYswUrnHZWiVVY9Brue6r",
     },
     resolver: zodResolver(schema),
   });
@@ -65,8 +65,7 @@ export default function Home() {
 
     const jstzClient = new Jstz.Jstz({
       baseURL:
-        (process.env.NEXT_PUBLIC_JSTZ_NODE_ENDPOINT as string | undefined) ??
-        "https://sandbox.jstz.info",
+        process.env.NEXT_PUBLIC_JSTZ_NODE_ENDPOINT,
       timeout: 6000,
     });
 

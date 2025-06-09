@@ -24,8 +24,7 @@ export async function callSmartFunction({
 
   const jstzClient = new Jstz.Jstz({
     baseURL:
-      (process.env.NEXT_PUBLIC_JSTZ_NODE_ENDPOINT as string | undefined) ??
-      "https://sandbox.jstz.info",
+    process.env.NEXT_PUBLIC_JSTZ_NODE_ENDPOINT,
     timeout: 6000,
   });
   await onSignatureReceived(request, jstzClient);
@@ -73,8 +72,7 @@ async function onSignatureReceived(response: { data: JstzSigner.SignResponse }) 
 
   const jstzClient = new Jstz.Jstz({
     baseURL:
-      (process.env.NEXT_PUBLIC_JSTZ_NODE_ENDPOINT as string | undefined) ??
-      "https://sandbox.jstz.info",
+    process.env.NEXT_PUBLIC_JSTZ_NODE_ENDPOINT,
     timeout: 6000,
   });
 
