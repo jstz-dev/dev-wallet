@@ -13,7 +13,9 @@ This extension does not support integration with hardware wallets such as Ledger
 
 ## Installation of the pre-built extension
 
-1. Download the extension file from [here](https://github.com/jstz-dev/dev-wallet/raw/refs/heads/main/dist.zip)
+1. Download the extension file:
+   - if you are going to use local Jstz instance [local-rpc](https://github.com/jstz-dev/dev-wallet/raw/refs/heads/main/local-rpc.zip)
+   - if you are going to use signer extension for Jstz Dashboard app [remote-rpc](https://github.com/jstz-dev/dev-wallet/raw/refs/heads/main/remote-rpc.zip)
 2. Unzip the downloaded file to a directory of your choice.
 3. Open Google Chrome and navigate to `chrome://extensions/`.
 4. Enable "Developer mode" by toggling the switch in the top right corner.
