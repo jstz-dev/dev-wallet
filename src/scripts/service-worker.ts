@@ -241,7 +241,7 @@ async function createOperation({
   publicKey: string;
 }): Promise<Jstz.Operation> {
   const jstzClient = new Jstz({
-    baseURL: import.meta.env.NEXT_PUBLIC_JSTZ_NODE_ENDPOINT as string | undefined,
+    // baseURL: import.meta.env.NEXT_PUBLIC_JSTZ_NODE_ENDPOINT as string | undefined,
     timeout: 6000,
   });
 
