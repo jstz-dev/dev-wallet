@@ -162,27 +162,39 @@ async function addWalletMetadata(address: string, response?: Record<string, unkn
   const balances = await getWalletBalances(address);
   const transactions = await getWalletTransactions(address);
 
-  const walletMetaResponse = walletMetadataSchema.parse({ balances, transactions, ...assetsResponse });
+  const walletMetaResponse = walletMetadataSchema.parse({
+    balances,
+    transactions,
+    ...assetsResponse,
+  });
 
   console.log("Assets Response:", assetsResponse);
 
   return { ...walletMetaResponse, ...response };
 }
 
+function successResponse(message: any, status = 200) {
+  return json({ ...message, status }, { status });
+}
+
+function errorResponse(message: any, status = 400) {
+  return successResponse({ message }, status);
+}
+
 // Routes
 router.get("/assets", async () => {
-  return json(await addAssetsMetadata());
+  return successResponse(await addAssetsMetadata());
 });
 
 router.post("/assets/mint", async (request) => {
   const body = await request.json();
   const parsed = assetSchema.safeParse(body);
-  if (!parsed.success) return new Response(parsed.error.message, { status: 422 });
+  if (!parsed.success) return errorResponse(parsed.error.message);
 
   const { name, symbol, initialSupply, basePrice, slope } = parsed.data;
   const key = `assets/${symbol}`;
   const exists = await Kv.get(key);
-  if (exists) return new Response("Asset already exists.", { status: 400 });
+  if (exists) return errorResponse("Asset already exists.");
 
   const asset = {
     name,
@@ -200,7 +212,7 @@ router.post("/assets/mint", async (request) => {
   assetKeys.push(key);
   await Kv.set(indexKey, JSON.stringify(assetKeys));
 
-  return json(
+  return successResponse(
     await addAssetsMetadata({
       message: `Asset '${symbol}' minted and listed.`,
     }),
@@ -210,19 +222,19 @@ router.post("/assets/mint", async (request) => {
 router.get("/assets/:symbol", async (request) => {
   const { symbol } = request.params;
   const data = await Kv.get<string>(`assets/${symbol}`);
-  if (!data) return new Response("Asset not found.", { status: 404 });
-  return json(JSON.parse(data));
+  if (!data) return errorResponse("Asset not found.");
+  return successResponse(JSON.parse(data));
 });
 
 router.post("/assets/list", async (request) => {
   const body = await request.json();
   const parsed = listAssetSchema.safeParse(body);
-  if (!parsed.success) return new Response(parsed.error.message, { status: 422 });
+  if (!parsed.success) return parsed.error.message;
 
   const { symbol, address, basePrice, slope } = parsed.data;
   const key = `assets/${symbol}`;
   const data = await Kv.get<string>(key);
-  if (!data) return new Response("Asset not found.", { status: 404 });
+  if (!data) return errorResponse("Asset not found.");
 
   const asset = JSON.parse(data);
   asset.listed = true;
@@ -231,24 +243,26 @@ router.post("/assets/list", async (request) => {
   await Kv.set(key, JSON.stringify(asset));
   await logTransaction(address, { type: "list", symbol, basePrice, slope });
 
-  return json(await addAssetsMetadata({ message: `Asset '${symbol}' listed by ${address}.` }));
+  return successResponse(
+    await addAssetsMetadata({ message: `Asset '${symbol}' listed by ${address}.` }),
+  );
 });
 
 router.post("/assets/unlist", async (request) => {
   const body = await request.json();
   const { symbol, address } = body;
-  if (!symbol || !address) return new Response("Missing symbol or address.", { status: 400 });
+  if (!symbol || !address) return errorResponse("Missing symbol or address.");
 
   const key = `assets/${symbol}`;
   const data = await Kv.get<string>(key);
-  if (!data) return new Response("Asset not found.", { status: 404 });
+  if (!data) return errorResponse("Asset not found.");
 
   const asset = JSON.parse(data);
   asset.listed = false;
   await Kv.set(key, JSON.stringify(asset));
   await logTransaction(address, { type: "unlist", symbol });
 
-  return json(
+  return successResponse(
     await addAssetsMetadata({
       message: `Asset '${symbol}' unlisted by ${address}.`,
     }),
@@ -258,7 +272,7 @@ router.post("/assets/unlist", async (request) => {
 router.get("/user/:address", async (request) => {
   const { address } = request.params;
 
-  return json(await addWalletMetadata(address));
+  return successResponse(await addWalletMetadata(address));
 });
 
 router.get("/user/:address/balances", async (request) => {
@@ -267,28 +281,28 @@ router.get("/user/:address/balances", async (request) => {
 
   const response = balanceMutationResponseSchema.parse(balances);
 
-  return json(response);
+  return successResponse(response);
 });
 
 router.get("/user/:address/txs", async (request) => {
   const { address } = request.params;
   const data = await getWalletTransactions(address);
-  return json(data);
+  return successResponse(data);
 });
 
 router.post("/buy", async (request) => {
   try {
     const body = await request.json();
     const parsed = buySchema.safeParse(body);
-    if (!parsed.success) return new Response(parsed.error.message, { status: 422 });
+    if (!parsed.success) return errorResponse(parsed.error.message);
 
     const { symbol, amount, address } = parsed.data;
     const key = `assets/${symbol}`;
     const data = await Kv.get(key);
-    if (!data) return new Response("Asset not found.", { status: 404 });
+    if (!data) return errorResponse("Asset not found.");
 
     const asset = JSON.parse(data);
-    if (!asset.listed) return new Response("Asset is not listed for purchase.", { status: 400 });
+    if (!asset.listed) return errorResponse("Asset is not listed for purchase.");
 
     let totalCost = 0;
     for (let i = 0; i < amount; i++) {
@@ -297,7 +311,7 @@ router.post("/buy", async (request) => {
     }
 
     if (totalCost <= 0) {
-      return new Response("Buy amount too low to register value.", { status: 400 });
+      return errorResponse("Buy amount too low to register value.");
     }
 
     await Kv.set(key, JSON.stringify(asset));
@@ -314,12 +328,12 @@ router.post("/buy", async (request) => {
       cost: totalCost,
     });
 
-    return json(await addWalletMetadata(address, response));
+    return successResponse(await addWalletMetadata(address, response));
   } catch (err) {
     if (err instanceof Error) {
-      return new Response(`Error: ${err.message}`, { status: 500 });
+      return errorResponse(`Error: ${err.message}`);
     }
-    return new Response(`Error: ${err}`, { status: 500 });
+    return errorResponse(`Error: ${err}`);
   }
 });
 
@@ -327,27 +341,26 @@ router.post("/swap", async (request) => {
   try {
     const body = await request.json();
     const parsed = swapSchema.safeParse(body);
-    if (!parsed.success) return new Response(parsed.error.message, { status: 422 });
+    if (!parsed.success) return errorResponse(parsed.error.message);
 
     const { fromSymbol, toSymbol, amount, address } = parsed.data;
     const fromKey = `assets/${fromSymbol}`;
     const toKey = `assets/${toSymbol}`;
     const fromData = await Kv.get(fromKey);
     const toData = await Kv.get(toKey);
-    if (!fromData || !toData) return new Response("One or both assets not found.", { status: 404 });
+    if (!fromData || !toData) errorResponse("One or both assets not found.");
 
-    const fromAsset = JSON.parse(fromData);
-    const toAsset = JSON.parse(toData);
-    if (!fromAsset.listed || !toAsset.listed)
-      return new Response("Assets must be listed.", { status: 400 });
+    const fromAsset = JSON.parse(fromData ?? "{}");
+    const toAsset = JSON.parse(toData ?? "{}");
+    if (!fromAsset.listed || !toAsset.listed) return errorResponse("Assets must be listed.");
 
     const userBalance = await Kv.get(`balances/${address}/${fromSymbol}`);
     if (!userBalance || parseInt(userBalance) < amount) {
-      return new Response("Insufficient balance to swap.", { status: 400 });
+      return errorResponse("Insufficient balance to swap.");
     }
 
     if (fromAsset.supply < amount) {
-      return new Response("Not enough supply to perform swap.", { status: 400 });
+      return errorResponse("Not enough supply to perform swap.");
     }
 
     let totalValue = 0;
@@ -365,7 +378,7 @@ router.post("/swap", async (request) => {
     }
 
     if (tokensReceived === 0) {
-      return new Response("Swap value too low to receive any target tokens.", { status: 400 });
+      return errorResponse("Swap value too low to receive any target tokens.");
     }
 
     await Kv.set(fromKey, JSON.stringify(fromAsset));
@@ -385,12 +398,12 @@ router.post("/swap", async (request) => {
       valueUsed: spent,
     });
 
-    return json(await addWalletMetadata(address, response));
+    return successResponse(await addWalletMetadata(address, response));
   } catch (err) {
     if (err instanceof Error) {
-      return new Response(`Error: ${err.message}`, { status: 500 });
+      return errorResponse(`Error: ${err.message}`);
     }
-    return new Response(`Error: ${err}`, { status: 500 });
+    return errorResponse(`Error: ${err}`);
   }
 });
 
@@ -398,19 +411,19 @@ router.post("/sell", async (request) => {
   try {
     const body = await request.json();
     const parsed = sellSchema.safeParse(body);
-    if (!parsed.success) return new Response(parsed.error.message, { status: 422 });
+    if (!parsed.success) return errorResponse(parsed.error.message);
 
     const { symbol, amount, address } = parsed.data;
     const key = `assets/${symbol}`;
     const data = await Kv.get(key);
-    if (!data) return new Response("Asset not found.", { status: 404 });
+    if (!data) return errorResponse("Asset not found.");
 
     const asset = JSON.parse(data);
-    if (!asset.listed) return new Response("Asset is not listed.", { status: 400 });
+    if (!asset.listed) return errorResponse("Asset is not listed.");
 
     const userBalance = await Kv.get(`balances/${address}/${symbol}`);
     if (!userBalance || parseInt(userBalance) < amount) {
-      return new Response("Insufficient balance to sell.", { status: 400 });
+      return errorResponse("Insufficient balance to sell.");
     }
 
     // Calculate total return from bonding curve (reverse of buy logic)
@@ -421,7 +434,7 @@ router.post("/sell", async (request) => {
     }
 
     if (totalReturn <= 0) {
-      return new Response("Sell amount too low to register value.", { status: 400 });
+      return errorResponse("Sell amount too low to register value.");
     }
 
     await Kv.set(key, JSON.stringify(asset));
@@ -433,16 +446,16 @@ router.post("/sell", async (request) => {
       cost: -totalReturn,
     });
 
-    return json(
+    return successResponse(
       await addWalletMetadata(address, {
         message: `Sold ${amount} ${symbol} for estimated value ${totalReturn.toFixed(2)}`,
       }),
     );
   } catch (err) {
     if (err instanceof Error) {
-      return new Response(`Error: ${err.message}`, { status: 500 });
+      return errorResponse(`Error: ${err.message}`);
     }
-    return new Response(`Error: ${err}`, { status: 500 });
+    return errorResponse(`Error: ${err}`);
   }
 });
 

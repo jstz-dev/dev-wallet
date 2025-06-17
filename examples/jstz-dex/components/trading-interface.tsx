@@ -105,13 +105,23 @@ export function TradingInterface({
     setTransactions(response.transactions);
   }
 
+  function showToast(message: string, status: number) {
+    if (status >= 200 && status < 300) {
+      return toast({
+        title: "Success",
+        description: message,
+      });
+    }
+    return toast({
+      title: "Error",
+      description: message,
+      variant: "destructive",
+    });
+  }
+
   const onBuySubmit = async (data: BuyTokenForm) => {
     if (!extensionAvailable) {
-      toast({
-        title: "Extension Unavailable",
-        description: "Cannot execute trades while the jstz signer extension is disconnected",
-        variant: "destructive",
-      });
+      showToast("Cannot execute trades while the jstz signer extension is disconnected", 500);
       return;
     }
 
@@ -122,30 +132,19 @@ export function TradingInterface({
         address: userAddress,
       });
 
-      toast({
-        title: "Success",
-        description: `${result.message} Cost: ${result.cost.toFixed(4)}`,
-      });
+      showToast(`${result.message} Cost: ${result.cost.toFixed(4)}`, result.status);
 
       buyForm.reset();
 
       void updateMeta(result);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to buy tokens",
-        variant: "destructive",
-      });
+      showToast(error instanceof Error ? error.message : "Failed to buy tokens", 500);
     }
   };
 
   const onSellSubmit = async (data: SellTokenForm) => {
     if (!extensionAvailable) {
-      toast({
-        title: "Extension Unavailable",
-        description: "Cannot execute trades while the jstz signer extension is disconnected",
-        variant: "destructive",
-      });
+      showToast("Cannot execute trades while the jstz signer extension is disconnected", 500);
       return;
     }
 
@@ -156,30 +155,19 @@ export function TradingInterface({
         address: userAddress,
       });
 
-      toast({
-        title: "Success",
-        description: result.message,
-      });
+      showToast(result.message, result.status);
 
       sellForm.reset();
 
       void updateMeta(result);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to sell tokens",
-        variant: "destructive",
-      });
+      showToast(error instanceof Error ? error.message : "Failed to sell tokens", 500);
     }
   };
 
   const onSwapSubmit = async (data: SwapTokenForm) => {
     if (!extensionAvailable) {
-      toast({
-        title: "Extension Unavailable",
-        description: "Cannot execute swaps while the jstz signer extension is disconnected",
-        variant: "destructive",
-      });
+      showToast("Cannot execute trades while the jstz signer extension is disconnected", 500);
       return;
     }
 
@@ -191,19 +179,12 @@ export function TradingInterface({
         address: userAddress,
       });
 
-      toast({
-        title: "Success",
-        description: result.message,
-      });
+      showToast(result.message, result.status);
 
       swapForm.reset();
       void updateMeta(result);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to swap tokens",
-        variant: "destructive",
-      });
+      showToast(error instanceof Error ? error.message : "Failed to swap tokens", 500);
     }
   };
 

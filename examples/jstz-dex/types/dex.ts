@@ -24,8 +24,10 @@ export interface Transaction {
   time: number;
 }
 
+
 export interface MessageResponse {
   message: string;
+  status: number
 }
 
 export interface AssetMutatingResponse extends MessageResponse {
