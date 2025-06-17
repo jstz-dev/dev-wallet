@@ -16,7 +16,7 @@ export default function DexApp() {
     isConnected,
     extensionStatus,
     checkExtensionStatus,
-    connecting,
+    loading: connecting,
     connectWallet,
     disconnectWallet,
     userAddress,

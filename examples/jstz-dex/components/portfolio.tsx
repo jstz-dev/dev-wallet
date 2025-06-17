@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Wallet, History } from "lucide-react"
 import { DexAPI } from "@/services/dex-api"
 import type { UserBalance, Transaction } from "@/types/dex"
+import { useWalletContext } from "@/contexts/wallet.context";
 
 interface PortfolioProps {
   userAddress: string
@@ -13,26 +13,7 @@ interface PortfolioProps {
 }
 
 export function Portfolio({ userAddress, userBalances }: PortfolioProps) {
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [loading, setLoading] = useState(false)
-
-  // useEffect(() => {
-  //   if (userAddress) {
-  //     loadTransactions()
-  //   }
-  // }, [userAddress])
-
-  const loadTransactions = async () => {
-    setLoading(true)
-    try {
-      const data = await DexAPI.getUserTransactions(userAddress)
-      setTransactions(data.sort((a, b) => b.time - a.time))
-    } catch (error) {
-      console.error("Failed to load transactions:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const {loading, transactions} = useWalletContext()
 
   const formatTransactionType = (tx: Transaction) => {
     switch (tx.type) {

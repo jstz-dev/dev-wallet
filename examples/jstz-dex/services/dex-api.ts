@@ -1,5 +1,5 @@
 import { callSmartFunction, checkExtensionAvailability } from "@/lib/jstz-signer.service";
-import type {
+import {
   Asset,
   UserBalance,
   Transaction,
@@ -7,6 +7,7 @@ import type {
   BuyResult,
   AssetMutatingResponse,
   MessageResponse,
+  WalletResponse,
 } from "@/types/dex";
 
 const encoder = new TextEncoder();
@@ -111,6 +112,20 @@ export class DexAPI {
       symbol,
       address,
     });
+  }
+
+  static async getWallet(address: string): Promise<WalletResponse> {
+    try {
+      const result = await this.makeSmartFunctionCall<WalletResponse>("GET", `/user/${address}`);
+      return result || {};
+    } catch (error) {
+      console.error("Failed to fetch user balances:", error);
+      return {
+        assets: [],
+        balances: {},
+        transactions: [],
+      };
+    }
   }
 
   static async getUserBalances(address: string): Promise<UserBalance> {

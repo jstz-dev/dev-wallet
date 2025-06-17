@@ -1,10 +1,11 @@
 "use client";
+
 import { createContext, useContext, useState, type PropsWithChildren } from "react";
 
-import { useToast } from "@/hooks/use-toast";
-import { DexAPI } from "@/services/dex-api";
-import type { Asset, UserBalance } from "@/types/dex";
+import { useAssetsContext } from "@/contexts/assets.context";
 import { requestAddress } from "@/lib/jstz-signer.service";
+import { DexAPI } from "@/services/dex-api";
+import type { Asset, Transaction, UserBalance } from "@/types/dex";
 
 interface WalletContext {
   userAddress: string;
@@ -13,10 +14,12 @@ interface WalletContext {
   isConnected: boolean;
   checkExtensionStatus: () => Promise<void>;
   extensionStatus: "checking" | "available" | "unavailable";
-  connecting: boolean;
+  loading: boolean;
   connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
   loadUserBalances: (address?: string) => Promise<void>;
+  transactions: Transaction[];
+  setTransactions: (transactions: Transaction[]) => void;
 }
 
 const WalletContext = createContext<WalletContext>({} as WalletContext);
@@ -24,60 +27,66 @@ const WalletContext = createContext<WalletContext>({} as WalletContext);
 interface WalletProps extends PropsWithChildren {}
 
 export function WalletContextProvider({ children }: WalletProps) {
-  const [userAddress, setUserAddress] = useState("")
-  const [userBalances, setUserBalances] = useState<UserBalance>({})
-  const [isConnected, setIsConnected] = useState(false)
-  const [extensionStatus, setExtensionStatus] = useState<"checking" | "available" | "unavailable">("available")
-  const [connecting, setConnecting] = useState(false)
+  const { setAssets } = useAssetsContext();
+  const [userAddress, setUserAddress] = useState("");
+  const [userBalances, setUserBalances] = useState<UserBalance>({});
+  const [isConnected, setIsConnected] = useState(false);
+  const [extensionStatus, setExtensionStatus] = useState<"checking" | "available" | "unavailable">(
+    "available",
+  );
+  const [loading, setLoading] = useState(false);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   const checkExtensionStatus = async () => {
-    setExtensionStatus("checking")
+    setExtensionStatus("checking");
     try {
-      const isAvailable = await DexAPI.checkExtensionAvailability()
-      console.log(isAvailable)
-      setExtensionStatus(isAvailable ? "available" : "unavailable")
+      const isAvailable = await DexAPI.checkExtensionAvailability();
+      console.log(isAvailable);
+      setExtensionStatus(isAvailable ? "available" : "unavailable");
     } catch (error) {
-      setExtensionStatus("unavailable")
-      console.error("Extension check failed:", error)
+      setExtensionStatus("unavailable");
+      console.error("Extension check failed:", error);
     }
-  }
+  };
 
   const connectWallet = async () => {
     if (extensionStatus !== "available") {
-      return
+      return;
     }
 
-    setConnecting(true)
+    setLoading(true);
     try {
-      const response = await requestAddress()
-      const address = response.data.accountAddress
-      setUserAddress(address)
-      setIsConnected(true)
-      loadUserBalances(address)
+      const response = await requestAddress();
+      const address = response.data.accountAddress;
+      setUserAddress(address);
+      setIsConnected(true);
+      loadWalletMeta(address);
     } catch (error) {
-      console.error("Failed to connect wallet:", error)
+      console.error("Failed to connect wallet:", error);
     } finally {
-      setConnecting(false)
+      setLoading(false);
     }
-  }
+  };
 
   const disconnectWallet = () => {
-    setIsConnected(false)
-    setUserAddress("")
-    setUserBalances({})
-  }
+    setIsConnected(false);
+    setUserAddress("");
+    setUserBalances({});
+  };
 
-  const loadUserBalances = async (address?: string) => {
-    const targetAddress = address || userAddress
-    if (!targetAddress) return
+  const loadWalletMeta = async (address?: string) => {
+    const targetAddress = address || userAddress;
+    if (!targetAddress) return;
 
     try {
-      const balances = await DexAPI.getUserBalances(targetAddress)
-      setUserBalances(balances)
+      const walletMeta = await DexAPI.getWallet(targetAddress);
+      setUserBalances(walletMeta.balances);
+      setTransactions(walletMeta.transactions);
+      setAssets(walletMeta.assets);
     } catch (error) {
-      console.error("Failed to load user balances:", error)
+      console.error("Failed to load user balances:", error);
     }
-  }
+  };
 
   return (
     <WalletContext
@@ -87,11 +96,13 @@ export function WalletContextProvider({ children }: WalletProps) {
         setUserBalances,
         isConnected,
         extensionStatus,
-        connecting,
+        loading,
+        transactions,
         checkExtensionStatus,
         connectWallet,
         disconnectWallet,
-        loadUserBalances
+        loadUserBalances: loadWalletMeta,
+        setTransactions,
       }}
     >
       {children}

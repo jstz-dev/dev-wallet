@@ -13,9 +13,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { ArrowUpDown, TrendingUp } from "lucide-react"
 import { DexAPI } from "@/services/dex-api"
 import { buyTokenSchema, swapTokenSchema, type BuyTokenForm, type SwapTokenForm } from "@/lib/schemas"
-import type { Asset, UserBalance } from "@/types/dex"
+import type { Asset, BalanceMutationResponse, UserBalance } from "@/types/dex";
 import { useToast } from "@/hooks/use-toast"
 import { useAssetsContext } from "@/contexts/assets.context";
+import { useWalletContext } from "@/contexts/wallet.context";
 
 interface TradingInterfaceProps {
   userAddress: string
@@ -31,6 +32,7 @@ export function TradingInterface({
   extensionAvailable,
 }: TradingInterfaceProps) {
   const {assets, setAssets} = useAssetsContext()
+  const {setUserBalances, setTransactions} = useWalletContext()
 
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
   const { toast } = useToast()
@@ -61,6 +63,12 @@ export function TradingInterface({
     }
   }, [watchedAssetSymbol, assets])
 
+  async function updateMeta(response: BalanceMutationResponse) {
+    setAssets(response.assets)
+    setUserBalances(response.balances)
+    setTransactions(response.transactions)
+  }
+
 
   const onBuySubmit = async (data: BuyTokenForm) => {
     if (!extensionAvailable) {
@@ -86,7 +94,7 @@ export function TradingInterface({
 
       buyForm.reset()
       onBalanceUpdate()
-      setAssets(result.assets)
+      void updateMeta(result)
     } catch (error) {
       toast({
         title: "Error",
@@ -120,8 +128,9 @@ export function TradingInterface({
       })
 
       swapForm.reset()
+      void updateMeta(result)
+
       onBalanceUpdate()
-      setAssets(result.assets)
     } catch (error) {
       toast({
         title: "Error",

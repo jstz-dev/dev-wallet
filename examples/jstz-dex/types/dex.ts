@@ -34,6 +34,13 @@ export interface AssetMutatingResponse extends MessageResponse {
 
 export interface BalanceMutationResponse extends AssetMutatingResponse {
   balances: UserBalance;
+  transactions: Transaction[];
+}
+
+export interface WalletResponse {
+  assets: Asset[];
+  balances: UserBalance;
+  transactions: Transaction[];
 }
 
 export interface SwapResult extends BalanceMutationResponse {

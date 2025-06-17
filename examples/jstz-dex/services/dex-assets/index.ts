@@ -10,6 +10,19 @@ const assetSchema = z.object({
   slope: z.number().min(0.0001),
 });
 
+const transactionSchema = z.object({
+  type: z.enum(["buy", "swap", "list", "unlist"]),
+  symbol: z.string().optional(),
+  fromSymbol: z.string().optional(),
+  toSymbol: z.string().optional(),
+  amount: z.number().min(1).optional(),
+  received: z.number().min(0).optional(),
+  cost: z.number().min(0).optional(),
+  basePrice: z.number().min(0).optional(),
+  slope: z.number().min(0.0001).optional(),
+  time: z.number().default(Date.now()),
+});
+
 const buySchema = z.object({
   symbol: z.string(),
   amount: z.number().min(1),
@@ -23,6 +36,13 @@ const swapSchema = z.object({
   address: z.string(),
 });
 
+const sellSchema = z.object({
+  symbol: z.string(),
+  amount: z.number().min(1),
+  address: z.string(),
+});
+
+
 const listAssetSchema = z.object({
   symbol: z.string(),
   address: z.string(),
@@ -34,24 +54,31 @@ const messageResponseSchema = z.object({
   message: z.string(),
 });
 
-const assetMutatingResponseSchema = messageResponseSchema.extend({
+const assetMutatingResponseSchema = z.object({
   assets: z.array(
-    assetSchema.extend({
-      supply: z.number(),
-      listed: z.boolean(),
-    }).omit({initialSupply: true}),
+    assetSchema
+      .extend({
+        supply: z.number(),
+        listed: z.boolean(),
+      })
+      .omit({ initialSupply: true }),
   ),
 });
 
-const balanceMutationResponseSchema = assetMutatingResponseSchema.extend({
+const balanceMutationResponseSchema = z.object({
   balances: z.record(z.string(), z.number()),
-})
+});
 
-const swapResponseSchema = assetMutatingResponseSchema.extend({
+const walletMetadataSchema = balanceMutationResponseSchema.extend({
+  assets: z.array(assetSchema),
+  transactions: z.array(transactionSchema),
+});
+
+const swapResponseSchema = messageResponseSchema.extend({
   valueUsed: z.number(),
 });
 
-const byeResponseSchema = assetMutatingResponseSchema.extend({
+const buyResponseSchema = messageResponseSchema.extend({
   cost: z.number(),
 });
 
@@ -82,7 +109,7 @@ async function logTransaction(address: string, entry: any) {
   await Kv.set(key, JSON.stringify(txs));
 }
 
-async function getUserBalances(address: string) {
+async function getWalletBalances(address: string) {
   const indexKey = `balances/${address}`;
   const keysRaw = await Kv.get(indexKey);
   const keys: string[] = keysRaw ? JSON.parse(keysRaw as string) : [];
@@ -108,10 +135,31 @@ async function getAssets() {
   return assets;
 }
 
+async function getWalletTransactions(address: string) {
+  const data = await Kv.get(`txs/${address}`);
+  return data ? JSON.parse(data) : [];
+}
+
+async function addAssetsMetadata(response?: Record<string, unknown>) {
+  const assets = await getAssets();
+
+  return assetMutatingResponseSchema.parse({ ...(response ?? {}), assets });
+}
+
+async function addWalletMetadata(address: string, response?: Record<string, unknown>) {
+  const balances = await getWalletBalances(address);
+  const transactions = await getWalletTransactions(address);
+
+  const assetsResponse = await addAssetsMetadata(response);
+  
+  console.log("Assets Response:", assetsResponse);
+
+  return walletMetadataSchema.parse({ ...assetsResponse, balances, transactions });
+}
+
 // Routes
 router.get("/assets", async () => {
-  const assets = await getAssets();
-  return json(assets);
+  return json(await addAssetsMetadata());
 });
 
 router.post("/assets/mint", async (request) => {
@@ -140,14 +188,11 @@ router.post("/assets/mint", async (request) => {
   assetKeys.push(key);
   await Kv.set(indexKey, JSON.stringify(assetKeys));
 
-  const assets = await getAssets();
-
-  const response = assetMutatingResponseSchema.parse({
-    message: `Asset '${symbol}' minted and listed.`,
-    assets,
-  });
-
-  return json(response);
+  return json(
+    await addAssetsMetadata({
+      message: `Asset '${symbol}' minted and listed.`,
+    }),
+  );
 });
 
 router.get("/assets/:symbol", async (request) => {
@@ -174,14 +219,7 @@ router.post("/assets/list", async (request) => {
   await Kv.set(key, JSON.stringify(asset));
   await logTransaction(address, { type: "list", symbol, basePrice, slope });
 
-  const assets = await getAssets();
-
-  const response = assetMutatingResponseSchema.parse({
-    message: `Asset '${symbol}' listed by ${address}.`,
-    assets,
-  });
-
-  return json(response);
+  return json(await addAssetsMetadata({ message: `Asset '${symbol}' listed by ${address}.` }));
 });
 
 router.post("/assets/unlist", async (request) => {
@@ -198,19 +236,22 @@ router.post("/assets/unlist", async (request) => {
   await Kv.set(key, JSON.stringify(asset));
   await logTransaction(address, { type: "unlist", symbol });
 
-  const assets = await getAssets();
+  return json(
+    await addAssetsMetadata({
+      message: `Asset '${symbol}' unlisted by ${address}.`,
+    }),
+  );
+});
 
-  const response = assetMutatingResponseSchema.parse({
-    message: `Asset '${symbol}' unlisted by ${address}.`,
-    assets,
-  });
+router.get("/user/:address", async (request) => {
+  const { address } = request.params;
 
-  return json(response);
+  return json(await addWalletMetadata(address));
 });
 
 router.get("/user/:address/balances", async (request) => {
   const { address } = request.params;
-  const balances = await getUserBalances(address);
+  const balances = await getWalletBalances(address);
 
   const response = balanceMutationResponseSchema.parse(balances);
 
@@ -219,8 +260,8 @@ router.get("/user/:address/balances", async (request) => {
 
 router.get("/user/:address/txs", async (request) => {
   const { address } = request.params;
-  const data = await Kv.get(`txs/${address}`);
-  return json(data ? JSON.parse(data) : []);
+  const data = await getWalletTransactions(address);
+  return json(data);
 });
 
 router.post("/buy", async (request) => {
@@ -252,17 +293,12 @@ router.post("/buy", async (request) => {
       cost: totalCost,
     });
 
-    const assets = await getAssets();
-    const balances = await getUserBalances(address);
-
-    const response = balanceMutationResponseSchema.parse({
+    const response = buyResponseSchema.parse({
       message: `Successfully bought ${amount} ${symbol}.`,
       cost: totalCost,
-      assets,
-      balances,
     });
 
-    return json(response);
+    return json(await addWalletMetadata(address, response));
   } catch (err) {
     if (err instanceof Error) {
       return new Response(`Error: ${err.message}`, { status: 500 });
@@ -324,17 +360,58 @@ router.post("/swap", async (request) => {
       received: tokensReceived,
     });
 
-    const assets = await getAssets();
-    const balances = await getUserBalances(address);
-
-    const response = balanceMutationResponseSchema.parse({
+    const response = swapResponseSchema.parse({
       message: `Swapped ${amount} ${fromSymbol} for ${tokensReceived} ${toSymbol}.`,
       valueUsed: spent,
-      assets,
-      balances,
     });
 
-    return json(response);
+    return json(await addWalletMetadata(address, response));
+  } catch (err) {
+    if (err instanceof Error) {
+      return new Response(`Error: ${err.message}`, { status: 500 });
+    }
+    return new Response(`Error: ${err}`, { status: 500 });
+  }
+});
+
+router.post("/sell", async (request) => {
+  try {
+    const body = await request.json();
+    const parsed = sellSchema.safeParse(body);
+    if (!parsed.success) return new Response(parsed.error.message, { status: 422 });
+
+    const { symbol, amount, address } = parsed.data;
+    const key = `assets/${symbol}`;
+    const data = await Kv.get(key);
+    if (!data) return new Response("Asset not found.", { status: 404 });
+
+    const asset = JSON.parse(data);
+    if (!asset.listed) return new Response("Asset is not listed.", { status: 400 });
+
+    const userBalance = await Kv.get(`balances/${address}/${symbol}`);
+    if (!userBalance || parseInt(userBalance) < amount) {
+      return new Response("Insufficient balance to sell.", { status: 400 });
+    }
+
+    // Calculate total return from bonding curve (reverse of buy logic)
+    let totalReturn = 0;
+    for (let i = 0; i < amount; i++) {
+      asset.supply -= 1;
+      totalReturn += asset.basePrice + (asset.supply * asset.slope);
+    }
+
+    await Kv.set(key, JSON.stringify(asset));
+    await updateUserBalance(address, symbol, -amount);
+    await logTransaction(address, {
+      type: "sell",
+      symbol,
+      amount,
+      cost: -totalReturn,
+    });
+
+    return json(await addWalletMetadata(address, {
+      message: `Sold ${amount} ${symbol} for estimated value ${totalReturn.toFixed(2)}`,
+    }));
   } catch (err) {
     if (err instanceof Error) {
       return new Response(`Error: ${err.message}`, { status: 500 });
