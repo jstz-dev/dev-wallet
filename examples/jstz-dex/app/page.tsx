@@ -4,13 +4,14 @@ import { Wallet, BarChart3, Settings, AlertTriangle, WifiOff, Chrome } from "luc
 
 import { AssetManagement } from "@/components/asset-management";
 import { Portfolio } from "@/components/portfolio";
+import { ThemeModeToggle } from "@/components/theme-toggle";
 import { TradingInterface } from "@/components/trading-interface";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWalletContext } from "@/contexts/wallet.context";
-import { ThemeModeToggle } from "@/components/theme-toggle";
+import Logo from "@/components/logo";
 
 export default function DexApp() {
   const {
@@ -41,7 +42,6 @@ export default function DexApp() {
                   {extensionStatus === "available"
                     ? "jstz Signer extension detected"
                     : "jstz Signer extension not found. Please install the extension to continue."}
-
                 </AlertDescription>
                 <ThemeModeToggle />
               </div>
@@ -57,7 +57,9 @@ export default function DexApp() {
 
           <Card>
             <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-bold">jstz DEX</CardTitle>
+              <CardTitle className="text-2xl font-bold">
+                <Logo />
+              </CardTitle>
               <p className="text-muted-foreground">Decentralized Exchange on Tezos Smart Rollups</p>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -109,11 +111,11 @@ export default function DexApp() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br">
-      <header className="border-b  shadow-sm">
+      <header className="border-b shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold">jstz DEX</h1>
+              <Logo />
               <p className="text-muted-foreground text-sm">Bonding Curve Exchange</p>
             </div>
             <div className="flex items-center gap-4">
@@ -142,7 +144,6 @@ export default function DexApp() {
                 Disconnect
               </Button>
               <ThemeModeToggle />
-
             </div>
           </div>
         </div>
