@@ -15,6 +15,7 @@ import { DexAPI } from "@/services/dex-api"
 import { buyTokenSchema, swapTokenSchema, type BuyTokenForm, type SwapTokenForm } from "@/lib/schemas"
 import type { Asset, UserBalance } from "@/types/dex"
 import { useToast } from "@/hooks/use-toast"
+import { useAssetsContext } from "@/contexts/assets.context";
 
 interface TradingInterfaceProps {
   userAddress: string
@@ -29,7 +30,8 @@ export function TradingInterface({
   onBalanceUpdate,
   extensionAvailable,
 }: TradingInterfaceProps) {
-  const [assets, setAssets] = useState<Asset[]>([])
+  const {assets, setAssets} = useAssetsContext()
+
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
   const { toast } = useToast()
 
@@ -49,10 +51,6 @@ export function TradingInterface({
       amount: 1,
     },
   })
-  //
-  // useEffect(() => {
-  //   loadAssets()
-  // }, [])
 
   // Watch for asset selection changes
   const watchedAssetSymbol = buyForm.watch("assetSymbol")
@@ -63,18 +61,6 @@ export function TradingInterface({
     }
   }, [watchedAssetSymbol, assets])
 
-  const loadAssets = async () => {
-    try {
-      const data = await DexAPI.getAssets()
-      setAssets(data.filter((asset) => asset.listed))
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load assets",
-        variant: "destructive",
-      })
-    }
-  }
 
   const onBuySubmit = async (data: BuyTokenForm) => {
     if (!extensionAvailable) {
@@ -100,7 +86,7 @@ export function TradingInterface({
 
       buyForm.reset()
       onBalanceUpdate()
-      loadAssets()
+      setAssets(result.assets)
     } catch (error) {
       toast({
         title: "Error",
@@ -135,7 +121,7 @@ export function TradingInterface({
 
       swapForm.reset()
       onBalanceUpdate()
-      loadAssets()
+      setAssets(result.assets)
     } catch (error) {
       toast({
         title: "Error",

@@ -1,29 +1,44 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { zodResolver } from "@hookform/resolvers/zod";
+
 import { Plus, List, X, Check } from "lucide-react";
-import { DexAPI } from "@/services/dex-api"
-import { mintAssetSchema, listAssetSchema, type MintAssetForm, type ListAssetForm } from "@/lib/schemas"
-import type { Asset } from "@/types/dex"
-import { useToast } from "@/hooks/use-toast"
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAssetsContext } from "@/contexts/assets.context";
+import { useToast } from "@/hooks/use-toast";
+import {
+  mintAssetSchema,
+  listAssetSchema,
+  type MintAssetForm,
+  type ListAssetForm,
+} from "@/lib/schemas";
+import { DexAPI } from "@/services/dex-api";
+import type { Asset } from "@/types/dex";
 
 interface AssetManagementProps {
-  userAddress: string
-  extensionAvailable: boolean
+  userAddress: string;
+  extensionAvailable: boolean;
 }
 
 export function AssetManagement({ userAddress, extensionAvailable }: AssetManagementProps) {
-  const [assets, setAssets] = useState<Asset[]>([])
-  const [loading, setLoading] = useState(false)
-  const { toast } = useToast()
+  const { assets, setAssets, loadAssets } = useAssetsContext();
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   const mintForm = useForm<MintAssetForm>({
     resolver: zodResolver(mintAssetSchema),
@@ -34,7 +49,7 @@ export function AssetManagement({ userAddress, extensionAvailable }: AssetManage
       basePrice: 0.0001,
       slope: 0.0001,
     },
-  })
+  });
 
   const listForm = useForm<ListAssetForm>({
     resolver: zodResolver(listAssetSchema),
@@ -43,24 +58,7 @@ export function AssetManagement({ userAddress, extensionAvailable }: AssetManage
       basePrice: 0.0001,
       slope: 0.0001,
     },
-  })
-
-  // useEffect(() => {
-  //   loadAssets()
-  // }, [])
-
-  const loadAssets = async () => {
-    try {
-      const data = await DexAPI.getAssets()
-      setAssets(data)
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load assets",
-        variant: "destructive",
-      })
-    }
-  }
+  });
 
   const onMintSubmit = async (data: MintAssetForm) => {
     if (!extensionAvailable) {
@@ -68,8 +66,8 @@ export function AssetManagement({ userAddress, extensionAvailable }: AssetManage
         title: "Extension Unavailable",
         description: "Cannot mint assets while jstz signer extension is disconnected",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     try {
@@ -79,23 +77,23 @@ export function AssetManagement({ userAddress, extensionAvailable }: AssetManage
         initialSupply: data.initialSupply,
         basePrice: data.basePrice,
         slope: data.slope,
-      })
+      });
 
       toast({
         title: "Success",
         description: result.message,
-      })
+      });
 
-      mintForm.reset()
-      loadAssets()
+      mintForm.reset();
+      setAssets(result.assets);
     } catch (error) {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to mint asset",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   const onListSubmit = async (data: ListAssetForm) => {
     if (!extensionAvailable) {
@@ -103,8 +101,8 @@ export function AssetManagement({ userAddress, extensionAvailable }: AssetManage
         title: "Extension Unavailable",
         description: "Cannot list assets while jstz signer extension is disconnected",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     try {
@@ -113,24 +111,23 @@ export function AssetManagement({ userAddress, extensionAvailable }: AssetManage
         address: userAddress,
         basePrice: data.basePrice,
         slope: data.slope,
-      })
+      });
 
       toast({
         title: "Success",
         description: result.message,
-      })
+      });
 
-      listForm.reset()
-      loadAssets()
+      listForm.reset();
+      setAssets(result.assets);
     } catch (error) {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to list asset",
         variant: "destructive",
-      })
+      });
     }
-  }
-
+  };
 
   const handleUnlist = async (symbol: string) => {
     if (!extensionAvailable) {
@@ -138,30 +135,30 @@ export function AssetManagement({ userAddress, extensionAvailable }: AssetManage
         title: "Extension Unavailable",
         description: "Cannot unlist assets while jstz signer extension is disconnected",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
     try {
-      const result = await DexAPI.unlistAsset(symbol, userAddress)
+      const result = await DexAPI.unlistAsset(symbol, userAddress);
 
       toast({
         title: "Success",
         description: result.message,
-      })
+      });
 
-      loadAssets()
+      setAssets(result.assets);
     } catch (error) {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to unlist asset",
         variant: "destructive",
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -260,7 +257,7 @@ export function AssetManagement({ userAddress, extensionAvailable }: AssetManage
                     disabled={mintForm.formState.isSubmitting || !extensionAvailable}
                     className="w-full"
                   >
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="mr-2 h-4 w-4" />
                     {mintForm.formState.isSubmitting
                       ? "Minting..."
                       : !extensionAvailable
@@ -327,7 +324,7 @@ export function AssetManagement({ userAddress, extensionAvailable }: AssetManage
                     disabled={listForm.formState.isSubmitting || !extensionAvailable}
                     className="w-full"
                   >
-                    <List className="h-4 w-4 mr-2" />
+                    <List className="mr-2 h-4 w-4" />
                     {listForm.formState.isSubmitting
                       ? "Listing..."
                       : !extensionAvailable
@@ -343,23 +340,27 @@ export function AssetManagement({ userAddress, extensionAvailable }: AssetManage
 
       <Card>
         <CardHeader>
-          <CardTitle>All Assets <Button onClick={loadAssets}>Get assets</Button></CardTitle>
+          <CardTitle>
+            All Assets <Button onClick={loadAssets}>Get assets</Button>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {assets.map((asset) => (
-              <div key={asset.symbol} className="p-4 border rounded-lg space-y-2">
+              <div key={asset.symbol} className="space-y-2 rounded-lg border p-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold">{asset.name}</h3>
-                  <Badge variant={asset.listed ? "default" : "secondary"}>{asset.listed ? "Listed" : "Unlisted"}</Badge>
+                  <Badge variant={asset.listed ? "default" : "secondary"}>
+                    {asset.listed ? "Listed" : "Unlisted"}
+                  </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">Symbol: {asset.symbol}</p>
-                <p className="text-sm text-muted-foreground">Supply: {asset.supply}</p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">Symbol: {asset.symbol}</p>
+                <p className="text-muted-foreground text-sm">Supply: {asset.supply}</p>
+                <p className="text-muted-foreground text-sm">
                   Current Price: {(asset.basePrice + asset.supply * asset.slope).toFixed(4)}
                 </p>
-                <p className="text-sm text-muted-foreground">Base Price: {asset.basePrice}</p>
-                <p className="text-sm text-muted-foreground">Slope: {asset.slope}</p>
+                <p className="text-muted-foreground text-sm">Base Price: {asset.basePrice}</p>
+                <p className="text-muted-foreground text-sm">Slope: {asset.slope}</p>
                 {asset.listed ? (
                   <Button
                     variant="destructive"
@@ -368,7 +369,7 @@ export function AssetManagement({ userAddress, extensionAvailable }: AssetManage
                     disabled={loading || !extensionAvailable}
                     className="w-full"
                   >
-                    <X className="h-4 w-4 mr-2" />
+                    <X className="mr-2 h-4 w-4" />
                     {!extensionAvailable ? "Extension Unavailable" : "Unlist"}
                   </Button>
                 ) : (
@@ -379,7 +380,7 @@ export function AssetManagement({ userAddress, extensionAvailable }: AssetManage
                     disabled={loading || !extensionAvailable}
                     className="w-full"
                   >
-                    <Check className="h-4 w-4 mr-2" />
+                    <Check className="mr-2 h-4 w-4" />
                     {!extensionAvailable ? "Extension Unavailable" : "List"}
                   </Button>
                 )}
@@ -389,5 +390,5 @@ export function AssetManagement({ userAddress, extensionAvailable }: AssetManage
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

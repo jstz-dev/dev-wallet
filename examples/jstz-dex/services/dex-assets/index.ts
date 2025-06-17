@@ -30,14 +30,35 @@ const listAssetSchema = z.object({
   slope: z.number().min(0.0001),
 });
 
+const messageResponseSchema = z.object({
+  message: z.string(),
+});
+
+const assetMutatingResponseSchema = messageResponseSchema.extend({
+  assets: z.array(
+    assetSchema.extend({
+      supply: z.number(),
+      listed: z.boolean(),
+    }).omit({initialSupply: true}),
+  ),
+});
+
+const balanceMutationResponseSchema = assetMutatingResponseSchema.extend({
+  balances: z.record(z.string(), z.number()),
+})
+
+const swapResponseSchema = assetMutatingResponseSchema.extend({
+  valueUsed: z.number(),
+});
+
+const byeResponseSchema = assetMutatingResponseSchema.extend({
+  cost: z.number(),
+});
+
 const router = AutoRouter();
 
 // Helpers
-async function updateUserBalance(
-  address: string,
-  symbol: string,
-  delta: number,
-) {
+async function updateUserBalance(address: string, symbol: string, delta: number) {
   const balanceKey = `balances/${address}/${symbol}`;
   const indexKey = `balances/${address}`;
   const current = await Kv.get(balanceKey);
@@ -46,9 +67,7 @@ async function updateUserBalance(
 
   // update balance index
   const existingKeysRaw = await Kv.get(indexKey);
-  const keys: string[] = existingKeysRaw
-    ? JSON.parse(existingKeysRaw as string)
-    : [];
+  const keys: string[] = existingKeysRaw ? JSON.parse(existingKeysRaw as string) : [];
   if (!keys.includes(symbol)) {
     keys.push(symbol);
     await Kv.set(indexKey, JSON.stringify(keys));
@@ -69,7 +88,7 @@ async function getUserBalances(address: string) {
   const keys: string[] = keysRaw ? JSON.parse(keysRaw as string) : [];
   const balances: Record<string, number> = {};
   for (const symbol of keys) {
-    const value = await Kv.get(`balances/${address}/${symbol}`);
+    const value = await Kv.get<string>(`balances/${address}/${symbol}`);
     if (value) {
       balances[symbol] = parseInt(value);
     }
@@ -77,24 +96,28 @@ async function getUserBalances(address: string) {
   return balances;
 }
 
-// Routes
-router.get("/assets", async () => {
-  const keysRaw = await Kv.get("assets");
+async function getAssets() {
+  const keysRaw = await Kv.get<string>("assets");
   const keys: string[] = keysRaw ? JSON.parse(keysRaw as string) : [];
   const assets = [];
 
   for (const key of keys) {
-    const data = await Kv.get(key);
+    const data = await Kv.get<string>(key);
     if (data) assets.push(JSON.parse(data));
   }
+  return assets;
+}
+
+// Routes
+router.get("/assets", async () => {
+  const assets = await getAssets();
   return json(assets);
 });
 
 router.post("/assets/mint", async (request) => {
   const body = await request.json();
   const parsed = assetSchema.safeParse(body);
-  if (!parsed.success)
-    return new Response(parsed.error.message, { status: 422 });
+  if (!parsed.success) return new Response(parsed.error.message, { status: 422 });
 
   const { name, symbol, initialSupply, basePrice, slope } = parsed.data;
   const key = `assets/${symbol}`;
@@ -117,12 +140,19 @@ router.post("/assets/mint", async (request) => {
   assetKeys.push(key);
   await Kv.set(indexKey, JSON.stringify(assetKeys));
 
-  return json({ message: `Asset '${symbol}' minted and listed.` });
+  const assets = await getAssets();
+
+  const response = assetMutatingResponseSchema.parse({
+    message: `Asset '${symbol}' minted and listed.`,
+    assets,
+  });
+
+  return json(response);
 });
 
 router.get("/assets/:symbol", async (request) => {
   const { symbol } = request.params;
-  const data = await Kv.get(`assets/${symbol}`);
+  const data = await Kv.get<string>(`assets/${symbol}`);
   if (!data) return new Response("Asset not found.", { status: 404 });
   return json(JSON.parse(data));
 });
@@ -130,12 +160,11 @@ router.get("/assets/:symbol", async (request) => {
 router.post("/assets/list", async (request) => {
   const body = await request.json();
   const parsed = listAssetSchema.safeParse(body);
-  if (!parsed.success)
-    return new Response(parsed.error.message, { status: 422 });
+  if (!parsed.success) return new Response(parsed.error.message, { status: 422 });
 
   const { symbol, address, basePrice, slope } = parsed.data;
   const key = `assets/${symbol}`;
-  const data = await Kv.get(key);
+  const data = await Kv.get<string>(key);
   if (!data) return new Response("Asset not found.", { status: 404 });
 
   const asset = JSON.parse(data);
@@ -145,17 +174,23 @@ router.post("/assets/list", async (request) => {
   await Kv.set(key, JSON.stringify(asset));
   await logTransaction(address, { type: "list", symbol, basePrice, slope });
 
-  return json({ message: `Asset '${symbol}' listed by ${address}.` });
+  const assets = await getAssets();
+
+  const response = assetMutatingResponseSchema.parse({
+    message: `Asset '${symbol}' listed by ${address}.`,
+    assets,
+  });
+
+  return json(response);
 });
 
 router.post("/assets/unlist", async (request) => {
   const body = await request.json();
   const { symbol, address } = body;
-  if (!symbol || !address)
-    return new Response("Missing symbol or address.", { status: 400 });
+  if (!symbol || !address) return new Response("Missing symbol or address.", { status: 400 });
 
   const key = `assets/${symbol}`;
-  const data = await Kv.get(key);
+  const data = await Kv.get<string>(key);
   if (!data) return new Response("Asset not found.", { status: 404 });
 
   const asset = JSON.parse(data);
@@ -163,13 +198,23 @@ router.post("/assets/unlist", async (request) => {
   await Kv.set(key, JSON.stringify(asset));
   await logTransaction(address, { type: "unlist", symbol });
 
-  return json({ message: `Asset '${symbol}' unlisted by ${address}.` });
+  const assets = await getAssets();
+
+  const response = assetMutatingResponseSchema.parse({
+    message: `Asset '${symbol}' unlisted by ${address}.`,
+    assets,
+  });
+
+  return json(response);
 });
 
 router.get("/user/:address/balances", async (request) => {
   const { address } = request.params;
   const balances = await getUserBalances(address);
-  return json(balances);
+
+  const response = balanceMutationResponseSchema.parse(balances);
+
+  return json(response);
 });
 
 router.get("/user/:address/txs", async (request) => {
@@ -182,8 +227,7 @@ router.post("/buy", async (request) => {
   try {
     const body = await request.json();
     const parsed = buySchema.safeParse(body);
-    if (!parsed.success)
-      return new Response(parsed.error.message, { status: 422 });
+    if (!parsed.success) return new Response(parsed.error.message, { status: 422 });
 
     const { symbol, amount, address } = parsed.data;
     const key = `assets/${symbol}`;
@@ -191,8 +235,7 @@ router.post("/buy", async (request) => {
     if (!data) return new Response("Asset not found.", { status: 404 });
 
     const asset = JSON.parse(data);
-    if (!asset.listed)
-      return new Response("Asset is not listed for purchase.", { status: 400 });
+    if (!asset.listed) return new Response("Asset is not listed for purchase.", { status: 400 });
 
     let totalCost = 0;
     for (let i = 0; i < amount; i++) {
@@ -209,12 +252,22 @@ router.post("/buy", async (request) => {
       cost: totalCost,
     });
 
-    return json({
+    const assets = await getAssets();
+    const balances = await getUserBalances(address);
+
+    const response = balanceMutationResponseSchema.parse({
       message: `Successfully bought ${amount} ${symbol}.`,
       cost: totalCost,
+      assets,
+      balances,
     });
+
+    return json(response);
   } catch (err) {
-    return new Response(`Error: ${err.message}`, { status: 500 });
+    if (err instanceof Error) {
+      return new Response(`Error: ${err.message}`, { status: 500 });
+    }
+    return new Response(`Error: ${err}`, { status: 500 });
   }
 });
 
@@ -222,21 +275,28 @@ router.post("/swap", async (request) => {
   try {
     const body = await request.json();
     const parsed = swapSchema.safeParse(body);
-    if (!parsed.success)
-      return new Response(parsed.error.message, { status: 422 });
+    if (!parsed.success) return new Response(parsed.error.message, { status: 422 });
 
     const { fromSymbol, toSymbol, amount, address } = parsed.data;
     const fromKey = `assets/${fromSymbol}`;
     const toKey = `assets/${toSymbol}`;
     const fromData = await Kv.get(fromKey);
     const toData = await Kv.get(toKey);
-    if (!fromData || !toData)
-      return new Response("One or both assets not found.", { status: 404 });
+    if (!fromData || !toData) return new Response("One or both assets not found.", { status: 404 });
 
     const fromAsset = JSON.parse(fromData);
     const toAsset = JSON.parse(toData);
     if (!fromAsset.listed || !toAsset.listed)
       return new Response("Assets must be listed.", { status: 400 });
+
+    const userBalance = await Kv.get(`balances/${address}/${fromSymbol}`);
+    if (!userBalance || parseInt(userBalance) < amount) {
+      return new Response("Insufficient balance to swap.", { status: 400 });
+    }
+
+    if (fromAsset.supply < amount) {
+      return new Response("Not enough supply to perform swap.", { status: 400 });
+    }
 
     let totalValue = 0;
     for (let i = 0; i < amount; i++) {
@@ -246,10 +306,7 @@ router.post("/swap", async (request) => {
 
     let tokensReceived = 0;
     let spent = 0;
-    while (
-      spent + toAsset.basePrice + toAsset.supply * toAsset.slope <=
-      totalValue
-      ) {
+    while (spent + toAsset.basePrice + toAsset.supply * toAsset.slope <= totalValue) {
       spent += toAsset.basePrice + toAsset.supply * toAsset.slope;
       toAsset.supply += 1;
       tokensReceived += 1;
@@ -267,12 +324,22 @@ router.post("/swap", async (request) => {
       received: tokensReceived,
     });
 
-    return json({
+    const assets = await getAssets();
+    const balances = await getUserBalances(address);
+
+    const response = balanceMutationResponseSchema.parse({
       message: `Swapped ${amount} ${fromSymbol} for ${tokensReceived} ${toSymbol}.`,
       valueUsed: spent,
+      assets,
+      balances,
     });
+
+    return json(response);
   } catch (err) {
-    return new Response(`Error: ${err.message}`, { status: 500 });
+    if (err instanceof Error) {
+      return new Response(`Error: ${err.message}`, { status: 500 });
+    }
+    return new Response(`Error: ${err}`, { status: 500 });
   }
 });
 
