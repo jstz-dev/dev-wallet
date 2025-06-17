@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWalletContext } from "@/contexts/wallet.context";
+import { ThemeModeToggle } from "@/components/theme-toggle";
 
 export default function DexApp() {
   const {
@@ -25,12 +26,12 @@ export default function DexApp() {
 
   if (!isConnected) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="flex min-h-screen items-center justify-center p-4">
         <div className="w-full max-w-md space-y-4">
           {/* Extension Status Alert */}
           {extensionStatus !== "checking" && (
             <Alert variant={extensionStatus === "available" ? "default" : "destructive"}>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2">
                 {extensionStatus === "available" ? (
                   <Chrome className="h-4 w-4" />
                 ) : (
@@ -40,7 +41,9 @@ export default function DexApp() {
                   {extensionStatus === "available"
                     ? "jstz Signer extension detected"
                     : "jstz Signer extension not found. Please install the extension to continue."}
+
                 </AlertDescription>
+                <ThemeModeToggle />
               </div>
               {extensionStatus === "unavailable" && (
                 <div className="mt-2">
@@ -105,8 +108,8 @@ export default function DexApp() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <header className="border-b bg-white shadow-sm">
+    <div className="min-h-screen bg-gradient-to-br">
+      <header className="border-b  shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div>
@@ -138,6 +141,8 @@ export default function DexApp() {
               <Button variant="outline" onClick={disconnectWallet}>
                 Disconnect
               </Button>
+              <ThemeModeToggle />
+
             </div>
           </div>
         </div>
