@@ -1,41 +1,62 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { ArrowUpDown, TrendingUp } from "lucide-react"
-import { DexAPI } from "@/services/dex-api"
-import { buyTokenSchema, swapTokenSchema, type BuyTokenForm, type SwapTokenForm } from "@/lib/schemas"
-import type { Asset, BalanceMutationResponse, UserBalance } from "@/types/dex";
-import { useToast } from "@/hooks/use-toast"
+import { zodResolver } from "@hookform/resolvers/zod";
+
+import { ArrowUpDown, TrendingDown, TrendingUp } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAssetsContext } from "@/contexts/assets.context";
 import { useWalletContext } from "@/contexts/wallet.context";
+import { useToast } from "@/hooks/use-toast";
+import {
+  buyTokenSchema,
+  sellTokenSchema,
+  swapTokenSchema,
+  type BuyTokenForm,
+  type SellTokenForm,
+  type SwapTokenForm,
+} from "@/lib/schemas";
+import { DexAPI } from "@/services/dex-api";
+import type { Asset, BalanceMutationResponse, UserBalance } from "@/types/dex";
 
 interface TradingInterfaceProps {
-  userAddress: string
-  userBalances: UserBalance
-  onBalanceUpdate: () => void
-  extensionAvailable: boolean
+  userAddress: string;
+  userBalances: UserBalance;
+  extensionAvailable: boolean;
 }
 
 export function TradingInterface({
   userAddress,
   userBalances,
-  onBalanceUpdate,
   extensionAvailable,
 }: TradingInterfaceProps) {
-  const {assets, setAssets} = useAssetsContext()
-  const {setUserBalances, setTransactions} = useWalletContext()
+  const { assets, setAssets } = useAssetsContext();
+  const { setUserBalances, setTransactions } = useWalletContext();
 
-  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
-  const { toast } = useToast()
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const [selectedSellAsset, setSelectedSellAsset] = useState<Asset | null>(null);
+  const { toast } = useToast();
 
   const buyForm = useForm<BuyTokenForm>({
     resolver: zodResolver(buyTokenSchema),
@@ -43,7 +64,15 @@ export function TradingInterface({
       assetSymbol: "",
       amount: 1,
     },
-  })
+  });
+
+  const sellForm = useForm<SellTokenForm>({
+    resolver: zodResolver(sellTokenSchema),
+    defaultValues: {
+      assetSymbol: "",
+      amount: 1,
+    },
+  });
 
   const swapForm = useForm<SwapTokenForm>({
     resolver: zodResolver(swapTokenSchema),
@@ -52,23 +81,29 @@ export function TradingInterface({
       toSymbol: "",
       amount: 1,
     },
-  })
+  });
 
   // Watch for asset selection changes
-  const watchedAssetSymbol = buyForm.watch("assetSymbol")
+  const watchedAssetSymbol = buyForm.watch("assetSymbol");
   useEffect(() => {
     if (watchedAssetSymbol) {
-      const asset = assets.find((a) => a.symbol === watchedAssetSymbol)
-      setSelectedAsset(asset || null)
+      const asset = assets.find((a) => a.symbol === watchedAssetSymbol);
+      setSelectedAsset(asset || null);
     }
-  }, [watchedAssetSymbol, assets])
+  }, [watchedAssetSymbol, assets]);
 
   async function updateMeta(response: BalanceMutationResponse) {
-    setAssets(response.assets)
-    setUserBalances(response.balances)
-    setTransactions(response.transactions)
+    if (
+      typeof response !== "object" ||
+      !response.assets ||
+      !response.balances ||
+      !response.transactions
+    )
+      return;
+    setAssets(response.assets);
+    setUserBalances(response.balances);
+    setTransactions(response.transactions);
   }
-
 
   const onBuySubmit = async (data: BuyTokenForm) => {
     if (!extensionAvailable) {
@@ -76,8 +111,8 @@ export function TradingInterface({
         title: "Extension Unavailable",
         description: "Cannot execute trades while the jstz signer extension is disconnected",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     try {
@@ -85,24 +120,58 @@ export function TradingInterface({
         symbol: data.assetSymbol,
         amount: data.amount,
         address: userAddress,
-      })
+      });
 
       toast({
         title: "Success",
         description: `${result.message} Cost: ${result.cost.toFixed(4)}`,
-      })
+      });
 
-      buyForm.reset()
-      onBalanceUpdate()
-      void updateMeta(result)
+      buyForm.reset();
+
+      void updateMeta(result);
     } catch (error) {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to buy tokens",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
+
+  const onSellSubmit = async (data: SellTokenForm) => {
+    if (!extensionAvailable) {
+      toast({
+        title: "Extension Unavailable",
+        description: "Cannot execute trades while the jstz signer extension is disconnected",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const result = await DexAPI.sellTokens({
+        symbol: data.assetSymbol,
+        amount: data.amount,
+        address: userAddress,
+      });
+
+      toast({
+        title: "Success",
+        description: result.message,
+      });
+
+      sellForm.reset();
+
+      void updateMeta(result);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to sell tokens",
+        variant: "destructive",
+      });
+    }
+  };
 
   const onSwapSubmit = async (data: SwapTokenForm) => {
     if (!extensionAvailable) {
@@ -110,8 +179,8 @@ export function TradingInterface({
         title: "Extension Unavailable",
         description: "Cannot execute swaps while the jstz signer extension is disconnected",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     try {
@@ -120,33 +189,44 @@ export function TradingInterface({
         toSymbol: data.toSymbol,
         amount: data.amount,
         address: userAddress,
-      })
+      });
 
       toast({
         title: "Success",
         description: result.message,
-      })
+      });
 
-      swapForm.reset()
-      void updateMeta(result)
-
-      onBalanceUpdate()
+      swapForm.reset();
+      void updateMeta(result);
     } catch (error) {
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to swap tokens",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   const calculateBuyPrice = () => {
-    if (!selectedAsset || !buyForm.watch("amount")) return 0
-    return DexAPI.calculateTokenPrice(selectedAsset, buyForm.watch("amount"))
-  }
+    if (!selectedAsset || !buyForm.watch("amount")) return 0;
+    return DexAPI.calculateTokenPrice(selectedAsset, buyForm.watch("amount"));
+  };
+
+  const calculateSellReturn = () => {
+    if (!selectedSellAsset || !sellForm.watch("amount")) return 0;
+    return DexAPI.calculateSellReturn(selectedSellAsset, sellForm.watch("amount"));
+  };
 
   // Get max swap amount for validation
-  const maxSwapAmount = swapForm.watch("fromSymbol") ? userBalances[swapForm.watch("fromSymbol")] || 0 : 0
+  const maxSwapAmount = swapForm.watch("fromSymbol")
+    ? userBalances[swapForm.watch("fromSymbol")] || 0
+    : 0;
+  const maxSellAmount = sellForm.watch("assetSymbol")
+    ? userBalances[sellForm.watch("assetSymbol")] || 0
+    : 0;
+
+  // Get user's owned tokens for selling
+  const ownedTokens = Object.entries(userBalances).filter(([_, balance]) => balance > 0);
 
   return (
     <Card className="w-full max-w-2xl">
@@ -158,8 +238,9 @@ export function TradingInterface({
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="buy" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="buy">Buy Tokens</TabsTrigger>
+            <TabsTrigger value="sell">Sell Tokens</TabsTrigger>
             <TabsTrigger value="swap">Swap Tokens</TabsTrigger>
           </TabsList>
 
@@ -181,7 +262,7 @@ export function TradingInterface({
                         <SelectContent>
                           {assets.map((asset) => (
                             <SelectItem key={asset.symbol} value={asset.symbol}>
-                              <div className="flex items-center justify-between w-full">
+                              <div className="flex w-full items-center justify-between">
                                 <span>
                                   {asset.name} ({asset.symbol})
                                 </span>
@@ -199,11 +280,14 @@ export function TradingInterface({
                 />
 
                 {selectedAsset && (
-                  <div className="p-4 bg-muted rounded-lg space-y-2">
+                  <div className="bg-muted space-y-2 rounded-lg p-4">
                     <div className="flex justify-between">
                       <span>Current Price:</span>
                       <span className="font-mono">
-                        {(selectedAsset.basePrice + selectedAsset.supply * selectedAsset.slope).toFixed(4)}
+                        {(
+                          selectedAsset.basePrice +
+                          selectedAsset.supply * selectedAsset.slope
+                        ).toFixed(4)}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -236,7 +320,7 @@ export function TradingInterface({
                 />
 
                 {buyForm.watch("amount") && selectedAsset && (
-                  <div className="p-4 bg-muted rounded-lg">
+                  <div className="bg-muted rounded-lg p-4">
                     <div className="flex justify-between font-semibold">
                       <span>Total Cost:</span>
                       <span className="font-mono">{calculateBuyPrice().toFixed(4)}</span>
@@ -254,6 +338,125 @@ export function TradingInterface({
                     : !extensionAvailable
                       ? "Extension Unavailable"
                       : "Buy Tokens"}
+                </Button>
+              </form>
+            </Form>
+          </TabsContent>
+
+          <TabsContent value="sell" className="space-y-4">
+            <Form {...sellForm}>
+              <form onSubmit={sellForm.handleSubmit(onSellSubmit)} className="space-y-4">
+                <FormField
+                  control={sellForm.control}
+                  name="assetSymbol"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Select Asset to Sell</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choose an asset to sell" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {ownedTokens.map(([symbol, balance]) => {
+                            const asset = assets.find((a) => a.symbol === symbol);
+                            return (
+                              <SelectItem key={symbol} value={symbol}>
+                                <div className="flex w-full items-center justify-between">
+                                  <span>{symbol}</span>
+                                  <Badge variant="outline">Balance: {balance}</Badge>
+                                </div>
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                      {ownedTokens.length === 0 && (
+                        <p className="text-muted-foreground text-sm">
+                          You don't own any tokens to sell
+                        </p>
+                      )}
+                    </FormItem>
+                  )}
+                />
+
+                {selectedSellAsset && (
+                  <div className="bg-muted space-y-2 rounded-lg p-4">
+                    <div className="flex justify-between">
+                      <span>Current Sell Price:</span>
+                      <span className="font-mono">
+                        {(
+                          selectedSellAsset.basePrice +
+                          (selectedSellAsset.supply - 1) * selectedSellAsset.slope
+                        ).toFixed(4)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Supply:</span>
+                      <span className="font-mono">{selectedSellAsset.supply}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Your Balance:</span>
+                      <span className="font-mono">
+                        {userBalances[selectedSellAsset.symbol] || 0}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <FormField
+                  control={sellForm.control}
+                  name="amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Amount</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="Enter amount to sell"
+                          max={maxSellAmount}
+                          {...field}
+                        />
+                      </FormControl>
+                      {sellForm.watch("assetSymbol") && (
+                        <p className="text-muted-foreground text-sm">
+                          Available: {maxSellAmount} {sellForm.watch("assetSymbol")}
+                        </p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {sellForm.watch("amount") && selectedSellAsset && (
+                  <div className="bg-muted rounded-lg p-4">
+                    <div className="flex justify-between font-semibold">
+                      <span>Estimated Return:</span>
+                      <span className="font-mono">{calculateSellReturn().toFixed(4)}</span>
+                    </div>
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={
+                    sellForm.formState.isSubmitting ||
+                    !extensionAvailable ||
+                    ownedTokens.length === 0
+                  }
+                  className="w-full"
+                  variant="destructive"
+                >
+                  <TrendingDown className="mr-2 h-4 w-4" />
+                  {sellForm.formState.isSubmitting
+                    ? "Selling..."
+                    : !extensionAvailable
+                      ? "Extension Unavailable"
+                      : ownedTokens.length === 0
+                        ? "No Tokens to Sell"
+                        : "Sell Tokens"}
                 </Button>
               </form>
             </Form>
@@ -277,7 +480,7 @@ export function TradingInterface({
                         <SelectContent>
                           {Object.entries(userBalances).map(([symbol, balance]) => (
                             <SelectItem key={symbol} value={symbol}>
-                              <div className="flex items-center justify-between w-full">
+                              <div className="flex w-full items-center justify-between">
                                 <span>{symbol}</span>
                                 <Badge variant="outline">Balance: {balance}</Badge>
                               </div>
@@ -291,7 +494,7 @@ export function TradingInterface({
                 />
 
                 <div className="flex justify-center">
-                  <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                  <ArrowUpDown className="text-muted-foreground h-4 w-4" />
                 </div>
 
                 <FormField
@@ -326,10 +529,15 @@ export function TradingInterface({
                     <FormItem>
                       <FormLabel>Amount</FormLabel>
                       <FormControl>
-                        <Input type="number" placeholder="Enter amount to swap" max={maxSwapAmount} {...field} />
+                        <Input
+                          type="number"
+                          placeholder="Enter amount to swap"
+                          max={maxSwapAmount}
+                          {...field}
+                        />
                       </FormControl>
                       {swapForm.watch("fromSymbol") && (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-muted-foreground text-sm">
                           Available: {maxSwapAmount} {swapForm.watch("fromSymbol")}
                         </p>
                       )}
@@ -355,5 +563,5 @@ export function TradingInterface({
         </Tabs>
       </CardContent>
     </Card>
-  )
+  );
 }

@@ -12,7 +12,7 @@ export interface UserBalance {
 }
 
 export interface Transaction {
-  type: "buy" | "swap" | "list" | "unlist";
+  type: "buy" | "sell" | "swap" | "list" | "unlist";
   symbol?: string;
   fromSymbol?: string;
   toSymbol?: string;
@@ -50,5 +50,6 @@ export interface SwapResult extends BalanceMutationResponse {
 export interface BuyResult extends BalanceMutationResponse {
   cost: number;
 }
-
-
+export interface SellResult extends BalanceMutationResponse {
+  message: string
+}

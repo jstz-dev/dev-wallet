@@ -6,8 +6,8 @@ import {
   SwapResult,
   BuyResult,
   AssetMutatingResponse,
-  MessageResponse,
   WalletResponse,
+  SellResult,
 } from "@/types/dex";
 
 const encoder = new TextEncoder();
@@ -25,7 +25,7 @@ export class DexAPI {
     body?: any,
     options?: SmartFunctionCallOptions,
   ): Promise<T> {
-    const { gasLimit = 50000, baseURL } = options || {};
+    const { gasLimit = 100000, baseURL } = options || {};
 
     const uri = `${baseURL ?? process.env.NEXT_PUBLIC_DEX_BASE_URL}${path ?? ""}`;
     return new Promise((resolve, reject) => {
@@ -156,7 +156,16 @@ export class DexAPI {
     amount: number;
     address: string;
   }): Promise<BuyResult> {
+    console.log(data);
     return this.makeSmartFunctionCall<BuyResult>("POST", "/buy", data);
+  }
+
+  static async sellTokens(data: {
+    symbol: string;
+    amount: number;
+    address: string;
+  }): Promise<SellResult> {
+    return this.makeSmartFunctionCall<SellResult>("POST", "/sell", data);
   }
 
   static async swapTokens(data: {
@@ -174,6 +183,14 @@ export class DexAPI {
       totalCost += asset.basePrice + (asset.supply + i) * asset.slope;
     }
     return totalCost;
+  }
+
+  static calculateSellReturn(asset: Asset, quantity = 1): number {
+    let totalReturn = 0;
+    for (let i = 0; i < quantity; i++) {
+      totalReturn += asset.basePrice + (asset.supply - 1 - i) * asset.slope;
+    }
+    return totalReturn;
   }
 
   static async checkExtensionAvailability(): Promise<boolean> {

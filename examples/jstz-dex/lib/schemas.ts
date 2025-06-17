@@ -21,6 +21,11 @@ export const buyTokenSchema = z.object({
   amount: z.coerce.number().min(1, "Amount must be at least 1"),
 })
 
+export const sellTokenSchema = z.object({
+  assetSymbol: z.string().min(1, "Please select an asset to sell"),
+  amount: z.coerce.number().min(1, "Amount must be at least 1"),
+})
+
 export const swapTokenSchema = z
   .object({
     fromSymbol: z.string().min(1, "Please select a token to swap from"),
@@ -44,5 +49,6 @@ export const walletConnectionSchema = z.object({
 export type MintAssetForm = z.infer<typeof mintAssetSchema>
 export type ListAssetForm = z.infer<typeof listAssetSchema>
 export type BuyTokenForm = z.infer<typeof buyTokenSchema>
+export type SellTokenForm = z.infer<typeof sellTokenSchema>
 export type SwapTokenForm = z.infer<typeof swapTokenSchema>
 export type WalletConnectionForm = z.infer<typeof walletConnectionSchema>

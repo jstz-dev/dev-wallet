@@ -11,13 +11,13 @@ const assetSchema = z.object({
 });
 
 const transactionSchema = z.object({
-  type: z.enum(["buy", "swap", "list", "unlist"]),
+  type: z.enum(["buy", "sell", "swap", "list", "unlist"]),
   symbol: z.string().optional(),
   fromSymbol: z.string().optional(),
   toSymbol: z.string().optional(),
   amount: z.number().min(1).optional(),
   received: z.number().min(0).optional(),
-  cost: z.number().min(0).optional(),
+  cost: z.number().optional(),
   basePrice: z.number().min(0).optional(),
   slope: z.number().min(0.0001).optional(),
   time: z.number().default(Date.now()),
@@ -41,7 +41,6 @@ const sellSchema = z.object({
   amount: z.number().min(1),
   address: z.string(),
 });
-
 
 const listAssetSchema = z.object({
   symbol: z.string(),
@@ -70,7 +69,14 @@ const balanceMutationResponseSchema = z.object({
 });
 
 const walletMetadataSchema = balanceMutationResponseSchema.extend({
-  assets: z.array(assetSchema),
+  assets: z.array(
+    assetSchema
+      .extend({
+        supply: z.number(),
+        listed: z.boolean(),
+      })
+      .omit({ initialSupply: true }),
+  ),
   transactions: z.array(transactionSchema),
 });
 
@@ -151,7 +157,7 @@ async function addWalletMetadata(address: string, response?: Record<string, unkn
   const transactions = await getWalletTransactions(address);
 
   const assetsResponse = await addAssetsMetadata(response);
-  
+
   console.log("Assets Response:", assetsResponse);
 
   return walletMetadataSchema.parse({ ...assetsResponse, balances, transactions });
@@ -397,7 +403,7 @@ router.post("/sell", async (request) => {
     let totalReturn = 0;
     for (let i = 0; i < amount; i++) {
       asset.supply -= 1;
-      totalReturn += asset.basePrice + (asset.supply * asset.slope);
+      totalReturn += asset.basePrice + asset.supply * asset.slope;
     }
 
     await Kv.set(key, JSON.stringify(asset));
@@ -409,9 +415,11 @@ router.post("/sell", async (request) => {
       cost: -totalReturn,
     });
 
-    return json(await addWalletMetadata(address, {
-      message: `Sold ${amount} ${symbol} for estimated value ${totalReturn.toFixed(2)}`,
-    }));
+    return json(
+      await addWalletMetadata(address, {
+        message: `Sold ${amount} ${symbol} for estimated value ${totalReturn.toFixed(2)}`,
+      }),
+    );
   } catch (err) {
     if (err instanceof Error) {
       return new Response(`Error: ${err.message}`, { status: 500 });

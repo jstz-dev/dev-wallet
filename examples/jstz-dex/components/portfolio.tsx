@@ -19,6 +19,8 @@ export function Portfolio({ userAddress, userBalances }: PortfolioProps) {
     switch (tx.type) {
       case "buy":
         return `Bought ${tx.amount} ${tx.symbol}`
+      case "sell":
+        return `Sold ${tx.amount} ${tx.symbol}`
       case "swap":
         return `Swapped ${tx.amount} ${tx.fromSymbol} → ${tx.received} ${tx.toSymbol}`
       case "list":
@@ -33,6 +35,8 @@ export function Portfolio({ userAddress, userBalances }: PortfolioProps) {
   const getTransactionBadgeVariant = (type: string) => {
     switch (type) {
       case "buy":
+        return "default"
+      case "sell":
         return "default"
       case "swap":
         return "secondary"

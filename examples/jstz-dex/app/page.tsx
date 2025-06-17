@@ -21,7 +21,6 @@ export default function DexApp() {
     disconnectWallet,
     userAddress,
     userBalances,
-    loadUserBalances,
   } = useWalletContext();
 
   if (!isConnected) {
@@ -185,7 +184,6 @@ export default function DexApp() {
               <TradingInterface
                 userAddress={userAddress}
                 userBalances={userBalances}
-                onBalanceUpdate={() => loadUserBalances()}
                 extensionAvailable={extensionStatus === "available"}
               />
             </div>
