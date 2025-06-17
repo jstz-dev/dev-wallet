@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 
+import { ThemeProvider } from "@/components/theme-provider";
 import { AssetsContextProvider } from "@/contexts/assets.context";
 import { WalletContextProvider } from "@/contexts/wallet.context";
 
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
   title: "v0 App",
@@ -20,11 +21,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <AssetsContextProvider>
-          <WalletContextProvider>{children}</WalletContextProvider>
-        </AssetsContextProvider>
-      </ThemeProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <AssetsContextProvider>
+            <WalletContextProvider>
+              {children}
+              <Toaster/>
+            </WalletContextProvider>
+          </AssetsContextProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

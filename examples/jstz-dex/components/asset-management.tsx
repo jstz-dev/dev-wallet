@@ -28,7 +28,6 @@ import {
   type ListAssetForm,
 } from "@/lib/schemas";
 import { DexAPI } from "@/services/dex-api";
-import type { Asset } from "@/types/dex";
 
 interface AssetManagementProps {
   userAddress: string;

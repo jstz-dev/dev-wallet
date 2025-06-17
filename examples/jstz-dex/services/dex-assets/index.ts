@@ -1,6 +1,8 @@
 import { AutoRouter, json } from "itty-router";
 import { z } from "zod";
 
+const ONE_TOKEN = 1;
+
 // Schemas
 const assetSchema = z.object({
   name: z.string().min(2),
@@ -149,18 +151,22 @@ async function getWalletTransactions(address: string) {
 async function addAssetsMetadata(response?: Record<string, unknown>) {
   const assets = await getAssets();
 
-  return assetMutatingResponseSchema.parse({ ...(response ?? {}), assets });
+  const assetsResponse = assetMutatingResponseSchema.parse({ assets });
+
+  return { ...response, ...assetsResponse };
 }
 
 async function addWalletMetadata(address: string, response?: Record<string, unknown>) {
+  const assetsResponse = await addAssetsMetadata(response);
+
   const balances = await getWalletBalances(address);
   const transactions = await getWalletTransactions(address);
 
-  const assetsResponse = await addAssetsMetadata(response);
+  const walletMetaResponse = walletMetadataSchema.parse({ balances, transactions, ...assetsResponse });
 
   console.log("Assets Response:", assetsResponse);
 
-  return walletMetadataSchema.parse({ ...assetsResponse, balances, transactions });
+  return { ...walletMetaResponse, ...response };
 }
 
 // Routes
@@ -287,7 +293,11 @@ router.post("/buy", async (request) => {
     let totalCost = 0;
     for (let i = 0; i < amount; i++) {
       totalCost += asset.basePrice + asset.supply * asset.slope;
-      asset.supply += 1;
+      asset.supply += ONE_TOKEN;
+    }
+
+    if (totalCost <= 0) {
+      return new Response("Buy amount too low to register value.", { status: 400 });
     }
 
     await Kv.set(key, JSON.stringify(asset));
@@ -342,7 +352,7 @@ router.post("/swap", async (request) => {
 
     let totalValue = 0;
     for (let i = 0; i < amount; i++) {
-      fromAsset.supply -= 1;
+      fromAsset.supply -= ONE_TOKEN;
       totalValue += fromAsset.basePrice + fromAsset.supply * fromAsset.slope;
     }
 
@@ -350,8 +360,12 @@ router.post("/swap", async (request) => {
     let spent = 0;
     while (spent + toAsset.basePrice + toAsset.supply * toAsset.slope <= totalValue) {
       spent += toAsset.basePrice + toAsset.supply * toAsset.slope;
-      toAsset.supply += 1;
-      tokensReceived += 1;
+      toAsset.supply += ONE_TOKEN;
+      tokensReceived += ONE_TOKEN;
+    }
+
+    if (tokensReceived === 0) {
+      return new Response("Swap value too low to receive any target tokens.", { status: 400 });
     }
 
     await Kv.set(fromKey, JSON.stringify(fromAsset));
@@ -402,8 +416,12 @@ router.post("/sell", async (request) => {
     // Calculate total return from bonding curve (reverse of buy logic)
     let totalReturn = 0;
     for (let i = 0; i < amount; i++) {
-      asset.supply -= 1;
+      asset.supply -= ONE_TOKEN;
       totalReturn += asset.basePrice + asset.supply * asset.slope;
+    }
+
+    if (totalReturn <= 0) {
+      return new Response("Sell amount too low to register value.", { status: 400 });
     }
 
     await Kv.set(key, JSON.stringify(asset));
