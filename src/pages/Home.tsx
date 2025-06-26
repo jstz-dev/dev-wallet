@@ -2,6 +2,7 @@ import { redirect, useLocation, useNavigate, type LoaderFunctionArgs } from "rea
 import { Button } from "~/components/ui/button";
 import * as Vault from "~/lib/vault";
 import { useVault, vault } from "~/lib/vaultStore";
+import { AccountSelect } from "~/components/AccountSelect.tsx";
 
 export function loader({ request }: LoaderFunctionArgs) {
   const currentAddress = vault.getState().currentAddress;
@@ -31,9 +32,11 @@ export default function Home() {
       <h3 className="text-2xl font-bold">No accounts</h3>
 
       <div className="flex flex-col items-center justify-between gap-3">
+        <AccountSelect />
+
         <Button onClick={handleGenerate}>Generate account</Button>
 
-        <Button onClick={() => navigate("import-wallet")}>Import existing account</Button>
+        <Button onClick={() => navigate(`import-wallet${location.search}`)}>Import existing account</Button>
       </div>
     </div>
   );
