@@ -17,13 +17,17 @@ export enum ResponseEventTypes {
   DECLINE = "DECLINE",
 }
 
+interface NetworkDependentEvent {
+  networkUrl?: string;
+}
+
 interface RequestEvent {
   type: RequestEventTypes;
 }
 
 export interface SignEvent extends RequestEvent {
   type: RequestEventTypes.SIGN;
-  data: {
+  data: NetworkDependentEvent & {
     content: Jstz.Operation.DeployFunction | Jstz.Operation.RunFunction;
   };
 }
@@ -56,7 +60,7 @@ interface GetAddressResponse {
   };
 }
 
-interface QueuedSignRequest {
+interface QueuedSignRequest extends NetworkDependentEvent {
   type: RequestEventTypes.SIGN;
   resolve: (res: SignResponse | ErrorResponse) => void;
   content: SignEvent["data"]["content"];
@@ -74,7 +78,7 @@ interface ResponseEvent {
 }
 interface ProcessQueueEvent extends ResponseEvent {
   type: ResponseEventTypes.PROCESS_QUEUE;
-  data: WalletType;
+  data: WalletType & NetworkDependentEvent;
 }
 
 interface DeclineEvent extends ResponseEvent {
@@ -133,7 +137,7 @@ chrome.runtime.onMessage.addListener(
       }
 
       case RequestEventTypes.SIGN: {
-        const { content } = request.data;
+        const { content, networkUrl } = request.data;
 
         openWalletDialog({ flow: RequestEventTypes.SIGN }, (window?: chrome.windows.Window) =>
           closeDuplicateWindows(window?.id),
@@ -144,6 +148,7 @@ chrome.runtime.onMessage.addListener(
             sendResponse(JSON.stringify({ type: ResponseEventTypes.SIGN_RESPONSE, ...data }));
           },
           content,
+          networkUrl,
         };
         return true;
       }
@@ -174,13 +179,14 @@ chrome.runtime.onMessage.addListener(
     // dialog to sw communication
     switch (request.type) {
       case ResponseEventTypes.PROCESS_QUEUE: {
-        const { address, publicKey, privateKey } = request.data;
+        const { address, publicKey, privateKey, networkUrl } = request.data;
 
-        const { content, resolve } = queuedRequest as QueuedSignRequest;
+        const { content, networkUrl: overrideNetworkUrl, resolve } = queuedRequest as QueuedSignRequest;
         void createOperation({
           content,
           address,
           publicKey,
+          baseURL: overrideNetworkUrl ?? networkUrl
         })
           .then((operation) => {
             const signature = sign(operation, privateKey);
@@ -235,13 +241,15 @@ async function createOperation({
   content,
   address,
   publicKey,
+  baseURL,
 }: {
   content: QueuedSignRequest["content"];
   address: WalletType["address"];
   publicKey: string;
+  baseURL?: string;
 }): Promise<Jstz.Operation> {
   const jstzClient = new Jstz({
-    baseURL: import.meta.env.VITE_JSTZ_NODE_ENDPOINT as string | undefined,
+    baseURL,
     timeout: 6000,
   });
 
@@ -280,7 +288,7 @@ function openWalletDialog(
       type: "popup",
       focused: true,
       width: 450,
-      height: 500,
+      height: 600,
       // incognito, top, left, ...
     },
     callback,
