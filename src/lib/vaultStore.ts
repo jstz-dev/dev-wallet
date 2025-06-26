@@ -7,6 +7,8 @@ import type { Accounts } from "./constants/storage";
 
 interface VaultStoreState {
   currentAddress: string;
+  currentNetwork: string;
+  customNetworks: string[];
   accounts: Accounts;
 }
 
@@ -16,6 +18,8 @@ type Account = Accounts[string] & {
 
 interface VaultStoreActions {
   setCurrentAddress: (currentAddress: VaultStoreState["currentAddress"]) => void;
+  setCurrentNetwork: (network: string) => void;
+  setCustomNetworks: (networks: string[]) => void;
   setAccounts: (accounts: VaultStoreState["accounts"]) => void;
   addAccount: (account: Account) => void;
 }
@@ -37,7 +41,7 @@ const storageLocal: PersistStorage<VaultStore> = {
   },
 };
 
-const persistance = persist<VaultStore>(
+const persistence = persist<VaultStore>(
   (set, get) => ({
     accounts: {},
     setAccounts: (accounts) => set({ accounts }),
@@ -48,6 +52,11 @@ const persistance = persist<VaultStore>(
     },
     currentAddress: "",
     setCurrentAddress: (currentAddress) => set({ currentAddress }),
+
+    currentNetwork: "http://localhost:8933",
+    customNetworks: [],
+    setCurrentNetwork: (network) => set({ currentNetwork: network }),
+    setCustomNetworks: (networks) => set({ customNetworks: networks }),
   }),
   {
     name: "vault",
@@ -55,7 +64,7 @@ const persistance = persist<VaultStore>(
   },
 );
 
-export const useVault = createSelectors(create(persistance));
+export const useVault = createSelectors(create(persistence));
 
 type WithSelectors<S> = S extends { getState: () => infer T }
   ? S & { use: { [K in keyof T]: () => T[K] } }
@@ -72,4 +81,4 @@ function createSelectors<S extends UseBoundStore<StoreApi<object>>>(_store: S) {
   return store;
 }
 
-export const vault = createStore(persistance);
+export const vault = createStore(persistence);

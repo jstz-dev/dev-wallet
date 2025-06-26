@@ -7,6 +7,8 @@ import { Label } from "~/components/ui/label.tsx";
 import { StorageKeys, type KeyStorage } from "~/lib/constants/storage";
 import { useVault } from "~/lib/vaultStore";
 import { RequestEventTypes, ResponseEventTypes } from "~/scripts/service-worker";
+import { NetworkSelect } from "~/components/NetworkSelect.tsx";
+import { AccountSelect } from "~/components/AccountSelect.tsx";
 
 export default function Wallet() {
   const { accountAddress } = useParams() as { accountAddress: string };
@@ -15,7 +17,7 @@ export default function Wallet() {
 
   const isPopup = searchParams.get("isPopup") === "true";
 
-  const { accounts } = useVault((state) => state);
+  const { accounts, currentNetwork } = useVault((state) => state);
   const account = accounts[accountAddress];
 
   useEffect(() => {
@@ -26,7 +28,17 @@ export default function Wallet() {
 
   return (
     <div className="flex w-full flex-col gap-4 p-4">
-      <h3 className="text-2xl font-bold">Current account</h3>
+      <div className="flex w-full flex-col gap-2">
+        <Label className="font-bold">Network</Label>
+        <NetworkSelect />
+      </div>
+
+      <div className="flex w-full flex-col gap-2">
+        <Label className="font-bold">Account</Label>
+        <AccountSelect />
+      </div>
+
+      <h3 className="text-2xl font-bold">Account details</h3>
 
       <div className="flex w-full flex-col gap-2">
         <Label className="font-bold">Address</Label>
@@ -56,7 +68,7 @@ export default function Wallet() {
         (() => {
           switch (searchParams.get("flow")) {
             case RequestEventTypes.SIGN:
-              return <OperationSigningDialog accountAddress={accountAddress} account={account} />;
+              return <OperationSigningDialog networkUrl={currentNetwork} accountAddress={accountAddress} account={account} />;
 
             case RequestEventTypes.GET_ADDRESS:
               return <GetAddressDialog currentAddress={accountAddress} />;
@@ -72,9 +84,11 @@ export default function Wallet() {
 function OperationSigningDialog({
   account,
   accountAddress,
+  networkUrl,
 }: {
   account?: KeyStorage;
   accountAddress: string;
+  networkUrl?: string;
 }) {
   async function handleConfirm() {
     await chrome.runtime.sendMessage({
@@ -83,6 +97,7 @@ function OperationSigningDialog({
         address: accountAddress,
         privateKey: account?.[StorageKeys.PRIVATE_KEY],
         publicKey: account?.[StorageKeys.PUBLIC_KEY],
+        networkUrl,
       },
     });
 
