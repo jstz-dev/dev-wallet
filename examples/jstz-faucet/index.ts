@@ -49,9 +49,9 @@ const handler = async (request: Request): Promise<Response> => {
   // Process the request and send the 1 tez = 1 million mutez to the requester if you can
   if (Ledger.balance(Ledger.selfAddress) > ONE_TIME_AMOUNT) {
     console.log(
-      `Transferring ${ONE_TIME_AMOUNT} tez from ${Ledger.selfAddress} to ${requester}...`,
+      `Transferring ${ONE_TIME_AMOUNT / ONE_TEZ} tez from ${Ledger.selfAddress} to ${requester}...`,
     );
-    Ledger.transfer(requester, ONE_TEZ);
+    Ledger.transfer(requester, ONE_TIME_AMOUNT);
   } else {
     return new Response(
       JSON.stringify("Sorry, I don't have enough tez to fulfill your request"),
@@ -63,7 +63,7 @@ const handler = async (request: Request): Promise<Response> => {
   addPoliteMessage(requester, message);
 
   return new Response(
-    JSON.stringify(`You received ${ONE_TIME_AMOUNT} tez!`),
+    JSON.stringify(`You received ${ONE_TIME_AMOUNT / ONE_TEZ} tez!`),
   );
 };
 
