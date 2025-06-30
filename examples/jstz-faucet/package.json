@@ -11,6 +11,10 @@
     "esbuild": "^0.20.2"
   },
   "scripts": {
-    "build": "esbuild index.ts --bundle --format=esm --target=esnext --minify --outfile=dist/index.js"
+    "build": "esbuild index.ts --bundle --format=esm --target=esnext --minify --outfile=dist/index.js",
+    "postdeploy": "node post-deploy.js",
+    "build:dev": "npm run build && node deploy.js -n dev && npm run postdeploy dev",
+    "build:staging": "npm run build && node deploy.js -n gcp_v2 && npm run postdeploy staging",
+    "build:prod": "npm run build && node deploy.js -n gcp && npm run postdeploy prod"
   }
 }
