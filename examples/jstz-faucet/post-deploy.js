@@ -45,7 +45,7 @@ try {
       console.error('Error: STAGING_TOP_UP_URL not found in .env file.');
       process.exit(1);
     }
-    const command = `curl -XPOST ${topUpUrl} -d '{"from":"bootstrap3","contract":"KT1GFiPkkTjd14oHe6MrBPiRh5djzRkVWcni","amount":5000,"entrypoint":"deposit","arg":"\"${yourAddress}\""}' -H 'Content-Type: application/json'`;
+    const command = `curl -XPOST ${topUpUrl} -d '{"from":"bootstrap3","contract":"KT1GFiPkkTjd14oHe6MrBPiRh5djzRkVWcni","amount":5000,"entrypoint":"deposit","arg":"${yourAddress}"}' -H 'Content-Type: application/json'`;
     execSync(command, { stdio: 'inherit' });
   } else if (env === 'prod') {
     console.log('Topping up for prod environment...');
@@ -54,7 +54,7 @@ try {
       console.error('Error: PROD_TOP_UP_URL not found in .env file.');
       process.exit(1);
     }
-    const command = `curl -XPOST ${topUpUrl} -d '{"from":"bootstrap1","contract":"KT1GFiPkkTjd14oHe6MrBPiRh5djzRkVWcni","amount":5000,"entrypoint":"deposit","arg":"\"${yourAddress}\""}' -H 'Content-Type: application/json'`;
+    const command = `curl -XPOST ${topUpUrl} -d '{"from":"bootstrap4","contract":"KT1GFiPkkTjd14oHe6MrBPiRh5djzRkVWcni","amount":5000,"entrypoint":"deposit","arg":"${yourAddress}"}' -H 'Content-Type: application/json'`;
     execSync(command, { stdio: 'inherit' });
   } else {
     console.error(`Invalid environment: ${env}. Please use dev, staging, or prod.`);
