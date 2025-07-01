@@ -43,7 +43,7 @@ export function NetworkSelect() {
     try {
       const newList = customNetworks.filter((n) => n !== url);
       setCustomNetworks(newList);
-      setCurrentNetwork(presetNetworks[0] || "");
+      setCurrentNetwork(presetNetworks[presetNetworks.length - 1] || "");
     } catch (error) {
       console.error("Failed to remove custom network:", error);
     }

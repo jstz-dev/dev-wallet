@@ -53,7 +53,7 @@ const persistence = persist<VaultStore>(
     currentAddress: "",
     setCurrentAddress: (currentAddress) => set({ currentAddress }),
 
-    currentNetwork: "http://localhost:8933",
+    currentNetwork: "https://privatenet.jstz.info",
     customNetworks: [],
     setCurrentNetwork: (network) => set({ currentNetwork: network }),
     setCustomNetworks: (networks) => set({ customNetworks: networks }),
