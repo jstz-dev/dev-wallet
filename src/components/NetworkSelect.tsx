@@ -51,7 +51,7 @@ export function NetworkSelect() {
 
   return (
     <Select value={currentNetwork} onValueChange={handleOnSelect}>
-      <SelectTrigger>
+      <SelectTrigger className="dark:hover:bg-black-600 hover:bg-black-600 bg-black-800 dark:bg-black-800 rounded-md border-0">
         <SelectValue />
       </SelectTrigger>
 
@@ -61,12 +61,15 @@ export function NetworkSelect() {
             {url}
           </SelectItem>
         ))}
+
         {!!customNetworks.length && <SelectSeparator />}
+
         {customNetworks.map((url) => (
           <div key={url} className="flex items-center gap-2 px-1">
-            <SelectItem value={url} key={url} >
+            <SelectItem value={url} key={url}>
               {url}
             </SelectItem>
+
             <X
               size={16}
               className="cursor-pointer"
@@ -76,11 +79,11 @@ export function NetworkSelect() {
               }}
             />
           </div>
-
         ))}
 
         <SelectSeparator />
-        <div className="relative ">
+
+        <div className="relative">
           {!!networkValue && (
             <Button
               className="absolute top-0.5 right-0.5"
@@ -90,7 +93,12 @@ export function NetworkSelect() {
               <ChevronRight />
             </Button>
           )}
-          <Input className="pr-8" onChange={(e) => setNetworkValue(e.target.value)} value={networkValue} />
+
+          <Input
+            className="pr-8"
+            onChange={(e) => setNetworkValue(e.target.value)}
+            value={networkValue}
+          />
         </div>
       </SelectContent>
     </Select>

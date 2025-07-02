@@ -2,13 +2,14 @@ import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
+import { AccountSelect } from "~/components/AccountSelect.tsx";
+import { CopyContainer } from "~/components/CopySection";
+import { NetworkSelect } from "~/components/NetworkSelect.tsx";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label.tsx";
 import { StorageKeys, type KeyStorage } from "~/lib/constants/storage";
 import { useVault } from "~/lib/vaultStore";
 import { RequestEventTypes, ResponseEventTypes } from "~/scripts/service-worker";
-import { NetworkSelect } from "~/components/NetworkSelect.tsx";
-import { AccountSelect } from "~/components/AccountSelect.tsx";
 
 export default function Wallet() {
   const { accountAddress } = useParams() as { accountAddress: string };
@@ -28,47 +29,68 @@ export default function Wallet() {
 
   return (
     <div className="flex w-full flex-col gap-4 p-4">
-      <div className="flex w-full flex-col gap-2">
-        <Label className="font-bold">Network</Label>
-        <NetworkSelect />
-      </div>
+      <div className="flex w-full gap-2">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-col gap-2">
+            <Label>Account</Label>
+            <AccountSelect />
+          </div>
 
-      <div className="flex w-full flex-col gap-2">
-        <Label className="font-bold">Account</Label>
-        <AccountSelect />
-      </div>
-
-      <h3 className="text-2xl font-bold">Account details</h3>
-
-      <div className="flex w-full flex-col gap-2">
-        <Label className="font-bold">Address</Label>
-        {accountAddress}
-      </div>
-
-      <div className="flex w-full flex-col gap-2">
-        <Label className="font-bold">Public key</Label>
-        {account?.[StorageKeys.PUBLIC_KEY]}
-      </div>
-
-      <div className="flex w-full flex-col gap-2">
-        <div className="flex flex-wrap gap-2 align-middle">
-          <Label className="font-bold">Private key</Label>
-
-          <div className="cursor-pointer" onClick={() => setPrivateKeyVisible(!privateKeyVisible)}>
-            {privateKeyVisible ? <EyeOff size={20} /> : <Eye size={20} />}
+          <div className="flex flex-col gap-2">
+            <Label>Network</Label>
+            <NetworkSelect />
           </div>
         </div>
 
-        <div>
-          {privateKeyVisible ? account?.[StorageKeys.PRIVATE_KEY] : "*****************************"}
-        </div>
+        {/* <div> */}
+        {/*   <Label className="font-bold">Network</Label> */}
+        {/*   <NetworkSelect /> */}
+        {/* </div> */}
+      </div>
+
+      <div className="flex w-full flex-col gap-2">
+        <Label className="text-white/50 uppercase">Address:</Label>
+        <CopyContainer>{accountAddress}</CopyContainer>
+      </div>
+
+      <div className="flex w-full flex-col gap-2">
+        <Label className="text-white/50 uppercase">Public key:</Label>
+        <CopyContainer>{account?.[StorageKeys.PUBLIC_KEY] ?? ""}</CopyContainer>
+      </div>
+
+      <div className="flex w-full flex-col gap-2">
+        <Label className="text-white/50 uppercase">Private key:</Label>
+
+        <CopyContainer
+          variant="secondary"
+          text={account?.[StorageKeys.PRIVATE_KEY] ?? ""}
+          renderAdditionalButton={(props) => (
+            <Button
+              {...props}
+              onClick={() => setPrivateKeyVisible(!privateKeyVisible)}
+              renderIcon={(props) =>
+                privateKeyVisible ? <EyeOff size={20} {...props} /> : <Eye size={20} {...props} />
+              }
+            />
+          )}
+        >
+          {privateKeyVisible && account?.[StorageKeys.PRIVATE_KEY]
+            ? account[StorageKeys.PRIVATE_KEY]
+            : "•".repeat(32)}
+        </CopyContainer>
       </div>
 
       {isPopup &&
         (() => {
           switch (searchParams.get("flow")) {
             case RequestEventTypes.SIGN:
-              return <OperationSigningDialog networkUrl={currentNetwork} accountAddress={accountAddress} account={account} />;
+              return (
+                <OperationSigningDialog
+                  networkUrl={currentNetwork}
+                  accountAddress={accountAddress}
+                  account={account}
+                />
+              );
 
             case RequestEventTypes.GET_ADDRESS:
               return <GetAddressDialog currentAddress={accountAddress} />;
@@ -118,9 +140,7 @@ function OperationSigningDialog({
           Cancel
         </Button>
 
-        <Button onClick={handleConfirm} variant="jstz">
-          Sign
-        </Button>
+        <Button onClick={handleConfirm}>Sign</Button>
       </div>
     </div>
   );
@@ -140,9 +160,7 @@ function GetAddressDialog({ currentAddress }: { currentAddress: string }) {
       <h1 className="text-lg">Pass the address to log in.</h1>
 
       <div className="flex w-full justify-end gap-4">
-        <Button onClick={handleGetAddress} variant="jstz">
-          Get address
-        </Button>
+        <Button onClick={handleGetAddress}>Get address</Button>
       </div>
     </div>
   );
