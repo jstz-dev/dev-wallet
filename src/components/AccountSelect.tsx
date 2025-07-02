@@ -1,59 +1,61 @@
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select.tsx";
-import { Download, Plus } from "lucide-react";
-import { useLocation, useNavigate, useParams } from "react-router";
+import { Link, useLocation, useNavigate, useParams } from "react-router";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select.tsx";
 import { useVault } from "~/lib/vaultStore.ts";
-import * as Vault from "~/lib/vault";
+
+import { Button, buttonVariants } from "./ui/button";
 
 export function AccountSelect() {
   const { accountAddress } = useParams<{ accountAddress: string }>();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { accounts, setCurrentAddress, addAccount } = useVault((state) => state);
+  const { accounts, setCurrentAddress } = useVault((state) => state);
 
-  async function handleOnSelect(newValue: "generate" | "import" | (string & {})) {
-    switch (newValue) {
-      case "import":
-        void navigate(`/import-wallet${location.search}`);
-        break;
-
-      case "generate": {
-        const newAccount = await Vault.spawn();
-        addAccount(newAccount);
-        setCurrentAddress(newAccount.address);
-        void navigate(`/wallets/${newAccount.address}${location.search}`);
-        break;
-      }
-
-      default:
-        setCurrentAddress(newValue);
-        void navigate(`/wallets/${newValue}${location.search}`);
-    }
+  function handleOnSelect(newValue: string & {}) {
+    setCurrentAddress(newValue);
+    void navigate(`/wallets/${newValue}${location.search}`);
   }
+
+  const selectedValueIndex = Object.keys(accounts).findIndex(
+    (address) => address === accountAddress,
+  );
 
   return (
     Object.keys(accounts).length > 0 && (
       <Select value={accountAddress} onValueChange={handleOnSelect}>
-        <SelectTrigger>
-          <SelectValue />
+        <SelectTrigger className="dark:hover:bg-black-600 hover:bg-black-600 bg-black-800 dark:bg-black-800 rounded-md border-0">
+          <SelectValue>Wallet {selectedValueIndex + 1}</SelectValue>
         </SelectTrigger>
 
         <SelectContent>
           {Object.entries(accounts).map(([address], i) => (
-            <SelectItem value={address} key={address}>
-              Account {i + 1}
+            <SelectItem
+              value={address}
+              key={address}
+              className="mb-2 flex flex-col items-start rounded-md"
+            >
+              <span>Wallet {i + 1}</span>
+              <span className="text-sm text-white/40">{`${address.slice(0, 6)}...${address.slice(-4)}`}</span>
             </SelectItem>
           ))}
 
-          <SelectItem value="generate">
-            Generate <Plus />
-          </SelectItem>
-
-          <SelectItem value="import">
-            Import <Download />
-          </SelectItem>
+          <Link
+            to="/add-wallet"
+            className={buttonVariants({
+              variant: "secondary",
+              className: "w-full rounded-md text-sm",
+            })}
+          >
+            Add Wallet
+          </Link>
         </SelectContent>
       </Select>
     )
-  )
+  );
 }
