@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router";
 import RootLayout from "~/layouts/RootLayout";
-import Home, { loader as homeLoader } from "~/pages/Home";
+import AddWallet from "~/pages/AddWallet";
+import { loader as homeLoader } from "~/pages/Home";
 import ImportWallet from "~/pages/ImportWallet";
 import NotFound from "~/pages/NotFound.tsx";
 import Wallet from "~/pages/Wallet";
@@ -23,7 +24,11 @@ export const router = createBrowserRouter([
       {
         index: true,
         loader: homeLoader,
-        element: <Home />,
+      },
+
+      {
+        path: "add-wallet",
+        element: <AddWallet />,
       },
 
       {
