@@ -8,7 +8,7 @@ import {
 } from "~/components/ui/select.tsx";
 import { useVault } from "~/lib/vaultStore.ts";
 
-import { Button, buttonVariants } from "./ui/button";
+import { buttonVariants } from "./ui/button";
 
 export function AccountSelect() {
   const { accountAddress } = useParams<{ accountAddress: string }>();
