@@ -13,6 +13,12 @@ interface ImportWalletFormProps {
   onSubmit: (form: WalletType) => void;
 }
 
+const importWalletSchema = z.object({
+  address: z.string().check(z.length(36, "Address must be exactly 36 characters long")),
+  publicKey: z.string().check(z.length(1,  "Public key is required")),
+  privateKey: z.string().check(z.length(1, "Private key is required")),
+})
+
 export function ImportWalletForm({ onSubmit }: ImportWalletFormProps) {
   const form = useAppForm({
     defaultValues: {
@@ -22,11 +28,7 @@ export function ImportWalletForm({ onSubmit }: ImportWalletFormProps) {
     },
 
     validators: {
-      onSubmit: z.object({
-        address: z.string().check(z.length(36)),
-        publicKey: z.string(),
-        privateKey: z.string(),
-      }),
+      onSubmit: importWalletSchema,
     },
 
     onSubmit: ({ value }) => onSubmit(value),
@@ -88,7 +90,7 @@ export function ImportWalletForm({ onSubmit }: ImportWalletFormProps) {
                 <Input
                   type="text"
                   id="privateKey"
-                  placeholder="Type or public key"
+                  placeholder="Type or paste key"
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   renderButton={(props) =>
@@ -124,7 +126,7 @@ export function ImportWalletForm({ onSubmit }: ImportWalletFormProps) {
                 <Input
                   type="text"
                   id="publicKey"
-                  placeholder="Type or public key"
+                  placeholder="Type or paste key"
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   renderButton={(props) =>
@@ -149,12 +151,14 @@ export function ImportWalletForm({ onSubmit }: ImportWalletFormProps) {
           )}
         </form.AppField>
 
-        <form.Subscribe selector={(state) => state.isFormValid}>
-          {(isFormValid) => (
-            <Button disabled={isFormValid} type="submit" variant="secondary" className="rounded-md">
-              Add Wallet
-            </Button>
-          )}
+        <form.Subscribe selector={(state) => [state.isFormValid]}>
+          {([isValid]) => {
+            return (
+              <Button disabled={!isValid} type="submit" variant="secondary" className="rounded-md">
+                Add Wallet
+              </Button>
+            );
+          }}
         </form.Subscribe>
       </form>
     </form.AppForm>
