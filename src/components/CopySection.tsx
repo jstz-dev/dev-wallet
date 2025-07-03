@@ -83,7 +83,7 @@ export function CopyContainer({
           variant,
         })}
       >
-        <p className="max-w-[32ch] truncate">{children}</p>
+        <p className="max-w-[36ch] truncate">{children}</p>
       </AlertDescription>
 
       <div className="absolute top-1/2 right-0 z-10 -translate-y-1/2 group-hover:inline-flex md:hidden">

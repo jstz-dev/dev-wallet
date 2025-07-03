@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate, useParams } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import {
   Select,
   SelectContent,
@@ -8,10 +8,14 @@ import {
 } from "~/components/ui/select.tsx";
 import { useVault } from "~/lib/vaultStore.ts";
 
-import { buttonVariants } from "./ui/button";
+import { Button } from "./ui/button";
 
-export function AccountSelect() {
-  const { accountAddress } = useParams<{ accountAddress: string }>();
+interface AccountSelectProps {
+  selectedAccount: string | undefined;
+  canAddWallet?: boolean;
+}
+
+export function AccountSelect({ selectedAccount, canAddWallet = true }: AccountSelectProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -23,12 +27,16 @@ export function AccountSelect() {
   }
 
   const selectedValueIndex = Object.keys(accounts).findIndex(
-    (address) => address === accountAddress,
+    (address) => address === selectedAccount,
   );
+
+  function goToCreate() {
+    void navigate(`/add-wallet${location.search}`);
+  }
 
   return (
     Object.keys(accounts).length > 0 && (
-      <Select value={accountAddress} onValueChange={handleOnSelect}>
+      <Select value={selectedAccount} onValueChange={handleOnSelect}>
         <SelectTrigger className="dark:hover:bg-black-600 hover:bg-black-600 bg-black-800 dark:bg-black-800 rounded-md border-0">
           <SelectValue>Wallet {selectedValueIndex + 1}</SelectValue>
         </SelectTrigger>
@@ -45,15 +53,11 @@ export function AccountSelect() {
             </SelectItem>
           ))}
 
-          <Link
-            to="/add-wallet"
-            className={buttonVariants({
-              variant: "secondary",
-              className: "w-full rounded-md text-sm",
-            })}
-          >
-            Add Wallet
-          </Link>
+          {canAddWallet && (
+            <Button onClick={goToCreate} variant="secondary" className="w-full rounded-md text-sm">
+              Add Wallet
+            </Button>
+          )}
         </SelectContent>
       </Select>
     )
