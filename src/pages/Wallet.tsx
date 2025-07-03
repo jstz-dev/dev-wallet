@@ -30,22 +30,17 @@ export default function Wallet() {
   return (
     <div className="flex w-full flex-col gap-4 p-4">
       <div className="flex w-full gap-2">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="flex flex-col gap-2">
-            <Label>Account</Label>
-            <AccountSelect />
-          </div>
-
+        <div className="grid grid-cols-1 gap-2">
           <div className="flex flex-col gap-2">
             <Label>Network</Label>
             <NetworkSelect />
           </div>
-        </div>
 
-        {/* <div> */}
-        {/*   <Label className="font-bold">Network</Label> */}
-        {/*   <NetworkSelect /> */}
-        {/* </div> */}
+          <div className="flex flex-col gap-2">
+            <Label>Account</Label>
+            <AccountSelect selectedAccount={accountAddress} />
+          </div>
+        </div>
       </div>
 
       <div className="flex w-full flex-col gap-2">
