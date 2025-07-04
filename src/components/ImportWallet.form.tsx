@@ -15,8 +15,8 @@ interface ImportWalletFormProps {
 
 const importWalletSchema = z.object({
   address: z.string().check(z.length(36, "Address must be exactly 36 characters long")),
-  publicKey: z.string().check(z.length(1,  "Public key is required")),
-  privateKey: z.string().check(z.length(1, "Private key is required")),
+  publicKey: z.string().check(z.minLength(1,  "Public key is required")),
+  privateKey: z.string().check(z.minLength(1, "Private key is required")),
 })
 
 export function ImportWalletForm({ onSubmit }: ImportWalletFormProps) {
