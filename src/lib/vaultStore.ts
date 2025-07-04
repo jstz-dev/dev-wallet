@@ -45,10 +45,10 @@ const persistence = persist<VaultStore>(
   (set, get) => ({
     accounts: {},
     setAccounts: (accounts) => set({ accounts }),
-    addAccount: ({ address, privateKey, publicKey }) => {
+    addAccount: ({ address, name, privateKey, publicKey }) => {
       const accounts = get().accounts;
 
-      set({ accounts: { ...accounts, [address]: { privateKey, publicKey } } });
+      set({ accounts: { ...accounts, [address]: { name, privateKey, publicKey } } });
     },
     currentAddress: "",
     setCurrentAddress: (currentAddress) => set({ currentAddress }),

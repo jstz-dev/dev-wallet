@@ -14,6 +14,7 @@ interface ImportWalletFormProps {
 }
 
 const importWalletSchema = z.object({
+  name: z.string().check(z.minLength(1, "Wallet name is required")),
   address: z.string().check(z.length(36, "Address must be exactly 36 characters long")),
   publicKey: z.string().check(z.minLength(1,  "Public key is required")),
   privateKey: z.string().check(z.minLength(1, "Private key is required")),
@@ -22,6 +23,7 @@ const importWalletSchema = z.object({
 export function ImportWalletForm({ onSubmit }: ImportWalletFormProps) {
   const form = useAppForm({
     defaultValues: {
+      name: "",
       address: "",
       publicKey: "",
       privateKey: "",
@@ -43,6 +45,41 @@ export function ImportWalletForm({ onSubmit }: ImportWalletFormProps) {
   return (
     <form.AppForm>
       <form className="flex w-full max-w-96 flex-col gap-4" onSubmit={handleSubmit}>
+        <form.AppField name="name">
+          {(field) => (
+            <field.FormItem>
+              <field.FormLabel htmlFor="name" className="text-xs text-white/50 uppercase">
+                Custom name:
+              </field.FormLabel>
+
+              <field.FormControl>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Wallet 1"
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  renderButton={(props) =>
+                    field.state.value.length === 0 ? (
+                      <PasteButton {...props} onPaste={(text) => field.setValue(text)} />
+                    ) : (
+                      <Button
+                        {...props}
+                        variant="ghost"
+                        size="icon_square"
+                        className={cn(props.className, "size-9")}
+                        onClick={() => field.setValue("")}
+                        renderIcon={(props) => <X {...props} />}
+                      />
+                    )
+                  }
+                />
+              </field.FormControl>
+
+              <field.FormMessage />
+            </field.FormItem>
+          )}
+        </form.AppField>
         <form.AppField name="address">
           {(field) => (
             <field.FormItem>
