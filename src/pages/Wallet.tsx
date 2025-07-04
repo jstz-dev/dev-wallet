@@ -25,7 +25,7 @@ export default function Wallet() {
   const account = accounts[accountAddress];
 
   useEffect(() => {
-    if (!account) void navigate("/add-wallet", { replace: true });
+    if (!account) void navigate(`/add-wallet${location.search}`, { replace: true });
   }, [account, navigate]);
 
   const [privateKeyVisible, setPrivateKeyVisible] = useState(false);
