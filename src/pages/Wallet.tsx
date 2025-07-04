@@ -12,6 +12,7 @@ import { Label } from "~/components/ui/label.tsx";
 import { StorageKeys, type KeyStorage } from "~/lib/constants/storage";
 import { useVault } from "~/lib/vaultStore";
 import { RequestEventTypes, ResponseEventTypes } from "~/scripts/service-worker";
+import { shortenAddress } from "~/lib/utils.ts";
 
 export default function Wallet() {
   const { accountAddress } = useParams() as { accountAddress: string };
@@ -44,6 +45,12 @@ export default function Wallet() {
           </div>
         </div>
       </div>
+
+      <div className="flex w-full flex-col gap-2">
+        <Label className="text-white/50 uppercase">Name:</Label>
+        <CopyContainer variant="secondary">{shortenAddress(accountAddress)}</CopyContainer>
+      </div>
+
 
       <div className="flex w-full flex-col gap-2">
         <Label className="text-white/50 uppercase">Address:</Label>

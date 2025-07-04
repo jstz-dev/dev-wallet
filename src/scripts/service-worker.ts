@@ -288,7 +288,7 @@ function openWalletDialog(
       type: "popup",
       focused: true,
       width: 450,
-      height: 650,
+      height: 720,
       // incognito, top, left, ...
     },
     callback,

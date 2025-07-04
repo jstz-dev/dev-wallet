@@ -11,10 +11,11 @@ export default function ImportWallet() {
   const accounts = useVault.use.accounts();
   const setAccounts = useVault.use.setAccounts();
 
-  function onImportWalletSubmit({ address, privateKey, publicKey }: Account) {
+  function onImportWalletSubmit({ name, address, privateKey, publicKey }: Account) {
     setAccounts({
       ...accounts,
       [address]: {
+        name,
         publicKey,
         privateKey,
       },
