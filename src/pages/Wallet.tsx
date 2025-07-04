@@ -1,7 +1,9 @@
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { useEffect } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router";
+import {
+  useNavigate,
+  useParams, useSearchParams } from "react-router";
 import { AccountSelect } from "~/components/AccountSelect.tsx";
 import { CopyContainer } from "~/components/CopySection";
 import { NetworkSelect } from "~/components/NetworkSelect.tsx";
@@ -23,7 +25,7 @@ export default function Wallet() {
   const account = accounts[accountAddress];
 
   useEffect(() => {
-    if (!account) void navigate("/404");
+    if (!account) void navigate("/add-wallet", { replace: true });
   }, [account, navigate]);
 
   const [privateKeyVisible, setPrivateKeyVisible] = useState(false);
