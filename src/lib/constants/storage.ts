@@ -6,6 +6,7 @@ export enum StorageKeys {
 }
 
 export interface KeyStorage {
+  name: string | undefined;
   [StorageKeys.PUBLIC_KEY]: string;
   [StorageKeys.PRIVATE_KEY]: string;
 }
