@@ -22,7 +22,7 @@ export function AccountSelect({ selectedAccount, canAddWallet = true }: AccountS
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { accounts, setCurrentAddress, currentAddress } = useVault((state) => state);
+  const { accounts, setCurrentAddress, currentAddress, setAccounts } = useVault((state) => state);
 
   function handleOnSelect(newValue: string & {}) {
     setCurrentAddress(newValue);
@@ -56,7 +56,7 @@ export function AccountSelect({ selectedAccount, canAddWallet = true }: AccountS
       }
     }
     // Update the accounts in the vault store
-    useVault.getState().setAccounts(updatedAccounts);
+   setAccounts(updatedAccounts);
   }
 
   return (
