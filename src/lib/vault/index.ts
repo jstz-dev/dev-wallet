@@ -1,9 +1,9 @@
 import * as TaquitoUtils from "@taquito/utils";
 
 import * as Bip39 from "bip39";
+import { shortenAddress } from "~/lib/utils.ts";
 
 import { getPublicKey, seedToHDPrivateKey } from "./misc";
-import { shortenAddress } from "~/lib/utils.ts";
 
 export type WalletType = {
   name: string;
@@ -11,6 +11,20 @@ export type WalletType = {
   publicKey: string;
   privateKey: string;
 };
+
+export async function getPublicKeyFromPrivateKey(privateKey: string): Promise<string> {
+  // Assuming getPublicKey is a function that retrieves the public key from the private key
+  return getPublicKey(privateKey);
+}
+
+export async function getAddressAndPublicKey(
+  privateKey: string,
+): Promise<{ address: string; publicKey: string }> {
+  const publicKey = await getPublicKey(privateKey);
+  const address = TaquitoUtils.getPkhfromPk(publicKey);
+
+  return { address, publicKey };
+}
 
 /**
  * Creates a new wallet.
@@ -22,12 +36,11 @@ export async function spawn(mnemonic?: string): Promise<WalletType> {
 
   const seed = Bip39.mnemonicToSeedSync(mnemonic);
   const privateKey = seedToHDPrivateKey(seed, 0);
-  const publicKey = await getPublicKey(privateKey);
-  const accountAddress = TaquitoUtils.getPkhfromPk(publicKey);
+  const { address, publicKey } = await getAddressAndPublicKey(privateKey);
 
   return {
-    name: shortenAddress(accountAddress),
-    address: accountAddress,
+    name: shortenAddress(address),
+    address,
     publicKey,
     privateKey,
   };
