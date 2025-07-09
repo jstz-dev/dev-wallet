@@ -1,0 +1,3 @@
+[submodule "jstz-ui"]
+	path = packages/jstz-ui
+	url = https://github.com/bohdan-trilitech/jstz-ui-components.git
