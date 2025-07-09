@@ -1,7 +1,3 @@
-import { ChevronRight, X } from "lucide-react";
-import { useState } from "react";
-import { Button } from "~/components/ui/button.tsx";
-import { Input } from "~/components/ui/input.tsx";
 import {
   Select,
   SelectContent,
@@ -9,7 +5,11 @@ import {
   SelectSeparator,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select.tsx";
+} from "jstz-ui/select";
+import { Button } from "jstz-ui/ui/button";
+import { Input } from "jstz-ui/ui/input";
+import { ChevronRight, X } from "lucide-react";
+import { useState } from "react";
 import { useVault } from "~/lib/vaultStore.ts";
 
 const presetNetworksString = (import.meta.env.VITE_JSTZ_NETWORKS || "") as string;
@@ -86,7 +86,7 @@ export function NetworkSelect() {
         <div className="relative">
           {!!networkValue && (
             <Button
-              className="absolute top-0.5 right-0.5"
+              className="absolute right-0.5 top-0.5"
               variant="link"
               onClick={handleAddCustomNetwork}
             >

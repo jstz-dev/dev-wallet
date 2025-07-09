@@ -1,18 +1,11 @@
+import { Button } from "jstz-ui/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "jstz-ui/ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "jstz-ui/ui/tooltip";
 import { X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select.tsx";
-import { Tooltip, TooltipContent, TooltipTrigger } from "~/components/ui/tooltip.tsx";
 import type { Accounts } from "~/lib/constants/storage.ts";
-import { useVault } from "~/lib/vaultStore.ts";
-
-import { Button } from "./ui/button";
 import { shortenAddress } from "~/lib/utils.ts";
+import { useVault } from "~/lib/vaultStore.ts";
 
 interface AccountSelectProps {
   selectedAccount: string | undefined;
@@ -30,9 +23,7 @@ export function AccountSelect({ selectedAccount, canAddWallet = true }: AccountS
     void navigate(`/wallets/${newValue}${location.search}`);
   }
 
-  const selectedAddress = Object.entries(accounts).find(
-    ([address]) => address === selectedAccount,
-  );
+  const selectedAddress = Object.entries(accounts).find(([address]) => address === selectedAccount);
 
   function goToCreate() {
     void navigate(`/add-wallet${location.search}`);
@@ -52,19 +43,21 @@ export function AccountSelect({ selectedAccount, canAddWallet = true }: AccountS
       if (goToAccount) {
         handleOnSelect(goToAccount);
       } else {
-        setCurrentAddress("")
+        setCurrentAddress("");
         goToCreate();
       }
     }
     // Update the accounts in the vault store
-   setAccounts(updatedAccounts);
+    setAccounts(updatedAccounts);
   }
 
   return (
     Object.keys(accounts).length > 0 && (
       <Select value={selectedAccount} onValueChange={handleOnSelect}>
         <SelectTrigger className="dark:hover:bg-black-600 hover:bg-black-600 bg-black-800 dark:bg-black-800 rounded-md border-0">
-          <SelectValue>{selectedAddress?.[1]?.name ?? shortenAddress(selectedAddress?.[0])}</SelectValue>
+          <SelectValue>
+            {selectedAddress?.[1]?.name ?? shortenAddress(selectedAddress?.[0])}
+          </SelectValue>
         </SelectTrigger>
 
         <SelectContent>
@@ -81,7 +74,11 @@ export function AccountSelect({ selectedAccount, canAddWallet = true }: AccountS
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <X size={16} className="cursor-pointer" onClick={() => onAccountRemove(address)} />
+                  <X
+                    size={16}
+                    className="cursor-pointer"
+                    onClick={() => onAccountRemove(address)}
+                  />
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>WARNING! This will remove your account forever</p>

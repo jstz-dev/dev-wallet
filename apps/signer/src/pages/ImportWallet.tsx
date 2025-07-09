@@ -1,8 +1,8 @@
+import { Button } from "jstz-ui/ui/button";
+import { Separator } from "jstz-ui/ui/separator";
 import { ArrowLeft } from "lucide-react";
 import { useLocation, useNavigate } from "react-router";
 import { ImportWalletForm } from "~/components/ImportWallet.form";
-import { Button } from "~/components/ui/button.tsx";
-import { Separator } from "~/components/ui/separator";
 import type { Account } from "~/lib/constants/storage";
 import { useVault } from "~/lib/vaultStore";
 

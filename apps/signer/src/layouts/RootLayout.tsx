@@ -1,7 +1,7 @@
+import { TooltipProvider } from "jstz-ui/ui/tooltip";
 import { useEffect } from "react";
 import { Outlet } from "react-router";
 import NavBar from "~/components/NavBar";
-import { TooltipProvider } from "~/components/ui/tooltip.tsx";
 import { ThemeProvider } from "~/lib/ThemeProvider";
 import { ResponseEventTypes } from "~/scripts/service-worker.ts";
 
@@ -19,7 +19,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider defaultTheme="dark">
       <TooltipProvider>
-        <div className="flex min-w-100 flex-col pb-4">
+        <div className="min-w-100 flex flex-col pb-4">
           <NavBar />
 
           <Outlet />

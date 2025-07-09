@@ -1,7 +1,7 @@
+import { Button, buttonVariants } from "jstz-ui/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { redirect, type LoaderFunctionArgs, useNavigate, useLocation, Link } from "react-router";
-import { AccountSelect } from "~/components/AccountSelect.tsx";
-import { Button, buttonVariants } from "~/components/ui/button.tsx";
+import { AccountSelect } from "~/components/AccountSelect";
 import * as Vault from "~/lib/vault";
 import { useVault, vault } from "~/lib/vaultStore";
 
@@ -34,9 +34,8 @@ export default function Home() {
 
   return (
     <div className="flex flex-col justify-center gap-8 p-4">
-
       <div className="flex flex-col items-center justify-between gap-3">
-        <div className="flex items-center w-full gap-2">
+        <div className="flex w-full items-center gap-2">
           {!!currentAddress && (
             <Button onClick={() => goToWallet(currentAddress)} variant="link">
               <ArrowLeft />

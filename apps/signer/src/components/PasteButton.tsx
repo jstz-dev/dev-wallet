@@ -1,9 +1,7 @@
+import { Button, type ButtonProps } from "jstz-ui/ui/button";
+import { cn } from "jstz-ui/utils";
 import { Clipboard, ClipboardCheck } from "lucide-react";
 import { useState } from "react";
-// import { usePasteFromClipboard } from "~/lib/hooks/usePasteFromClipboard";
-import { cn } from "~/lib/utils";
-
-import { Button, type ButtonProps } from "./ui/button";
 
 interface PasteButtonProps extends Omit<ButtonProps, "children" | "onPaste"> {
   onPaste: (text: string) => void;

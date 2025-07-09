@@ -1,10 +1,10 @@
 import { type VariantProps } from "cva";
+import { Alert, AlertDescription } from "jstz-ui/ui/alert";
+import type { ButtonProps } from "jstz-ui/ui/button";
+import { cva } from "jstz-ui/utils";
 import type { ReactNode } from "react";
-import { cva } from "~/lib/utils";
 
 import { CopyButton } from "./CopyButton";
-import { Alert, AlertDescription } from "./ui/alert";
-import type { ButtonProps } from "./ui/button";
 
 const copyContainerVariants = cva({
   base: "group relative border-0 p-2",
@@ -86,7 +86,7 @@ export function CopyContainer({
         <p className="max-w-[36ch] truncate">{children}</p>
       </AlertDescription>
 
-      <div className="absolute top-1/2 right-0 z-10 -translate-y-1/2 group-hover:inline-flex md:hidden">
+      <div className="absolute right-0 top-1/2 z-10 -translate-y-1/2 group-hover:inline-flex md:hidden">
         {button}
 
         <CopyButton

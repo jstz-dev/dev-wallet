@@ -1,18 +1,15 @@
+import { Button } from "jstz-ui/ui/button";
+import { Label } from "jstz-ui/ui/label";
 import { Eye, EyeOff } from "lucide-react";
-import { useState } from "react";
-import { useEffect } from "react";
-import {
-  useNavigate,
-  useParams, useSearchParams } from "react-router";
-import { AccountSelect } from "~/components/AccountSelect.tsx";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router";
+import { AccountSelect } from "~/components/AccountSelect";
 import { CopyContainer } from "~/components/CopySection";
-import { NetworkSelect } from "~/components/NetworkSelect.tsx";
-import { Button } from "~/components/ui/button";
-import { Label } from "~/components/ui/label.tsx";
+import { NetworkSelect } from "~/components/NetworkSelect";
 import { StorageKeys, type KeyStorage } from "~/lib/constants/storage";
+import { shortenAddress } from "~/lib/utils.ts";
 import { useVault } from "~/lib/vaultStore";
 import { RequestEventTypes, ResponseEventTypes } from "~/scripts/service-worker";
-import { shortenAddress } from "~/lib/utils.ts";
 
 export default function Wallet() {
   const { accountAddress } = useParams() as { accountAddress: string };
@@ -47,23 +44,22 @@ export default function Wallet() {
       </div>
 
       <div className="flex w-full flex-col gap-2">
-        <Label className="text-white/50 uppercase">Name:</Label>
+        <Label className="uppercase text-white/50">Name:</Label>
         <CopyContainer variant="secondary">{shortenAddress(accountAddress)}</CopyContainer>
       </div>
 
-
       <div className="flex w-full flex-col gap-2">
-        <Label className="text-white/50 uppercase">Address:</Label>
+        <Label className="uppercase text-white/50">Address:</Label>
         <CopyContainer>{accountAddress}</CopyContainer>
       </div>
 
       <div className="flex w-full flex-col gap-2">
-        <Label className="text-white/50 uppercase">Public key:</Label>
+        <Label className="uppercase text-white/50">Public key:</Label>
         <CopyContainer>{account?.[StorageKeys.PUBLIC_KEY] ?? ""}</CopyContainer>
       </div>
 
       <div className="flex w-full flex-col gap-2">
-        <Label className="text-white/50 uppercase">Private key:</Label>
+        <Label className="uppercase text-white/50">Private key:</Label>
 
         <CopyContainer
           variant="secondary"

@@ -1,9 +1,9 @@
+import { Button } from "jstz-ui/ui/button";
+import { Input } from "jstz-ui/ui/input";
+import { cn } from "jstz-ui/utils";
 import { X } from "lucide-react";
 import type { FormEvent } from "react";
 import { z } from "zod/v4-mini";
-import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import { cn } from "~/lib/utils";
 import { getAddressAndPublicKey, type WalletType } from "~/lib/vault";
 
 import { PasteButton } from "./PasteButton";
@@ -60,7 +60,7 @@ export function ImportWalletForm({ onSubmit }: ImportWalletFormProps) {
         <form.AppField name="name">
           {(field) => (
             <field.FormItem>
-              <field.FormLabel htmlFor="name" className="text-xs text-white/50 uppercase">
+              <field.FormLabel htmlFor="name" className="text-xs uppercase text-white/50">
                 Custom name:
               </field.FormLabel>
 
@@ -96,7 +96,7 @@ export function ImportWalletForm({ onSubmit }: ImportWalletFormProps) {
         <form.AppField name="privateKey">
           {(field) => (
             <field.FormItem>
-              <field.FormLabel htmlFor="publicKey" className="text-xs text-white/50 uppercase">
+              <field.FormLabel htmlFor="publicKey" className="text-xs uppercase text-white/50">
                 Secret key:
               </field.FormLabel>
 

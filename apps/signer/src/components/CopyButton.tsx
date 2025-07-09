@@ -1,15 +1,15 @@
 import { useCopyToClipboard } from "@uidotdev/usehooks";
 
+import { Button, type ButtonProps } from "jstz-ui/ui/button";
+import { cn } from "jstz-ui/utils";
 import { Clipboard, ClipboardCheck } from "lucide-react";
 import { useState } from "react";
-import { Button, type ButtonProps } from "~/components/ui/button";
-import { cn } from "~/lib/utils";
 
 interface CopyButtonProps extends Omit<ButtonProps, "children"> {
   text: string;
 }
 
-export function CopyButton({ text, className, ...rest }: CopyButtonProps) {
+export function CopyButton({ text, className, ...props }: CopyButtonProps) {
   const [_, copyToClipboard] = useCopyToClipboard();
   const [copyButtonDisabled, setCopyButtonDisabled] = useState(false);
 
@@ -37,7 +37,7 @@ export function CopyButton({ text, className, ...rest }: CopyButtonProps) {
           <Clipboard {...props} />
         )
       }
-      {...rest}
+      {...props}
     />
   );
 }

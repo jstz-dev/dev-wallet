@@ -1,6 +1,6 @@
+import { cn } from "jstz-ui/utils";
 import type { ComponentPropsWithRef } from "react";
 import { Link } from "react-router";
-import { cn } from "~/lib/utils";
 
 type LogoProps = Omit<ComponentPropsWithRef<"h1">, "children">;
 
