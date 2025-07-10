@@ -1,7 +1,7 @@
 import { Slot } from "@radix-ui/react-slot";
 import { createFormHook, createFormHookContexts, useStore } from "@tanstack/react-form";
 
-import { Label } from "jstz-ui/label";
+import { Label } from "jstz-ui/ui/label";
 import { cn } from "jstz-ui/utils";
 import { createContext, useContext, useId, type ComponentPropsWithRef } from "react";
 

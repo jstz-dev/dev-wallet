@@ -5,7 +5,7 @@ import {
   SelectSeparator,
   SelectTrigger,
   SelectValue,
-} from "jstz-ui/select";
+} from "jstz-ui/ui/select";
 import { Button } from "jstz-ui/ui/button";
 import { Input } from "jstz-ui/ui/input";
 import { ChevronRight, X } from "lucide-react";
