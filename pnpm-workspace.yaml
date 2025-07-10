@@ -1,11 +1,11 @@
 packages:
-  - apps/**
+  - apps/signer
   - packages/**
 
 onlyBuiltDependencies:
-  - '@swc/core'
-  - '@tailwindcss/oxide'
-  - '@taquito/taquito'
+  - "@swc/core"
+  - "@tailwindcss/oxide"
+  - "@taquito/taquito"
   - esbuild
   - sharp
   - unrs-resolver
