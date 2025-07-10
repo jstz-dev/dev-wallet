@@ -1,0 +1,5 @@
+onlyBuiltDependencies:
+  - esbuild
+
+settings:
+  ignore-workspace: true
