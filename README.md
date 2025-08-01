@@ -7,12 +7,11 @@ The extension is built using React, TypeScript, and Vite.
 This extension is not yet available on the Chrome Web Store, so you must build
 and install it locally.
 
-## Warning
-
-This extension is a development tool and is not yet ready for production deployments.
-To avoid exposing your private keys, do not import keys for accounts that you are
-using on Tezos Mainnet into this extension. This extension does not support
-integration with hardware wallets such as Ledger.
+> [!WARNING]
+> This extension is a development tool and is not yet ready for production deployments.
+> To avoid exposing your private keys, do not import keys for accounts that you are
+> using on Tezos Mainnet into this extension. This extension does not support
+> integration with hardware wallets such as Ledger.
 
 ## Installation of the pre-built extension
 
