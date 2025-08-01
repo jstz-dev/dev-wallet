@@ -1,5 +1,5 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "../../signer/tsconfig.json",
   "compilerOptions": {
     "types": ["@jstz-dev/types"]
   }
