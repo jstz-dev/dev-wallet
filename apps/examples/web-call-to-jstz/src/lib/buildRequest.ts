@@ -16,13 +16,7 @@ export function buildRequest({
 }: RequestParams): JstzType.Operation.RunFunction {
   return {
     _type: "RunFunction",
-    body: Array.from(
-      encoder.encode(
-        JSON.stringify({
-          message,
-        }),
-      ),
-    ),
+    body: null,
     gasLimit: 55000,
     headers: {},
     method: "GET",
