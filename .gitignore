@@ -26,3 +26,4 @@ dist-ssr
 /dist.pem
 /examples/jstz-faucet/.env
 /kv.json
+.env
