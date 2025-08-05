@@ -2,6 +2,8 @@ name: Basic check
 
 on:
   pull_request:
+    paths:
+      - "apps/signer/**"
     branches: ["main"]
 
 permissions:
