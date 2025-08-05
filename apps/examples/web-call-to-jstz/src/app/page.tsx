@@ -8,13 +8,13 @@ import { TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import z from "zod";
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
-import { Button } from "~/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card";
-import { Input } from "~/components/ui/input";
-import { buildRequest } from "~/lib/buildRequest";
-import { callSmartFunction } from "~/lib/jstz-extension-communication";
-import { type SignResponse } from "~/lib/jstz-signer";
+import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
+import { Input } from "../components/ui/input";
+import { buildRequest } from "../lib/buildRequest";
+import { callSmartFunction } from "../lib/jstz-extension-communication";
+import { type SignResponse } from "../lib/jstz-signer";
 
 const decoder = new TextDecoder("utf-8");
 
