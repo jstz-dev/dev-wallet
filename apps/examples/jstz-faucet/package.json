@@ -4,6 +4,7 @@
   "private": true,
   "version": "0.0.0",
   "main": "index.ts",
+  "type": "module",
   "dependencies": {
     "@jstz-dev/jstz": "^0.0.0"
   },
