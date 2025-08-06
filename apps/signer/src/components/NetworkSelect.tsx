@@ -12,10 +12,10 @@ import { ChevronRight, X } from "lucide-react";
 import { useState } from "react";
 import { useVault } from "~/lib/vaultStore.ts";
 
-const presetNetworksString = (import.meta.env.VITE_JSTZ_NETWORKS || "") as string;
+const JSTZ_NETWORKS =["http://localhost:8933", "https://sandbox.jstz.info", "https://privatenet.jstz.info"]
 
 export function NetworkSelect() {
-  const presetNetworks = presetNetworksString.split(", ").map((n) => n.trim());
+  const presetNetworks = JSTZ_NETWORKS;
 
   const { customNetworks, setCurrentNetwork, currentNetwork, setCustomNetworks } = useVault(
     (state) => state,
