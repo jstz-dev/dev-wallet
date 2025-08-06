@@ -13,7 +13,7 @@ This extension does not support integration with hardware wallets such as Ledger
 
 ## Installation of the pre-built extension
 
-1. Download the extension [zip file](https://github.com/jstz-dev/dev-wallet/raw/refs/heads/main/signer.zip)
+1. Go to [releases](https://github.com/jstz-dev/dev-wallet/releases) and download latest
 2. Unzip the downloaded file to a directory of your choice.
 3. Open Google Chrome and navigate to `chrome://extensions/`.
 4. Enable "Developer mode" by toggling the switch in the top right corner.
