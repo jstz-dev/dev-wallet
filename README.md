@@ -49,13 +49,19 @@ Follow these steps to build the extension and install it in Google Chrome:
    cd dev-wallet
    ```
 
-2. Install dependencies:
+2. Clone the required submodules:
+
+   ```sh
+   git submodule update --init
+   ```
+
+3. Install dependencies:
 
    ```sh
    pnpm i
    ```
 
-3. Build the extension:
+4. Build the extension:
 
    ```sh
    pnpm build
