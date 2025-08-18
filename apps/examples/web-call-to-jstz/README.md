@@ -8,7 +8,8 @@ Please make sure that you have followed the instructions in the [Jstz Chrome Ext
 
 Once extensions is added, you should be able to obtain the extension ID from browser on `chrome://extensions`.
 
-Copy content `.env.example` to `.env` and set the `NEXT_PUBLIC_EXTENSION_ID` to the extension ID.
+If your [sandbox](https://jstz.tezos.com/sandbox) is running on a non-default address or port, copy the `.env.example` file to `.env` and set the URL and port of the sandbox in the `NEXT_PUBLIC_JSTZ_NODE_ENDPOINT` variable in the .`env` file.
+The default is `http://localhost:8933`.
 
 ## Getting Started
 
