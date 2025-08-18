@@ -25,10 +25,11 @@ and install it locally.
 
 ## Project structure
 
-- `src/`: Source code for the extension
-- `public/`: Static assets and manifest file
-- `dist/`: Build output directory
-- `examples/`: Example projects to interact with the extension
+- `apps/signer/`: Source code for the extension
+- `apps/signer/public/`: Static assets and manifest file
+- `apps/signer/dist/`: Build output directory
+- `apps/examples/`: Example projects to interact with the extension
+- `packages`: Dependencies
 
 ## Building from source
 
@@ -55,7 +56,13 @@ Follow these steps to build the extension and install it in Google Chrome:
    git submodule update --init
    ```
 
-3. Install dependencies:
+3. Go to the folder with the extension:
+
+   ```sh
+   cd apps/signer
+   ```
+
+3. Install the dependencies:
 
    ```sh
    pnpm i
@@ -74,7 +81,7 @@ Follow these steps to build the extension and install it in Google Chrome:
 1. Open Chrome and navigate to `chrome://extensions/`.
 2. Enable "Developer mode" by toggling the switch in the top right corner.
 3. Click the "Load unpacked" button.
-4. Select the `dist/` directory you have just built.
+4. Select the `apps/signer/dist/` directory that you have just built.
 
 The extension appears in the extensions toolbar in the browser.
 
@@ -84,6 +91,6 @@ You can click the extension icon to open it and create or import an account.
 
 When you use a web application that sends requests to Jstz, it opens the
 extension and prompts you to sign the transaction with your active Jstz account.
-You can start with the sample application in the `examples/web-call-to-jstz` directory.
+You can start with the sample application in the `apps/examples/web-call-to-jstz` directory.
 To create your own implementation, see the attached [SNIPPET.md](SNIPPET.md) that
 shows how to prompt the wallet to sign a Jstz transaction.
