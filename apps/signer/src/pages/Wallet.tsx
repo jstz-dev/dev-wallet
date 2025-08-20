@@ -10,6 +10,7 @@ import { StorageKeys, type KeyStorage } from "~/lib/constants/storage";
 import { shortenAddress } from "~/lib/utils.ts";
 import { useVault } from "~/lib/vaultStore";
 import { RequestEventTypes, ResponseEventTypes } from "~/scripts/service-worker";
+import {useWindowContext} from "~/lib/Window.context.tsx";
 
 export default function Wallet() {
   const { accountAddress } = useParams() as { accountAddress: string };
@@ -112,6 +113,7 @@ function OperationSigningDialog({
   accountAddress: string;
   networkUrl?: string;
 }) {
+  const {close} = useWindowContext()
   async function handleConfirm() {
     await chrome.runtime.sendMessage({
       type: ResponseEventTypes.PROCESS_QUEUE,
@@ -123,12 +125,12 @@ function OperationSigningDialog({
       },
     });
 
-    window.close();
+    close();
   }
 
   async function handleReject() {
     await chrome.runtime.sendMessage({ type: ResponseEventTypes.DECLINE });
-    window.close();
+    close();
   }
 
   return (
@@ -147,12 +149,14 @@ function OperationSigningDialog({
 }
 
 function GetAddressDialog({ currentAddress }: { currentAddress: string }) {
+  const {close} = useWindowContext()
+
   async function handleGetAddress() {
     await chrome.runtime.sendMessage({
       type: ResponseEventTypes.GET_ADDRESS_RESPONSE,
       data: { accountAddress: currentAddress },
     });
-    window.close();
+    close();
   }
 
   return (
