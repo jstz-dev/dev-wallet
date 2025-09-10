@@ -1,10 +1,11 @@
 import { Button } from "jstz-ui/ui/button";
-import { Separator } from "jstz-ui/ui/separator";
 import { ArrowLeft } from "lucide-react";
 import { useLocation, useNavigate } from "react-router";
 import { ImportWalletForm } from "~/components/ImportWallet.form";
 import type { Account } from "~/lib/constants/storage";
 import { useVault } from "~/lib/vaultStore";
+import {ImportWalletSeedForm} from "~/components/ImportWalletSeed.form.tsx";
+import {Tabs, TabsContent, TabsList, TabsTrigger} from "jstz-ui/ui/tabs";
 
 export default function ImportWallet() {
   const navigate = useNavigate();
@@ -36,9 +37,20 @@ export default function ImportWallet() {
         </div>
       </div>
 
-      <Separator />
+      <Tabs defaultValue="secret-key">
+        <TabsList>
+          <TabsTrigger value="secret-key">Secret key</TabsTrigger>
+          <TabsTrigger value="seed">Seed phrase</TabsTrigger>
+        </TabsList>
 
-      <ImportWalletForm onSubmit={onImportWalletSubmit} />
+        <TabsContent value="secret-key">
+          <ImportWalletForm onSubmit={onImportWalletSubmit} />
+        </TabsContent>
+
+        <TabsContent value="seed">
+          <ImportWalletSeedForm onSubmit={onImportWalletSubmit} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
