@@ -1,16 +1,35 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
+
+import { Alert, AlertDescription } from "jstz-ui/ui/alert";
 import { Button } from "jstz-ui/ui/button";
 import { Label } from "jstz-ui/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "jstz-ui/ui/select";
+import { Skeleton } from "jstz-ui/ui/skeleton";
 import { Eye, EyeOff } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { AccountSelect } from "~/components/AccountSelect";
-import { CopyContainer } from "~/components/CopySection";
+import {
+  CopyContainer,
+  copyContainerVariants,
+  descriptionVariants,
+} from "~/components/CopySection";
 import { NetworkSelect } from "~/components/NetworkSelect";
+import { $fetch } from "~/lib/$fetch";
+import { useWindowContext } from "~/lib/Window.context.tsx";
+import { HTTPStatus } from "~/lib/constants/HTTPCodes";
 import { StorageKeys, type KeyStorage } from "~/lib/constants/storage";
 import { shortenAddress } from "~/lib/utils.ts";
 import { useVault } from "~/lib/vaultStore";
 import { RequestEventTypes, ResponseEventTypes } from "~/scripts/service-worker";
-import {useWindowContext} from "~/lib/Window.context.tsx";
 
 export default function Wallet() {
   const { accountAddress } = useParams() as { accountAddress: string };
@@ -42,6 +61,14 @@ export default function Wallet() {
             <AccountSelect selectedAccount={accountAddress} />
           </div>
         </div>
+      </div>
+
+      <div className="flex w-full flex-col gap-2">
+        <Label className="uppercase text-white/50">Balance:</Label>
+
+        <Suspense fallback={<BalanceFallback />}>
+          <Balance address={accountAddress} />
+        </Suspense>
       </div>
 
       <div className="flex w-full flex-col gap-2">
@@ -113,7 +140,7 @@ function OperationSigningDialog({
   accountAddress: string;
   networkUrl?: string;
 }) {
-  const {close} = useWindowContext()
+  const { close } = useWindowContext();
   async function handleConfirm() {
     await chrome.runtime.sendMessage({
       type: ResponseEventTypes.PROCESS_QUEUE,
@@ -149,7 +176,7 @@ function OperationSigningDialog({
 }
 
 function GetAddressDialog({ currentAddress }: { currentAddress: string }) {
-  const {close} = useWindowContext()
+  const { close } = useWindowContext();
 
   async function handleGetAddress() {
     await chrome.runtime.sendMessage({
@@ -168,4 +195,47 @@ function GetAddressDialog({ currentAddress }: { currentAddress: string }) {
       </div>
     </div>
   );
+}
+
+interface BalanceProps {
+  address: string;
+}
+
+function Balance({ address }: BalanceProps) {
+  const currentNetwork = useVault.use.currentNetwork();
+
+  const {
+    data: { data: balance, error },
+  } = useSuspenseQuery({
+    queryKey: ["balance", address],
+    queryFn: () => $fetch<number>(`${currentNetwork}/accounts/${address}/balance`),
+  });
+
+  if (error?.status === HTTPStatus.NotFound) {
+    return (
+      <Alert variant="warning" className="group relative border-0 p-2">
+        <AlertDescription>
+          <p className="max-w-[36ch]">
+            We couldn&apos;t find balance for your wallet. It&apos;s probably unrevealed.
+          </p>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  return (
+    <Alert className={copyContainerVariants({ variant: "secondary" })}>
+      <AlertDescription
+        className={descriptionVariants({
+          variant: "secondary",
+        })}
+      >
+        <p className="max-w-[36ch] truncate">{balance}</p>
+      </AlertDescription>
+    </Alert>
+  );
+}
+
+function BalanceFallback() {
+  return <Skeleton className="h-[38.75px]" />;
 }

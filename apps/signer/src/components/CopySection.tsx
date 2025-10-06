@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 
 import { CopyButton } from "./CopyButton";
 
-const copyContainerVariants = cva({
+export const copyContainerVariants = cva({
   base: "group relative border-0 p-2",
   variants: {
     variant: {
@@ -20,7 +20,7 @@ const copyContainerVariants = cva({
   },
 });
 
-const descriptionVariants = cva({
+export const descriptionVariants = cva({
   variants: {
     variant: {
       default: "text-brand-blue-300",
