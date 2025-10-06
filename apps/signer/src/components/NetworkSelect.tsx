@@ -1,7 +1,5 @@
 import { Button } from "jstz-ui/ui/button";
 import { Input } from "jstz-ui/ui/input";
-import { ChevronRight, X } from "lucide-react";
-import { useState } from "react";
 import {
   Select,
   SelectContent,
@@ -9,7 +7,9 @@ import {
   SelectSeparator,
   SelectTrigger,
   SelectValue,
-} from "~/components/ui/select";
+} from "jstz-ui/ui/select";
+import { ChevronRight, X } from "lucide-react";
+import { useState } from "react";
 import { useVault } from "~/lib/vaultStore.ts";
 
 const JSTZ_NETWORKS = (import.meta.env.VITE_JSTZ_NETWORKS as string).split(",");

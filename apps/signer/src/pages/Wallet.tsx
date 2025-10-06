@@ -3,15 +3,6 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { Alert, AlertDescription } from "jstz-ui/ui/alert";
 import { Button } from "jstz-ui/ui/button";
 import { Label } from "jstz-ui/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "jstz-ui/ui/select";
 import { Skeleton } from "jstz-ui/ui/skeleton";
 import { Eye, EyeOff } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
@@ -25,7 +16,7 @@ import {
 import { NetworkSelect } from "~/components/NetworkSelect";
 import { $fetch } from "~/lib/$fetch";
 import { useWindowContext } from "~/lib/Window.context.tsx";
-import { HTTPStatus } from "~/lib/constants/HTTPCodes";
+import { HTTPStatus } from "~/lib/constants/HTTPStatus";
 import { StorageKeys, type KeyStorage } from "~/lib/constants/storage";
 import { shortenAddress } from "~/lib/utils.ts";
 import { useVault } from "~/lib/vaultStore";
