@@ -5,12 +5,12 @@ import { shortenAddress } from "~/lib/utils.ts";
 
 import { getPublicKey, seedToHDPrivateKey } from "./misc";
 
-export type WalletType = {
+export interface WalletType {
   name: string;
   address: string;
   publicKey: string;
   privateKey: string;
-};
+}
 
 export async function getPublicKeyFromPrivateKey(privateKey: string): Promise<string> {
   // Assuming getPublicKey is a function that retrieves the public key from the private key
@@ -28,6 +28,7 @@ export async function getAddressAndPublicKey(
 
 /**
  * Creates a new wallet.
+ *
  * @param mnemonic Seed phrase
  * @returns Generated wallet
  */

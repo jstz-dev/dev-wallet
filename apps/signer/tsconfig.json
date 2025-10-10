@@ -56,7 +56,7 @@
 
     /* JavaScript Support */
     "allowJs": true,
-    "checkJs": false,
+    "checkJs": true,
     // "maxNodeModuleJsDepth": 1,
 
     /* Emit */
