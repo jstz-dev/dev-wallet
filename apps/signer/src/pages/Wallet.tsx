@@ -4,6 +4,7 @@ import { Alert, AlertDescription } from "jstz-ui/ui/alert";
 import { Button } from "jstz-ui/ui/button";
 import { Label } from "jstz-ui/ui/label";
 import { Skeleton } from "jstz-ui/ui/skeleton";
+import { cn } from "jstz-ui/utils";
 import { Eye, EyeOff } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
@@ -16,11 +17,11 @@ import {
 import { NetworkSelect } from "~/components/NetworkSelect";
 import { $fetch } from "~/lib/$fetch";
 import { useWindowContext } from "~/lib/Window.context.tsx";
-import { HTTPStatus } from "~/lib/constants/HTTPStatus";
 import { StorageKeys, type KeyStorage } from "~/lib/constants/storage";
-import { shortenAddress } from "~/lib/utils.ts";
+import { toTezString } from "~/lib/currency.utils.ts";
 import { useVault } from "~/lib/vaultStore";
 import { RequestEventTypes, ResponseEventTypes } from "~/scripts/service-worker";
+import { Tooltip, TooltipContent, TooltipTrigger } from "jstz-ui/ui/tooltip";
 
 export default function Wallet() {
   const { accountAddress } = useParams() as { accountAddress: string };
@@ -40,31 +41,28 @@ export default function Wallet() {
 
   return (
     <div className="flex w-full flex-col gap-4 p-4">
-      <div className="flex w-full gap-2">
-        <div className="grid grid-cols-1 gap-2">
-          <div className="flex flex-col gap-2">
-            <Label>Network</Label>
-            <NetworkSelect />
-          </div>
+      <div className="flex w-full flex-col gap-2">
+        <div className="flex w-full flex-col gap-2">
+          <Label>Network</Label>
+          <NetworkSelect />
+        </div>
 
-          <div className="flex flex-col gap-2">
-            <Label>Account</Label>
-            <AccountSelect selectedAccount={accountAddress} />
+        <div className="flex flex-col gap-2">
+
+          <div className="grid grid-cols-3 gap-2">
+            <div className="col-span-2 space-y-2">
+              <Label>Account</Label>
+              <AccountSelect selectedAccount={accountAddress} />
+            </div>
+            <div className="col-span-1 space-y-2">
+              <Label>Balance</Label>
+
+              <Suspense fallback={<BalanceFallback />}>
+                <Balance address={accountAddress} />
+              </Suspense>
+            </div>
           </div>
         </div>
-      </div>
-
-      <div className="flex w-full flex-col gap-2">
-        <Label className="uppercase text-white/50">Balance:</Label>
-
-        <Suspense fallback={<BalanceFallback />}>
-          <Balance address={accountAddress} />
-        </Suspense>
-      </div>
-
-      <div className="flex w-full flex-col gap-2">
-        <Label className="uppercase text-white/50">Name:</Label>
-        <CopyContainer variant="secondary">{shortenAddress(accountAddress)}</CopyContainer>
       </div>
 
       <div className="flex w-full flex-col gap-2">
@@ -196,33 +194,31 @@ function Balance({ address }: BalanceProps) {
   const currentNetwork = useVault.use.currentNetwork();
 
   const {
-    data: { data: balance, error },
+    data: { data: balance },
   } = useSuspenseQuery({
-    queryKey: ["balance", address],
+    queryKey: ["balance", address, currentNetwork],
     queryFn: () => $fetch<number>(`${currentNetwork}/accounts/${address}/balance`),
   });
 
-  if (error?.status === HTTPStatus.NotFound) {
-    return (
-      <Alert variant="warning" className="group relative border-0 p-2">
-        <AlertDescription>
-          <p className="max-w-[36ch]">
-            We couldn&apos;t find balance for your wallet. It&apos;s probably unrevealed.
-          </p>
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
   return (
-    <Alert className={copyContainerVariants({ variant: "secondary" })}>
-      <AlertDescription
-        className={descriptionVariants({
-          variant: "secondary",
-        })}
-      >
-        <p className="max-w-[36ch] truncate">{balance}</p>
-      </AlertDescription>
+    <Alert className={cn(copyContainerVariants({ variant: "secondary" }))}>
+      <Tooltip>
+        <TooltipTrigger>
+          <AlertDescription
+            className={cn(
+              descriptionVariants({
+                variant: "secondary",
+              }),
+              "h-8 items-center justify-center",
+            )}
+          >
+            <p className="max-w-24 truncate">{toTezString(balance)}</p>
+          </AlertDescription>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{toTezString(balance)}</p>
+        </TooltipContent>
+      </Tooltip>
     </Alert>
   );
 }

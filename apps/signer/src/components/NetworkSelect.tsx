@@ -12,7 +12,7 @@ import { ChevronRight, X } from "lucide-react";
 import { useState } from "react";
 import { useVault } from "~/lib/vaultStore.ts";
 
-const JSTZ_NETWORKS = (import.meta.env.VITE_JSTZ_NETWORKS as string).split(",");
+const JSTZ_NETWORKS =["http://localhost:8933", "https://sandbox.jstz.info", "https://privatenet.jstz.info"]
 
 export function NetworkSelect() {
   const presetNetworks = JSTZ_NETWORKS;
