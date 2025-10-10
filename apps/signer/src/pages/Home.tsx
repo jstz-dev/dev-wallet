@@ -1,6 +1,6 @@
 import { Button, buttonVariants } from "jstz-ui/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { redirect, type LoaderFunctionArgs, useNavigate, useLocation, Link } from "react-router";
+import { Link, redirect, useLocation, useNavigate, type LoaderFunctionArgs } from "react-router";
 import { AccountSelect } from "~/components/AccountSelect";
 import * as Vault from "~/lib/vault";
 import { useVault, vault } from "~/lib/vaultStore";
@@ -41,6 +41,7 @@ export default function Home() {
               <ArrowLeft />
             </Button>
           )}
+
           <div className="flex-1">
             <AccountSelect selectedAccount={currentAddress} canAddWallet={false} />
           </div>
@@ -53,6 +54,16 @@ export default function Home() {
         >
           Create wallet
         </Button>
+
+        <Link
+          to="/create-passkey-wallet"
+          className={buttonVariants({
+            variant: "secondary",
+            className: "w-full rounded-md capitalize",
+          })}
+        >
+          Create passkey wallet
+        </Link>
 
         <Link
           to={`/import-wallet${location.search}`}

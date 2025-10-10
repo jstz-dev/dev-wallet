@@ -4,6 +4,7 @@ import Home, { loader as homeLoader } from "~/pages/Home";
 import ImportWallet from "~/pages/ImportWallet";
 import NotFound from "~/pages/NotFound.tsx";
 import Wallet from "~/pages/Wallet";
+import CreatePasskey from "./pages/CreatePasskey";
 
 export const router = createBrowserRouter([
   {
@@ -23,15 +24,22 @@ export const router = createBrowserRouter([
       {
         index: true,
         loader: homeLoader,
-        element: <Home />
+        element: <Home />,
       },
+
       {
         path: "add-wallet",
-        element:  <Home />
+        element: <Home />,
       },
+
       {
         path: "import-wallet",
         element: <ImportWallet />,
+      },
+
+      {
+        path: "create-passkey-wallet",
+        element: <CreatePasskey />,
       },
 
       {
