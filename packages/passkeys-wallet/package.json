@@ -1,0 +1,25 @@
+{
+  "name": "passkeys-wallet",
+  "module": "./src/index.js",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@better-fetch/fetch": "^1.1.18",
+    "@simplewebauthn/browser": "^13.2.0",
+    "@simplewebauthn/server": "^13.2.1",
+    "bs58": "^6.0.0",
+    "bs58check": "^4.0.0",
+    "cbor": "^10.0.11",
+    "superjson": "^2.2.2",
+    "zustand": "^5.0.8"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "devDependencies": {
+    "@jstz-dev/jstz-client": "0.1.1-alpha.1"
+  },
+  "exports": {
+    ".": "./src/index.js"
+  }
+}
