@@ -20,7 +20,7 @@ export function WindowContextProvider({ children }: PropsWithChildren) {
   }
 
   useEffect(() => {
-    window.addEventListener("unload", onClose, { once: true });
+    window.addEventListener("beforeunload", onClose, { once: true });
   }, []);
 
   function close() {
