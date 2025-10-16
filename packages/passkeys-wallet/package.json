@@ -2,7 +2,11 @@
   "name": "passkeys-wallet",
   "module": "./src/index.js",
   "type": "module",
+  "types": "./dist/index.d.ts",
   "private": true,
+  "scripts": {
+    "build": "tsc"
+  },
   "dependencies": {
     "@better-fetch/fetch": "^1.1.18",
     "@simplewebauthn/browser": "^13.2.0",
