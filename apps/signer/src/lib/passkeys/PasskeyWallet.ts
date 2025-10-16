@@ -10,8 +10,8 @@ import type {
 } from "@simplewebauthn/server";
 import * as SimpleWebAuthnServer from "@simplewebauthn/server";
 import type { StoreApi } from "zustand";
-import { $fetch } from "../$fetch";
-import { asyncFind } from "../utils";
+import { $fetch } from "~/lib/$fetch";
+import { asyncFind } from "~/lib/utils";
 import { parseKey } from "./encode";
 import { type UserState } from "./userStore";
 
