@@ -1,5 +1,5 @@
 {
-  "$schema": "https://www.schemastore.org/jsconfig.json",
+  "$schema": "https://www.schemastore.org/tsconfig.json",
   "compilerOptions": {
     /* Projects */
     "incremental": true,
@@ -11,9 +11,7 @@
 
     /* Language and Environment */
     "target": "ES2024",
-    "lib": [
-      "ES2024",
-    ],
+    "lib": ["ES2024"],
     // "experimentalDecorators": true,
     // "emitDecoratorMetadata": true,
     // "jsxFactory": "",
@@ -30,9 +28,7 @@
     "moduleResolution": "bundler",
     "baseUrl": "./",
     "paths": {
-      "~/*": [
-        "src/*"
-      ]
+      "~/*": ["src/*"]
     },
     // "rootDirs": [],
     // "typeRoots": [],
@@ -55,12 +51,12 @@
     // "maxNodeModuleJsDepth": 1,
 
     /* Emit */
-    // "declaration": true,
+    "declaration": true,
     // "declarationMap": true,
-    // "emitDeclarationOnly": true,
+    "emitDeclarationOnly": true,
     // "sourceMap": true,
     // "inlineSourceMap": true,
-    "noEmit": true,
+    "noEmit": false,
     // "outFile": "./",
     "outDir": "./dist",
     // "removeComments": true,
@@ -112,5 +108,7 @@
     /* Completeness */
     // "skipDefaultLibCheck": true,
     "skipLibCheck": true
-  }
+  },
+  "exclude": ["./node_modules/**/*"],
+  "include": ["./src/**/*", "../../apps/signer/src/lib/passkeys/PasskeyWallet.js", "../../apps/signer/src/lib/passkeys/encode.js"]
 }
