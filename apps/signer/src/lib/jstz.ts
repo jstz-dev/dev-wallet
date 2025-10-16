@@ -1,8 +1,8 @@
 import Jstz from "@jstz-dev/jstz-client";
 import * as SimpleWebAuthnBrowser from "@simplewebauthn/browser";
 import * as signer from "jstz_sdk";
-import type { QueuedSignRequest } from "~/scripts/service-worker";
-import { PasskeyWallet } from "./passkeys/PasskeyWallet";
+import { PasskeyWallet } from "~/lib/passkeys/PasskeyWallet";
+import type { SignOperationContent } from "~/scripts/service-worker";
 import { userStore } from "./passkeys/userStore";
 import type { WalletType } from "./vault";
 
@@ -34,7 +34,7 @@ export async function createOperation({
   publicKey,
   baseURL,
 }: {
-  content: QueuedSignRequest["content"];
+  content: SignOperationContent;
   address: WalletType["address"];
   publicKey: string;
   baseURL?: string;
