@@ -9,7 +9,7 @@ export interface WalletType {
   name: string;
   address: string;
   publicKey: string;
-  privateKey: string;
+  privateKey: string | null;
 }
 
 export async function getPublicKeyFromPrivateKey(privateKey: string): Promise<string> {
