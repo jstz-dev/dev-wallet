@@ -144,9 +144,10 @@ export class PasskeyWallet {
     const { data } = await hash_operation(operation);
     const challenge = typeof data === "string" ? data : undefined;
 
-    const allowedCredential = await asyncFind(user.credentials, (cred) =>
-      parseKey(cred.publicKey).then((key) => key === operation.publicKey),
-    );
+    const allowedCredential = await asyncFind(user.credentials, async (cred) => {
+      const key = await parseKey(cred.publicKey);
+      return key === operation.publicKey;
+    });
 
     if (!allowedCredential) {
       throw new Error("There is no credential for provided publicKey");
