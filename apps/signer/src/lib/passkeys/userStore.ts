@@ -30,22 +30,23 @@ SuperJSON.registerCustom(
 );
 
 const storage: PersistStorage<UserState> = {
-  getItem: (key) => {
-    const str = localStorage.getItem(key);
+  getItem: async (key) => {
+    const { [key]: str } = await chrome.storage.local.get(key);
     if (!str) return null;
 
-    return SuperJSON.parse(str);
+    return SuperJSON.parse(str as string);
   },
 
   setItem: (key, value) => {
-    localStorage.setItem(key, SuperJSON.stringify(value));
+    void chrome.storage.local.set({ [key]: SuperJSON.stringify(value) });
   },
 
   removeItem: (key) => {
-    localStorage.removeItem(key);
+    return chrome.storage.local.remove(key);
   },
 };
 
+// TODO: Think about making it a slice for the vault store.
 export const userStore = createStore<UserState>()(
   devtools(
     persist(
