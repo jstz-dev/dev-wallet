@@ -4,7 +4,6 @@ import SuperJSON from "superjson";
 import { createStore } from "zustand";
 import type { PersistStorage } from "zustand/middleware";
 import { devtools, persist } from "zustand/middleware";
-
 import { RP_ID } from "./constants";
 
 interface User {
