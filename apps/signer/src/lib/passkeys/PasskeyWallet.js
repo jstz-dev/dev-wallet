@@ -1,21 +1,18 @@
-import type Jstz from "@jstz-dev/jstz-client";
-import type {
-  AuthenticationResponseJSON,
-  GenerateAuthenticationOptionsOpts,
-  GenerateRegistrationOptionsOpts,
-  RegistrationResponseJSON,
-  VerifyAuthenticationResponseOpts,
-  VerifyRegistrationResponseOpts,
-  WebAuthnCredential,
-} from "@simplewebauthn/server";
-import * as SimpleWebAuthnServer from "@simplewebauthn/server";
-import type { StoreApi } from "zustand";
-import { $fetch } from "~/lib/$fetch";
-import { asyncFind } from "~/lib/utils";
-import { parseKey } from "./encode";
-import { type UserState } from "./userStore";
+/**
+ * @import {Jstz} from "@jstz-dev/jstz-client";
+ * @import {AuthenticationResponseJSON, GenerateAuthenticationOptionsOpts, GenerateRegistrationOptionsOpts, RegistrationResponseJSON, VerifyAuthenticationResponseOpts, VerifyRegistrationResponseOpts, WebAuthnCredential} from "@simplewebauthn/server";
+ * @import {StoreApi} from "zustand";
+ * @import {UserState} from "./userStore";
+ */
 
-function hash_operation(operation: Jstz.Operation) {
+import * as SimpleWebAuthnServer from "@simplewebauthn/server";
+
+import { $fetch } from "~/lib/$fetch";
+import { parseKey } from "./encode";
+import { asyncFind } from "./utils";
+
+/** @param {Jstz.Operation} operation */
+function hash_operation(operation) {
   return $fetch("https://privatenet.jstz.info/operations/hash", {
     method: "POST",
     headers: {
@@ -26,19 +23,22 @@ function hash_operation(operation: Jstz.Operation) {
 }
 
 export class PasskeyWallet {
-  readonly #challenges;
-  readonly #user;
-  readonly #rpId;
-  readonly #timeout;
-  readonly #expectedOrigin;
+  /** @type {Map<string, string>} */
+  #challenges;
 
-  constructor(
-    store: StoreApi<UserState>,
-    rpId: string,
-    expectedOrigin: string[] | string,
-    timeout = 60_000,
-  ) {
-    this.#challenges = new Map<string, string>();
+  #user;
+  #rpId;
+  #timeout;
+  #expectedOrigin;
+
+  /**
+   * @param {StoreApi<UserState>} store
+   * @param {string} rpId
+   * @param {string[] | string} expectedOrigin
+   * @param {number} [timeout]
+   */
+  constructor(store, rpId, expectedOrigin, timeout = 60_000) {
+    this.#challenges = new Map();
     this.#user = store;
     this.#rpId = rpId;
     this.#timeout = timeout;
@@ -52,7 +52,8 @@ export class PasskeyWallet {
   async generateRegistrationOptions() {
     const user = this.#user.getState();
 
-    const opts: GenerateRegistrationOptionsOpts = {
+    /** @type {GenerateRegistrationOptionsOpts} */
+    const opts = {
       rpName: "jstz signer",
       userName: user.username,
       rpID: this.#rpId,
@@ -96,14 +97,19 @@ export class PasskeyWallet {
     return options;
   }
 
-  /** @throws {Error} When `SimpleWebAuthnServer.verifyRegistrationResponse` fails */
-  async verifyRegistration(
-    res: RegistrationResponseJSON,
-  ): Promise<{ verified: false; publicKey: null } | { verified: true; publicKey: Uint8Array }> {
+  /**
+   * @param {RegistrationResponseJSON} res
+   * @returns {Promise<
+   *   { verified: false; publicKey: null } | { verified: true; publicKey: Uint8Array }
+   * >}
+   * @throws {Error} When `SimpleWebAuthnServer.verifyRegistrationResponse` fails
+   */
+  async verifyRegistration(res) {
     const user = this.#user.getState();
-    const expectedChallenge = this.#challenges.get(user.id) as string;
+    const expectedChallenge = /** @type {string} */ (this.#challenges.get(user.id));
 
-    const opts: VerifyRegistrationResponseOpts = {
+    /** @type {VerifyRegistrationResponseOpts} */
+    const opts = {
       response: res,
       expectedChallenge,
       expectedOrigin: this.#expectedOrigin,
@@ -120,7 +126,8 @@ export class PasskeyWallet {
 
       /** Add the returned credential to the user's list of credentials */
       if (!existingCredential) {
-        const newCredential: WebAuthnCredential = {
+        /** @type {WebAuthnCredential} */
+        const newCredential = {
           id: credential.id,
           publicKey: credential.publicKey,
           counter: credential.counter,
@@ -137,10 +144,10 @@ export class PasskeyWallet {
     return { verified, publicKey: null };
   }
 
-  async generateAuthenticationOptions(operation: Jstz.Operation) {
+  /** @param {Jstz.Operation} operation */
+  async generateAuthenticationOptions(operation) {
     const user = this.#user.getState();
 
-    console.log(operation);
     const { data } = await hash_operation(operation);
     const challenge = typeof data === "string" ? data : undefined;
 
@@ -153,7 +160,8 @@ export class PasskeyWallet {
       throw new Error("There is no credential for provided publicKey");
     }
 
-    const opts: GenerateAuthenticationOptionsOpts = {
+    /** @type {GenerateAuthenticationOptionsOpts} */
+    const opts = {
       timeout: this.#timeout,
       challenge,
       allowCredentials: [
@@ -179,19 +187,21 @@ export class PasskeyWallet {
   }
 
   /**
+   * @param {AuthenticationResponseJSON} res
    * @throws {RangeError} When there's no credential with the `res.id`
    * @throws {Error} When `SimpleWebAuthnServer.verifyAuthenticationResponse` fails
    */
-  async verifyAuthentication(res: AuthenticationResponseJSON) {
+  async verifyAuthentication(res) {
     const user = this.#user.getState();
-    const expectedChallenge = this.#challenges.get(user.id) as string;
+    const expectedChallenge = /** @type {string} */ (this.#challenges.get(user.id));
 
     const credential = user.credentials.find((cred) => cred.id === res.id);
     if (!credential) {
       throw new RangeError("No credential was found for this authentication.");
     }
 
-    const opts: VerifyAuthenticationResponseOpts = {
+    /** @type {VerifyAuthenticationResponseOpts} */
+    const opts = {
       response: res,
       expectedChallenge,
       expectedOrigin: this.#expectedOrigin,
