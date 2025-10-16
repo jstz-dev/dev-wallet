@@ -1,6 +1,6 @@
 import type { WebAuthnCredential } from "@simplewebauthn/server";
 
-import superjson from "superjson";
+import SuperJSON from "superjson";
 import { createStore } from "zustand";
 import type { PersistStorage } from "zustand/middleware";
 import { devtools, persist } from "zustand/middleware";
@@ -19,9 +19,9 @@ interface UserActions {
   setCredential: (cred: WebAuthnCredential) => void;
 }
 
-type UserState = User & UserActions;
+export type UserState = User & UserActions;
 
-superjson.registerCustom(
+SuperJSON.registerCustom(
   {
     isApplicable: (v) => v instanceof Uint8Array,
     serialize: (v) => Buffer.from(v).toString("base64"),
@@ -35,11 +35,11 @@ const storage: PersistStorage<UserState> = {
     const str = localStorage.getItem(key);
     if (!str) return null;
 
-    return superjson.parse(str);
+    return SuperJSON.parse(str);
   },
 
   setItem: (key, value) => {
-    localStorage.setItem(key, superjson.stringify(value));
+    localStorage.setItem(key, SuperJSON.stringify(value));
   },
 
   removeItem: (key) => {
