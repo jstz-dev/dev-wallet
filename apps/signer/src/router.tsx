@@ -1,10 +1,9 @@
 import { createBrowserRouter, Navigate } from "react-router";
 import RootLayout from "~/layouts/RootLayout";
-import Home, { loader as homeLoader } from "~/pages/Home";
+import Home, { loader as homeLoader } from "~/pages/home/Home";
 import ImportWallet from "~/pages/ImportWallet";
 import NotFound from "~/pages/NotFound.tsx";
-import Wallet from "~/pages/Wallet";
-import CreatePasskey from "./pages/CreatePasskey";
+import Wallet from "~/pages/wallet/Wallet";
 
 export const router = createBrowserRouter([
   {
@@ -35,11 +34,6 @@ export const router = createBrowserRouter([
       {
         path: "import-wallet",
         element: <ImportWallet />,
-      },
-
-      {
-        path: "create-passkey-wallet",
-        element: <CreatePasskey />,
       },
 
       {
