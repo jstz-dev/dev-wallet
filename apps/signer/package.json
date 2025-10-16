@@ -27,7 +27,6 @@
     "jstz-ui": "workspace:*",
     "lucide-react": "^0.545.0",
     "nuqs": "^2.7.1",
-    "passkeys-wallet": "workspace:*",
     "react": "~19.2.0",
     "react-dom": "~19.2.0",
     "react-router": "^7.9.4",
