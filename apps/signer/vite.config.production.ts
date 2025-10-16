@@ -18,7 +18,6 @@ export default defineConfig({
     topLevelAwait(),
   ],
   build: {
-    minify: false,
     rollupOptions: {
       input: {
         main: "index.html",
