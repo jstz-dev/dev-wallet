@@ -24,8 +24,8 @@ importers:
         specifier: ^1.1.18
         version: 1.1.18
       '@jstz-dev/jstz-client':
-        specifier: 0.1.1-alpha.1
-        version: 0.1.1-alpha.1
+        specifier: 0.1.1-alpha.4
+        version: 0.1.1-alpha.4
       '@radix-ui/react-slot':
         specifier: ^1.2.3
         version: 1.2.3(@types/react@19.2.0)(react@19.2.0)
@@ -127,8 +127,8 @@ importers:
         specifier: ^16.3.0
         version: 16.3.0
       jstz_sdk:
-        specifier: ^0.1.1-alpha.1
-        version: 0.1.1-alpha.1
+        specifier: 0.1.1-alpha.4.1
+        version: 0.1.1-alpha.4.1
       prettier:
         specifier: ^3.6.2
         version: 3.6.2
@@ -824,8 +824,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.29':
     resolution: {integrity: sha512-uw6guiW/gcAGPDhLmd77/6lW8QLeiV5RUTsAX46Db6oLhGaVj4lhnPwb184s1bkc8kdVg/+h988dro8GRDpmYQ==}
 
-  '@jstz-dev/jstz-client@0.1.1-alpha.1':
-    resolution: {integrity: sha512-ukTuUopIDM2jtvkMQY6gZXcdb9So+0WQ48BQ+wCcEsdOLwdyhoC2pZVMLWiqKiPHHk0GdODA0umnqmQiW15pUA==}
+  '@jstz-dev/jstz-client@0.1.1-alpha.4':
+    resolution: {integrity: sha512-RMlQtYNudQGCJvuMo/HrJoFIkbMOLISD/M9XZb77mDrx22lftq1XZJzz28x4L5tVZqX/Fppc8uT/qx4MK+Vqdg==}
 
   '@mdx-js/react@3.1.0':
     resolution: {integrity: sha512-QjHtSaoameoalGnKDT3FoIl4+9RwyTmo9ZJGBdLOks/YOiWHoRDI3PUwEzOE7kEmGcV3AFcp9K6dYu9rEuKLAQ==}
@@ -3298,8 +3298,8 @@ packages:
   jsonfile@6.1.0:
     resolution: {integrity: sha512-5dgndWOriYSm5cnYaJNhalLNDKOqFwyDB/rr1E9ZsGciGvKPs8R2xYGCacuf3z6K1YKDz182fd+fY3cn3pMqXQ==}
 
-  jstz_sdk@0.1.1-alpha.1:
-    resolution: {integrity: sha512-WdXLhG9zfo6xa2bnHC1okK7ej38Er7BePpzjg4fr3z4SMYRVL8rwwWWfLazUuvZtfjPtgLLKa6Y+2a7nlQA21A==}
+  jstz_sdk@0.1.1-alpha.4.1:
+    resolution: {integrity: sha512-rxQK60MYBSRbEw4bQE16iSE6ARQxWKQxvgMbWrdvEzU4m0lLR+She8wCfVZkqSy8TkqHBT66f1DPp695V5E2Qg==}
 
   jsx-ast-utils@3.3.5:
     resolution: {integrity: sha512-ZZow9HBI5O6EPgSJLUb8n2NKgmVWTwCvHGwFuJlMjvLFqlGG6pjirPhtdsseaLZjSibD8eegzmYpUZwoIlj2cQ==}
@@ -5195,7 +5195,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
 
-  '@jstz-dev/jstz-client@0.1.1-alpha.1':
+  '@jstz-dev/jstz-client@0.1.1-alpha.4':
     dependencies:
       '@types/node': 20.17.24
       '@types/node-fetch': 2.6.12
@@ -7991,7 +7991,7 @@ snapshots:
     optionalDependencies:
       graceful-fs: 4.2.11
 
-  jstz_sdk@0.1.1-alpha.1: {}
+  jstz_sdk@0.1.1-alpha.4.1: {}
 
   jsx-ast-utils@3.3.5:
     dependencies:
