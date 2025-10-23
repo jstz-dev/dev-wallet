@@ -10,7 +10,7 @@ export function toMutez(tez: number): number {
 }
 
 export function toTezString(mutez?: number | null): string {
-  if (typeof mutez !== "number" || isNaN(Number(mutez))) return "n/a";
+  if (typeof mutez !== "number" || isNaN(mutez)) return "n/a";
 
   return `${toTez(mutez)} ${TEZ_SYMBOL}`;
 }

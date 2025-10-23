@@ -1,11 +1,15 @@
 /**
- * @import { Config } from "prettier"
- * @import { PluginOptions } from "prettier-plugin-tailwindcss"
+ * @import {Config} from "prettier"
+ * @import {PluginOptions} from "prettier-plugin-tailwindcss"
  */
 
-/** @type {Config & PluginOptions}  */
+/** @type {Config & PluginOptions} */
 export default {
-  plugins: ["prettier-plugin-organize-imports", "prettier-plugin-tailwindcss"],
+  plugins: [
+    "prettier-plugin-organize-imports",
+    "prettier-plugin-tailwindcss",
+    "prettier-plugin-jsdoc",
+  ],
 
   trailingComma: "all",
   tabWidth: 2,
