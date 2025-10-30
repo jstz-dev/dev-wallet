@@ -22,7 +22,9 @@ import { $fetch } from "~/lib/$fetch";
 import { useWindowContext } from "~/lib/Window.context.tsx";
 import { StorageKeys, type KeyStorage } from "~/lib/constants/storage";
 import { toTezString } from "~/lib/currency.utils.ts";
-import { createOperation, passkeySign, sign } from "~/lib/jstz";
+import { createOperation, sign } from "~/lib/jstz";
+import type { PasskeyWallet } from "~/lib/passkeys/PasskeyWallet";
+import { usePasskeyWallet } from "~/lib/passkeys/usePasskeyWallet";
 import { useVault } from "~/lib/vaultStore";
 import {
   RequestEventTypes,
@@ -146,6 +148,7 @@ interface OperationSigningDialogProps {
   accountAddress: string;
   networkUrl?: string;
   content: SignOperationContent;
+  wallet: PasskeyWallet;
 }
 
 function OperationSigningDialog({
@@ -155,6 +158,8 @@ function OperationSigningDialog({
   content,
 }: OperationSigningDialogProps) {
   const { close } = useWindowContext();
+
+  const wallet = usePasskeyWallet();
 
   async function handleConfirm() {
     const operation = await createOperation({
@@ -168,20 +173,31 @@ function OperationSigningDialog({
     const secretKey = account?.[StorageKeys.PRIVATE_KEY];
 
     let signature;
+    let verifier = null;
     if (secretKey) {
       signature = sign(operation, secretKey);
     } else {
-      const { signature: passKeySignature } = await passkeySign(operation);
+      const {
+        signature: passKeySignature,
+        authenticatorData,
+        clientDataJSON,
+      } = await wallet.current.passkeySign(operation);
       signature = passKeySignature;
+
+      verifier = {
+        Passkey: {
+          authenticatorData,
+          clientDataJSON,
+        },
+      };
     }
 
     await chrome.runtime.sendMessage({
       type: ResponseEventTypes.PROCESS_QUEUE,
       data: {
         signature,
-        accountAddress,
-        publicKey: account?.[StorageKeys.PUBLIC_KEY],
         operation,
+        verifier,
       },
     });
 

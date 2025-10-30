@@ -5,13 +5,18 @@
  * @import {UserState} from "./userStore";
  */
 
+import * as SimpleWebAuthnBrowser from "@simplewebauthn/browser";
 import * as SimpleWebAuthnServer from "@simplewebauthn/server";
+import { convert_passkey_signature } from "jstz_sdk";
 
 import { $fetch } from "~/lib/$fetch";
 import { parseKey } from "./encode";
 import { asyncFind } from "./utils";
 
-/** @param {Jstz.Operation} operation */
+/**
+ * @param {Jstz.Operation} operation
+ * @todo Replace this with a local hashing function
+ */
 function hash_operation(operation) {
   return $fetch("https://privatenet.jstz.info/operations/hash", {
     method: "POST",
@@ -66,11 +71,11 @@ export class PasskeyWallet {
        * error in the browser if it's asked to perform registration when it recognizes one of the
        * credential ID's.
        */
-      excludeCredentials: user.credentials.map((cred) => ({
-        id: cred.id,
-        type: "public-key",
-        transports: cred.transports,
-      })),
+      // excludeCredentials: user.credentials.map((cred) => ({
+      //   id: cred.id,
+      //   type: "public-key",
+      //   transports: cred.transports,
+      // })),
 
       authenticatorSelection: {
         residentKey: "discouraged",
@@ -144,12 +149,19 @@ export class PasskeyWallet {
     return { verified, publicKey: null };
   }
 
-  /** @param {Jstz.Operation} operation */
+  /**
+   * @param {Jstz.Operation} operation
+   * @throws {Error} When challenge couldn't be hashed
+   */
   async generateAuthenticationOptions(operation) {
     const user = this.#user.getState();
 
     const { data } = await hash_operation(operation);
     const challenge = typeof data === "string" ? data : undefined;
+
+    if (!challenge) {
+      throw new Error("Couldn't hash challenge");
+    }
 
     const allowedCredential = await asyncFind(user.credentials, async (cred) => {
       const key = await parseKey(cred.publicKey);
@@ -219,7 +231,26 @@ export class PasskeyWallet {
       user.setCredential(credential);
     }
 
+    const { signature, clientDataJSON, authenticatorData } = res.response;
+
     this.#challenges.delete(user.id);
-    return { verified, signature: res.response.signature };
+    return {
+      verified,
+      signature: convert_passkey_signature(signature),
+      clientDataJSON,
+      authenticatorData,
+    };
+  }
+
+  /**
+   * @param {Jstz.Operation} operatinon
+   * @throws {RangeError} When there's no credential with the `res.id`
+   * @throws {Error} When `SimpleWebAuthnServer.verifyAuthenticationResponse` fails
+   */
+  async passkeySign(operatinon) {
+    const opts = await this.generateAuthenticationOptions(operatinon);
+    const resp = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: opts });
+
+    return this.verifyAuthentication(resp);
   }
 }

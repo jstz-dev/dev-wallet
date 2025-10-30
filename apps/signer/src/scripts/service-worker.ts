@@ -51,8 +51,12 @@ interface SignResponse {
   data: {
     operation: Jstz.Operation;
     signature: string;
-    publicKey: string;
-    accountAddress: string;
+    verifier: {
+      Passkey: {
+        authenticatorData: string;
+        clientDataJSON: string;
+      };
+    } | null;
   };
 }
 
@@ -83,6 +87,12 @@ interface ProcessQueueEvent extends ResponseEvent {
   data: Pick<WalletType, "address" | "publicKey"> & {
     signature: string;
     operation: Jstz.Operation;
+    verifier: {
+      Passkey: {
+        authenticatorData: string;
+        clientDataJSON: string;
+      };
+    } | null;
   } & NetworkDependentEvent;
 }
 
@@ -186,15 +196,14 @@ chrome.runtime.onMessage.addListener(
     // dialog to sw communication
     switch (request.type) {
       case ResponseEventTypes.PROCESS_QUEUE: {
-        const { signature, address, publicKey, operation } = request.data;
+        const { signature, operation, verifier } = request.data;
 
         const { resolve } = queuedRequest as QueuedSignRequest;
 
         const data = {
           operation,
           signature,
-          publicKey,
-          accountAddress: address,
+          verifier,
         };
 
         console.log(data);
