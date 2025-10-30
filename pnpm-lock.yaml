@@ -150,6 +150,9 @@ importers:
       globals:
         specifier: ^16.4.0
         version: 16.4.0
+      jstz_sdk:
+        specifier: 0.1.1-alpha.4.1
+        version: 0.1.1-alpha.4.1
       prettier:
         specifier: ^3.6.2
         version: 3.6.2
@@ -729,6 +732,9 @@ packages:
 
   '@levischuck/tiny-cbor@0.2.11':
     resolution: {integrity: sha512-llBRm4dT4Z89aRsm6u2oEZ8tfwL/2l6BwpZ7JcyieouniDECM5AqNgr/y08zalEIvW3RSK4upYyybDcmjXqAow==}
+
+  '@jstz-dev/jstz-client@0.1.1-alpha.4':
+    resolution: {integrity: sha512-RMlQtYNudQGCJvuMo/HrJoFIkbMOLISD/M9XZb77mDrx22lftq1XZJzz28x4L5tVZqX/Fppc8uT/qx4MK+Vqdg==}
 
   '@mdx-js/react@3.1.1':
     resolution: {integrity: sha512-f++rKLQgUVYDAtECQ6fn/is15GkEH9+nZPM3MS0RcxVqoTfawHvDlSCH7JbMhAM6uJ32v3eXLvLmLvjGu7PTQw==}
