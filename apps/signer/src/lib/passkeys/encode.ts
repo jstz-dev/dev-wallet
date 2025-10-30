@@ -12,7 +12,10 @@ import * as cbor from "cbor";
  */
 export function coseToRaw(buffer: ArrayBuffer | Uint8Array | Buffer | string) {
   // Try decode as CBOR COSE key
-  const decoded = cbor.decodeAllSync(buffer)[0];
+  const decoded = cbor.decodeAllSync(buffer)[0] as
+    | Map<number, Uint8Array>
+    | Record<string, Uint8Array>
+    | null;
 
   // decoded may be a Map (with numeric keys) or an object
   let x: Uint8Array | undefined;
@@ -23,7 +26,7 @@ export function coseToRaw(buffer: ArrayBuffer | Uint8Array | Buffer | string) {
     const yb = decoded.get(-3);
     if (xb) x = xb;
     if (yb) y = xb;
-  } else if (typeof decoded === "object" && decoded !== null) {
+  } else if (decoded !== null && typeof decoded === "object") {
     // some decoders return object with string keys
     x = decoded["-2"] ? decoded["-2"] : decoded.x ? decoded.x : undefined;
     y = decoded["-3"] ? decoded["-3"] : decoded.y ? decoded.y : undefined;
@@ -39,8 +42,8 @@ export function coseToRaw(buffer: ArrayBuffer | Uint8Array | Buffer | string) {
     const len = Math.max(x.length, y.length);
     const xPad = Buffer.alloc(len);
     const yPad = Buffer.alloc(len);
-    x.copy(xPad, len - x.length);
-    y.copy(yPad, len - y.length);
+    Buffer.from(x).copy(xPad, len - x.length);
+    Buffer.from(y).copy(yPad, len - y.length);
     x = xPad;
     y = yPad;
   }
@@ -80,7 +83,10 @@ function compressPublicKey(rawKey: Uint8Array) {
   const y = rawKey.slice(33, 65);
 
   // Check parity of Y (last byte determines even/odd)
-  const yIsOdd = (y[y.length - 1] & 1) === 1;
+
+  // We're checking above if y[y.length - 1] exists
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const yIsOdd = (y[y.length - 1]! & 1) === 1;
   const prefix = yIsOdd ? 0x03 : 0x02;
 
   const compressed = new Uint8Array(33);
