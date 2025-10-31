@@ -23,7 +23,6 @@ import { useWindowContext } from "~/lib/Window.context.tsx";
 import { StorageKeys, type KeyStorage } from "~/lib/constants/storage";
 import { toTezString } from "~/lib/currency.utils.ts";
 import { createOperation, sign } from "~/lib/jstz";
-import type { PasskeyWallet } from "~/lib/passkeys/PasskeyWallet";
 import { usePasskeyWallet } from "~/lib/passkeys/usePasskeyWallet";
 import { useVault } from "~/lib/vaultStore";
 import {
@@ -123,6 +122,8 @@ export default function Wallet() {
         (() => {
           switch (flow) {
             case RequestEventTypes.SIGN:
+              if (!account) return null;
+
               return (
                 <OperationSigningDialog
                   networkUrl={currentNetwork}
@@ -144,11 +145,10 @@ export default function Wallet() {
 }
 
 interface OperationSigningDialogProps {
-  account?: KeyStorage;
+  account: KeyStorage;
   accountAddress: string;
   networkUrl?: string;
   content: SignOperationContent;
-  wallet: PasskeyWallet;
 }
 
 function OperationSigningDialog({
@@ -165,12 +165,12 @@ function OperationSigningDialog({
     const operation = await createOperation({
       content,
       address: accountAddress,
-      publicKey: account?.[StorageKeys.PUBLIC_KEY],
+      publicKey: account[StorageKeys.PUBLIC_KEY],
       baseURL: networkUrl,
     });
 
     // If `secretKey` exists that means that it's a normal non-passkey account
-    const secretKey = account?.[StorageKeys.PRIVATE_KEY];
+    const secretKey = account[StorageKeys.PRIVATE_KEY];
 
     let signature;
     let verifier = null;
@@ -182,6 +182,7 @@ function OperationSigningDialog({
         authenticatorData,
         clientDataJSON,
       } = await wallet.current.passkeySign(operation);
+
       signature = passKeySignature;
 
       verifier = {
