@@ -1,4 +1,5 @@
 import js from "@eslint/js";
+import { defineConfig } from "eslint/config";
 
 import prettier from "eslint-config-prettier/flat";
 import jsdoc from "eslint-plugin-jsdoc";
@@ -8,14 +9,14 @@ import reactHooks from "eslint-plugin-react-hooks";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
-export default tseslint.config(
+export default defineConfig([
   { ignores: ["dist", "examples"] },
   {
     extends: [
       js.configs.recommended,
       ...tseslint.configs.strictTypeChecked,
       prettier,
-      reactHooks.configs["recommended-latest"],
+      reactHooks.configs.flat["recommended-latest"],
       react.configs.flat.recommended,
       react.configs.flat["jsx-runtime"],
       reactCompiler.configs.recommended,
@@ -88,6 +89,8 @@ export default tseslint.config(
       "jsdoc/require-jsdoc": "off",
       "jsdoc/require-param": "off",
       "jsdoc/require-returns": "off",
+      "jsdoc/tag-lines": "off",
+      "jsdoc/require-param-description": "off",
     },
   },
-);
+]);
