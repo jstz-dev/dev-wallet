@@ -12,11 +12,8 @@ import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
-import { buildRequest } from "../lib/buildRequest";
-import { callSmartFunction } from "../lib/jstz-extension-communication";
+import { signWithJstzSigner } from "../lib/jstz-extension-communication";
 import { type SignResponse } from "../lib/jstz-signer";
-
-const decoder = new TextDecoder("utf-8");
 
 const schema = z.object({
   smartFunctionAddress: z.string(),
@@ -25,12 +22,10 @@ const schema = z.object({
   secretKey: z.string(),
 });
 
-type Form = z.infer<typeof schema>;
-
 export default function Home() {
-  const { register, control, setError } = useForm({
+  const { register, control } = useForm({
     defaultValues: {
-      smartFunctionAddress: "KT1TwbfyAuAWE4CTYswUrnHZWiVVY9Brue6r",
+      smartFunctionAddress: "KT1N3iVBiZn7rEcCbhqKctHG44gbebPyzYTA",
     },
     resolver: zodResolver(schema),
   });
@@ -49,10 +44,18 @@ export default function Home() {
     try {
       setNotification("Waiting for your request to be signed by the extension...");
 
-      await callSmartFunction({
-        smartFunctionRequest: buildRequest({ smartFunctionAddress, path }),
-        onSignatureReceived,
+      const response = await signWithJstzSigner({
+        content: {
+          _type: "RunFunction",
+          body: null,
+          gasLimit: 55000,
+          headers: {},
+          method: "GET",
+          uri: `jstz://${smartFunctionAddress}${path ?? ""}`,
+        },
       });
+
+      await onSignatureReceived(response);
     } catch (err) {
       setNotification("Error calling smart function: " + err);
     }
@@ -64,8 +67,7 @@ export default function Home() {
     setNotification(`Operation signed with address: ${accountAddress}`);
 
     const jstzClient = new Jstz.Jstz({
-      baseURL:
-        process.env.NEXT_PUBLIC_JSTZ_NODE_ENDPOINT,
+      baseURL: process.env.NEXT_PUBLIC_JSTZ_NODE_ENDPOINT,
       timeout: 6000,
     });
 
@@ -80,7 +82,7 @@ export default function Home() {
       let returnedMessage = "No message";
 
       if (typeof inner === "object" && "body" in inner) {
-        returnedMessage = inner.body && JSON.parse(decoder.decode(new Uint8Array(inner.body)));
+        returnedMessage = inner.body && JSON.parse(atob(inner.body));
       }
 
       if (typeof inner === "string") {
@@ -89,10 +91,10 @@ export default function Home() {
 
       setNotification(`Completed call. Response: ${returnedMessage}`);
     } catch (err) {
-      console.log(err)
+      console.log(err);
       if (err instanceof Error) {
         setNotification("Error calling signature: " + err.message);
-        return
+        return;
       }
       setNotification(JSON.stringify(err));
     }
@@ -100,7 +102,7 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <Card className="mx-auto w-100">
+      <Card className="w-100 mx-auto">
         <CardHeader>
           <CardTitle>Call the counter smart function</CardTitle>
         </CardHeader>
