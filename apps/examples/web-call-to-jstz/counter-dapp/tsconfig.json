@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "lib": ["esnext"],
+    "module": "esnext",
+    "target": "esnext",
+    "strict": true,
+    "moduleResolution": "node",
+    "types": ["@jstz-dev/types"]
+  },
+  "exclude": ["node_modules"]
+}

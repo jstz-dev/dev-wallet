@@ -1,101 +1,70 @@
-import Jstz from "@jstz-dev/jstz-client";
+import Jstz, { type ClientOptions } from "@jstz-dev/jstz-client";
 
-import * as JstzSigner from "./jstz-signer";
+import * as JstzSigner from "./jstz-signer.client";
 
-const encoder = new TextEncoder();
-const decoder = new TextDecoder("utf-8");
+export interface SignWithJstzSignerParams {
+  content:
+    | Jstz.Operation.RunFunction
+    | Jstz.Operation.DeployFunction
+    | Jstz.Operation.RevealLargePayload;
+  signerOptions?: JstzSignerOptions;
+}
 
-// EXAMPLE IMPLEMENTATION
+export type JstzSignerClientOptions = ClientOptions;
+export interface JstzSignerOptions {
+  timeout?: number;
+}
+
+export function createJstzClient(options?: Partial<JstzSignerClientOptions>) {
+  const { baseURL, timeout = 6000, ...restOptions } = options ?? {};
+  return new Jstz.Jstz({
+    baseURL: baseURL ?? process.env.NEXT_PUBLIC_JSTZ_NODE_ENDPOINT,
+    timeout: 6000,
+    ...restOptions,
+  });
+}
+
+export async function checkExtensionAvailability() {
+  const jstzSigner = new JstzSigner.JstzSigner(window);
+  return await jstzSigner.callSignerExtension<JstzSigner.CheckStatusResponse>(
+    {
+      type: JstzSigner.SignerRequestEventTypes.CHECK_STATUS,
+    },
+    { timeout: 500 },
+  );
+}
+
+export async function requestAddress() {
+  const jstzSigner = new JstzSigner.JstzSigner(window);
+
+  return await jstzSigner.callSignerExtension<JstzSigner.GetAddressResponse>({
+    type: JstzSigner.SignerRequestEventTypes.GET_ADDRESS,
+  });
+}
+
+export async function signWithJstzSigner({ content, signerOptions }: SignWithJstzSignerParams) {
+  const jstzSigner = new JstzSigner.JstzSigner(window);
+  return await jstzSigner.callSignerExtension<JstzSigner.SignResponse>(
+    {
+      type: JstzSigner.SignerRequestEventTypes.SIGN,
+      content,
+    },
+    signerOptions,
+  );
+}
+
 export async function callSmartFunction({
-  smartFunctionRequest,
+  content,
   onSignatureReceived,
-}: {
-  smartFunctionRequest: Jstz.Operation.RunFunction;
+  options,
+  signerOptions,
+}: SignWithJstzSignerParams & {
   onSignatureReceived: (
     response: { data: JstzSigner.SignResponse },
     jstzClient: Jstz,
   ) => Promise<void>;
+  options?: JstzSignerClientOptions;
 }) {
-  const jstzSigner = new JstzSigner.JstzSigner(window);
-  const request = await jstzSigner.callSignerExtension<JstzSigner.SignResponse>({
-    type: JstzSigner.SignerRequestEventTypes.SIGN,
-    content: smartFunctionRequest,
-  }, {timeout: 1000 * 60});
-
-  const jstzClient = new Jstz.Jstz({
-    baseURL:
-    process.env.NEXT_PUBLIC_JSTZ_NODE_ENDPOINT,
-    timeout: 6000,
-  });
-  await onSignatureReceived(request, jstzClient);
-}
-
-async function callCounterSmartFunction({
-  smartFunctionAddress,
-  pathToCall,
-  message,
-  requestOptions = {},
-}: {
-  smartFunctionAddress: string;
-  pathToCall?: string;
-  message?: string;
-  requestOptions?: Partial<Jstz.Operation.RunFunction>;
-}) {
-  try {
-    // Create a request to smart function to sign by extension
-    // and wait for the signed payload or error
-    await callSmartFunction({
-      smartFunctionRequest: {
-        _type: "RunFunction",
-        body: Array.from(
-          encoder.encode(
-            JSON.stringify({
-              message,
-            }),
-          ),
-        ),
-        gasLimit: 55000,
-        headers: {},
-        method: "GET",
-        uri: `tezos://${smartFunctionAddress}${pathToCall ?? ""}`,
-        ...requestOptions,
-      },
-      onSignatureReceived,
-    });
-  } catch (err: any) {
-    console.info("Error signing operation: ", err.message);
-  }
-}
-
-async function onSignatureReceived(response: { data: JstzSigner.SignResponse }) {
-  const { operation, signature } = response.data;
-
-  const jstzClient = new Jstz.Jstz({
-    baseURL:
-    process.env.NEXT_PUBLIC_JSTZ_NODE_ENDPOINT,
-    timeout: 6000,
-  });
-
-  try {
-    const {
-      result: { inner },
-    } = await jstzClient.operations.injectAndPoll({
-      inner: operation,
-      signature,
-    });
-
-    let returnedMessage = "No message.";
-
-    if (typeof inner === "object" && "body" in inner) {
-      returnedMessage = inner.body && JSON.parse(decoder.decode(new Uint8Array(inner.body)));
-    }
-
-    if (typeof inner === "string") {
-      returnedMessage = inner;
-    }
-
-    console.info(`Completed call. Response: ${returnedMessage}`);
-  } catch (err) {
-    console.error(JSON.stringify(err));
-  }
+  const request = await signWithJstzSigner({ content, signerOptions });
+  await onSignatureReceived(request, createJstzClient(options));
 }
