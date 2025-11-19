@@ -1,5 +1,5 @@
 import Jstz from "@jstz-dev/jstz-client";
-import * as signer from "jstz_sdk";
+import * as signer from "@jstz-dev/jstz_sdk";
 import type { SignOperationContent } from "~/scripts/service-worker";
 import type { WalletType } from "./vault";
 

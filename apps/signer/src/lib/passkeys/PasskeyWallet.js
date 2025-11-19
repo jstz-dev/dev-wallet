@@ -7,7 +7,7 @@
 
 import * as SimpleWebAuthnBrowser from "@simplewebauthn/browser";
 import * as SimpleWebAuthnServer from "@simplewebauthn/server";
-import { convert_passkey_signature } from "jstz_sdk";
+import { convert_passkey_signature } from "@jstz-dev/jstz_sdk";
 
 import { $fetch } from "~/lib/$fetch";
 import { parseKey } from "./encode";
