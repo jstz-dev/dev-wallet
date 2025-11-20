@@ -4,28 +4,29 @@ import { defineConfig } from "eslint/config";
 import prettier from "eslint-config-prettier/flat";
 import jsdoc from "eslint-plugin-jsdoc";
 import react from "eslint-plugin-react";
-import reactCompiler from "eslint-plugin-react-compiler";
 import reactHooks from "eslint-plugin-react-hooks";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default defineConfig([
   { ignores: ["dist", "examples"] },
+
   {
     extends: [
       js.configs.recommended,
-      ...tseslint.configs.strictTypeChecked,
+      tseslint.configs.strictTypeChecked,
       prettier,
-      reactHooks.configs.flat["recommended-latest"],
       react.configs.flat.recommended,
       react.configs.flat["jsx-runtime"],
-      reactCompiler.configs.recommended,
+      reactHooks.configs.flat["recommended-latest"],
     ],
+
     settings: {
       react: {
         version: "detect",
       },
     },
+
     files: ["src/**/*.{ts,tsx,js,jsx}"],
     languageOptions: {
       ecmaVersion: 2024,
@@ -38,6 +39,7 @@ export default defineConfig([
       },
       globals: globals.browser,
     },
+
     rules: {
       "func-style": ["warn", "declaration"],
 
@@ -53,10 +55,9 @@ export default defineConfig([
       "react/no-unstable-nested-components": ["error", { allowAsProps: true }],
       "react/self-closing-comp": "error",
       "react/prop-types": "off",
+
       "@typescript-eslint/prefer-namespace-keyword": "off",
       "@typescript-eslint/no-namespace": "off",
-
-      "react-compiler/react-compiler": "warn",
 
       "@typescript-eslint/no-unused-vars": "off",
       "@typescript-eslint/no-confusing-void-expression": ["error", { ignoreArrowShorthand: true }],
@@ -73,6 +74,7 @@ export default defineConfig([
           },
         },
       ],
+
       "@typescript-eslint/restrict-template-expressions": [
         "error",
         {
@@ -82,6 +84,7 @@ export default defineConfig([
       ],
     },
   },
+
   {
     extends: [jsdoc.configs["flat/recommended"]],
     files: ["**/*.{js,jsx}"],
@@ -89,6 +92,7 @@ export default defineConfig([
       "jsdoc/require-jsdoc": "off",
       "jsdoc/require-param": "off",
       "jsdoc/require-returns": "off",
+      "jsdoc/require-returns-description": "off",
       "jsdoc/tag-lines": "off",
       "jsdoc/require-param-description": "off",
     },
