@@ -11,6 +11,7 @@ import { useQueryStates } from "nuqs";
 import { Suspense, useState } from "react";
 import { redirect, useParams, type LoaderFunctionArgs } from "react-router";
 import SuperJSON from "superjson";
+import { z } from "zod/v4-mini";
 import { AccountSelect } from "~/components/AccountSelect";
 import {
   CopyContainer,
@@ -255,10 +256,13 @@ function Balance({ address }: BalanceProps) {
   const currentNetwork = useVault.use.currentNetwork();
 
   const {
-    data: { data: balance },
+    data: { data: balance, error },
   } = useSuspenseQuery({
     queryKey: ["balance", address, currentNetwork],
-    queryFn: () => $fetch<number>(`${currentNetwork}/accounts/${address}/balance`),
+    queryFn: () =>
+      $fetch(`${currentNetwork}/accounts/${address}/balance`, {
+        output: z.number(),
+      }),
   });
 
   return (
@@ -273,7 +277,7 @@ function Balance({ address }: BalanceProps) {
               "h-8 items-center justify-center",
             )}
           >
-            <p className="max-w-24 truncate">{toTezString(balance)}</p>
+            <p className="max-w-24 truncate">{!error ? toTezString(balance) : "n/a"}</p>
           </AlertDescription>
         </TooltipTrigger>
         <TooltipContent>
