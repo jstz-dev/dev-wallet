@@ -62,9 +62,9 @@ export default function Home() {
   }
 
   async function onSignatureReceived(response: { data: SignResponse }) {
-    const { operation, signature, accountAddress } = response.data;
+    const { operation, signature, verifier } = response.data;
 
-    setNotification(`Operation signed with address: ${accountAddress}`);
+    setNotification(`Operation signed with address: ${operation.publicKey}`);
 
     const jstzClient = new Jstz.Jstz({
       baseURL: process.env.NEXT_PUBLIC_JSTZ_NODE_ENDPOINT,
@@ -77,6 +77,7 @@ export default function Home() {
       } = await jstzClient.operations.injectAndPoll({
         inner: operation,
         signature,
+        verifier: verifier ?? null,
       });
 
       let returnedMessage = "No message";

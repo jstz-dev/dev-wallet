@@ -2,15 +2,15 @@ import Jstz from "@jstz-dev/jstz-client";
 
 // Extension events
 enum SignerRequestEventTypes {
-  CHECK_STATUS = 'JSTZ_CHECK_EXTENSION_AVAILABILITY_REQUEST_TO_EXTENSION',
-  SIGN = 'JSTZ_SIGN_REQUEST_TO_EXTENSION',
-  GET_ADDRESS = 'JSTZ_GET_ADDRESS_REQUEST_TO_EXTENSION',
+  CHECK_STATUS = "JSTZ_CHECK_EXTENSION_AVAILABILITY_REQUEST_TO_EXTENSION",
+  SIGN = "JSTZ_SIGN_REQUEST_TO_EXTENSION",
+  GET_ADDRESS = "JSTZ_GET_ADDRESS_REQUEST_TO_EXTENSION",
 }
 
 enum SignerResponseEventTypes {
-  CHECK_STATUS_RESPONSE = 'JSTZ_CHECK_EXTENSION_AVAILABILITY_RESPONSE_FROM_EXTENSION',
-  SIGN_RESPONSE = 'JSTZ_SIGN_RESPONSE_FROM_EXTENSION',
-  GET_ADDRESS_RESPONSE = 'JSTZ_GET_ADDRESS_RESPONSE_FROM_EXTENSION',
+  CHECK_STATUS_RESPONSE = "JSTZ_CHECK_EXTENSION_AVAILABILITY_RESPONSE_FROM_EXTENSION",
+  SIGN_RESPONSE = "JSTZ_SIGN_RESPONSE_FROM_EXTENSION",
+  GET_ADDRESS_RESPONSE = "JSTZ_GET_ADDRESS_RESPONSE_FROM_EXTENSION",
 }
 
 interface ExtensionError {
@@ -41,8 +41,12 @@ interface ExtensionResponse<T = unknown> {
 interface SignResponse {
   operation: Jstz.Operation;
   signature: string;
-  publicKey: string;
-  accountAddress: string;
+  verifier?: {
+    Passkey: {
+      authenticatorData: string;
+      clientDataJSON: string;
+    };
+  };
 }
 
 interface GetAddressResponse {
@@ -53,9 +57,7 @@ interface CheckStatusResponse {
   success: boolean;
 }
 
-/**
- * An event dispatcher for Signer extensions
- */
+/** An event dispatcher for Signer extensions */
 export class JstzSigner {
   eventTarget: EventTarget;
   constructor(eventTarget: EventTarget) {
@@ -71,16 +73,16 @@ export class JstzSigner {
       case SignerRequestEventTypes.CHECK_STATUS:
         return SignerResponseEventTypes.CHECK_STATUS_RESPONSE;
       default:
-        throw new Error('Unknown request type');
+        throw new Error("Unknown request type");
     }
   }
 
   /**
-   * Dispatch a Signer request event on `this.eventTarget`.
-   * Returns a Promise listening for the corresponding `ExtensionResponse` event.
+   * Dispatch a Signer request event on `this.eventTarget`. Returns a Promise listening for the
+   * corresponding `ExtensionResponse` event.
    *
-   * Signer extensions (typically, a browser wallet) should listen for the given payloads
-   * on `this.eventTarget` and emit an `ExtensionResponse<T>` if succesfully handled or
+   * Signer extensions (typically, a browser wallet) should listen for the given payloads on
+   * `this.eventTarget` and emit an `ExtensionResponse<T>` if succesfully handled or
    * `ExtensionError` if not
    */
   public callSignerExtension<T = SignResponse | GetAddressResponse | CheckStatusResponse>(
@@ -103,7 +105,7 @@ export class JstzSigner {
       if (timeout) {
         setTimeout(() => {
           if (!eventFired) {
-            reject(new Error('Extension is not responding'));
+            reject(new Error("Extension is not responding"));
           }
         }, timeout);
       }
@@ -113,7 +115,7 @@ export class JstzSigner {
         ((event: CustomEvent<ExtensionError | ExtensionResponse<T>>) => {
           eventFired = true;
 
-          if ('error' in event.detail) {
+          if ("error" in event.detail) {
             reject(new Error(event.detail.error));
           } else {
             resolve(event.detail);
@@ -126,14 +128,14 @@ export class JstzSigner {
 }
 
 export {
-  SignerResponseEventTypes,
   SignerRequestEventTypes,
-  type ExtensionError,
-  type SignRequestCall,
-  type GetSignerAddressCall,
-  type ExtensionResponse,
-  type SignResponse,
-  type GetAddressResponse,
+  SignerResponseEventTypes,
   type CheckStatusCall,
   type CheckStatusResponse,
+  type ExtensionError,
+  type ExtensionResponse,
+  type GetAddressResponse,
+  type GetSignerAddressCall,
+  type SignRequestCall,
+  type SignResponse,
 };
