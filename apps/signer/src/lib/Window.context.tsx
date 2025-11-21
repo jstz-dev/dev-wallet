@@ -21,10 +21,6 @@ export function WindowContextProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     window.addEventListener("beforeunload", onClose, { once: true });
-
-    return () => {
-      window.removeEventListener("beforeunload", onClose);
-    };
   }, []);
 
   function close() {
