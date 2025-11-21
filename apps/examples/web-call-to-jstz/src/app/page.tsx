@@ -25,7 +25,7 @@ const schema = z.object({
 export default function Home() {
   const { register, control } = useForm({
     defaultValues: {
-      smartFunctionAddress: "KT1N3iVBiZn7rEcCbhqKctHG44gbebPyzYTA",
+      smartFunctionAddress: "KT1Qt3s4YLC9BDZWoC3Yf79Y855CwVsGWPX4",
     },
     resolver: zodResolver(schema),
   });
@@ -82,8 +82,18 @@ export default function Home() {
 
       let returnedMessage = "No message";
 
-      if (typeof inner === "object" && "body" in inner) {
-        returnedMessage = inner.body && JSON.parse(atob(inner.body));
+      if (typeof inner === "object" && "body" in inner && inner.body !== null) {
+        const body = atob(inner.body);
+
+        try {
+          returnedMessage = body && JSON.parse(body);
+        } catch (e) {
+          if (e instanceof SyntaxError) {
+            returnedMessage = body;
+          } else {
+            throw e;
+          }
+        }
       }
 
       if (typeof inner === "string") {
