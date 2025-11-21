@@ -41,8 +41,12 @@ interface ExtensionResponse<T = unknown> {
 interface SignResponse {
   operation: Jstz.Operation;
   signature: string;
-  publicKey: string;
-  accountAddress: string;
+  verifier: {
+    Passkey: {
+      authenticatorData: string;
+      clientDataJSON: string;
+    };
+  } | null;
 }
 
 interface GetAddressResponse {
@@ -53,9 +57,7 @@ interface CheckStatusResponse {
   success: boolean;
 }
 
-/**
- * An event dispatcher for Signer extensions
- */
+/** An event dispatcher for Signer extensions */
 export class JstzSigner {
   eventTarget: EventTarget;
   constructor(eventTarget: EventTarget) {
@@ -76,11 +78,11 @@ export class JstzSigner {
   }
 
   /**
-   * Dispatch a Signer request event on `this.eventTarget`.
-   * Returns a Promise listening for the corresponding `ExtensionResponse` event.
+   * Dispatch a Signer request event on `this.eventTarget`. Returns a Promise listening for the
+   * corresponding `ExtensionResponse` event.
    *
-   * Signer extensions (typically, a browser wallet) should listen for the given payloads
-   * on `this.eventTarget` and emit an `ExtensionResponse<T>` if succesfully handled or
+   * Signer extensions (typically, a browser wallet) should listen for the given payloads on
+   * `this.eventTarget` and emit an `ExtensionResponse<T>` if succesfully handled or
    * `ExtensionError` if not
    */
   public callSignerExtension<T = SignResponse | GetAddressResponse | CheckStatusResponse>(

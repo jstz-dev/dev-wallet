@@ -8,7 +8,7 @@ export enum StorageKeys {
 export interface KeyStorage {
   name: string | undefined;
   [StorageKeys.PUBLIC_KEY]: string;
-  [StorageKeys.PRIVATE_KEY]: string;
+  [StorageKeys.PRIVATE_KEY]: string | null;
 }
 
 export type Accounts = Record<string, KeyStorage>;
@@ -16,4 +16,3 @@ export type Accounts = Record<string, KeyStorage>;
 export type Account = Accounts[string] & {
   address: string;
 };
-

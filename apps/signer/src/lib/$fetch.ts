@@ -1,3 +1,5 @@
 import { createFetch } from "@better-fetch/fetch";
 
-export const $fetch = createFetch();
+export const $fetch = createFetch({
+  throw: false,
+});

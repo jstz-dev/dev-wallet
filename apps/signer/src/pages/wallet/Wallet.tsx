@@ -4,10 +4,14 @@ import { Alert, AlertDescription } from "jstz-ui/ui/alert";
 import { Button } from "jstz-ui/ui/button";
 import { Label } from "jstz-ui/ui/label";
 import { Skeleton } from "jstz-ui/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "jstz-ui/ui/tooltip";
 import { cn } from "jstz-ui/utils";
 import { Eye, EyeOff } from "lucide-react";
-import { Suspense, useEffect, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router";
+import { useQueryStates } from "nuqs";
+import { Suspense, useState } from "react";
+import { redirect, useParams, type LoaderFunctionArgs } from "react-router";
+import SuperJSON from "superjson";
+import { z } from "zod/v4-mini";
 import { AccountSelect } from "~/components/AccountSelect";
 import {
   CopyContainer,
@@ -19,23 +23,39 @@ import { $fetch } from "~/lib/$fetch";
 import { useWindowContext } from "~/lib/Window.context.tsx";
 import { StorageKeys, type KeyStorage } from "~/lib/constants/storage";
 import { toTezString } from "~/lib/currency.utils.ts";
+import { createOperation, sign } from "~/lib/jstz";
+import { usePasskeyWallet } from "~/lib/passkeys/usePasskeyWallet";
 import { useVault } from "~/lib/vaultStore";
-import { RequestEventTypes, ResponseEventTypes } from "~/scripts/service-worker";
-import { Tooltip, TooltipContent, TooltipTrigger } from "jstz-ui/ui/tooltip";
+import {
+  RequestEventTypes,
+  ResponseEventTypes,
+  type SignOperationContent,
+} from "~/scripts/service-worker";
+import { walletParsers } from "./url-params";
+
+export function loader({ params }: LoaderFunctionArgs) {
+  const { accountAddress } = params;
+
+  if (!accountAddress) {
+    return redirect(`/add-wallet${location.search}`);
+  }
+
+  const account = useVault.getState().accounts[accountAddress];
+
+  if (!account) {
+    return redirect(`/add-wallet${location.search}`);
+  }
+}
 
 export default function Wallet() {
   const { accountAddress } = useParams() as { accountAddress: string };
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
 
-  const isPopup = searchParams.get("isPopup") === "true";
+  const [{ content, isPopup, flow }] = useQueryStates(walletParsers);
 
-  const { accounts, currentNetwork } = useVault((state) => state);
+  const parsedContent = SuperJSON.parse<SignOperationContent>(content);
+
+  const { currentNetwork, accounts } = useVault((state) => state);
   const account = accounts[accountAddress];
-
-  useEffect(() => {
-    if (!account) void navigate(`/add-wallet${location.search}`, { replace: true });
-  }, [account, navigate]);
 
   const [privateKeyVisible, setPrivateKeyVisible] = useState(false);
 
@@ -48,12 +68,12 @@ export default function Wallet() {
         </div>
 
         <div className="flex flex-col gap-2">
-
           <div className="grid grid-cols-3 gap-2">
             <div className="col-span-2 space-y-2">
               <Label>Account</Label>
               <AccountSelect selectedAccount={accountAddress} />
             </div>
+
             <div className="col-span-1 space-y-2">
               <Label>Balance</Label>
 
@@ -75,37 +95,42 @@ export default function Wallet() {
         <CopyContainer>{account?.[StorageKeys.PUBLIC_KEY] ?? ""}</CopyContainer>
       </div>
 
-      <div className="flex w-full flex-col gap-2">
-        <Label className="uppercase text-white/50">Private key:</Label>
+      {account?.[StorageKeys.PRIVATE_KEY] !== null && (
+        <div className="flex w-full flex-col gap-2">
+          <Label className="uppercase text-white/50">Private key:</Label>
 
-        <CopyContainer
-          variant="secondary"
-          text={account?.[StorageKeys.PRIVATE_KEY] ?? ""}
-          renderAdditionalButton={(props) => (
-            <Button
-              {...props}
-              onClick={() => setPrivateKeyVisible(!privateKeyVisible)}
-              renderIcon={(props) =>
-                privateKeyVisible ? <EyeOff size={20} {...props} /> : <Eye size={20} {...props} />
-              }
-            />
-          )}
-        >
-          {privateKeyVisible && account?.[StorageKeys.PRIVATE_KEY]
-            ? account[StorageKeys.PRIVATE_KEY]
-            : "•".repeat(32)}
-        </CopyContainer>
-      </div>
+          <CopyContainer
+            variant="secondary"
+            text={account?.[StorageKeys.PRIVATE_KEY] ?? ""}
+            renderAdditionalButton={(props) => (
+              <Button
+                {...props}
+                onClick={() => setPrivateKeyVisible(!privateKeyVisible)}
+                renderIcon={(props) =>
+                  privateKeyVisible ? <EyeOff size={20} {...props} /> : <Eye size={20} {...props} />
+                }
+              />
+            )}
+          >
+            {privateKeyVisible && account?.[StorageKeys.PRIVATE_KEY]
+              ? account[StorageKeys.PRIVATE_KEY]
+              : "•".repeat(32)}
+          </CopyContainer>
+        </div>
+      )}
 
       {isPopup &&
         (() => {
-          switch (searchParams.get("flow")) {
+          switch (flow) {
             case RequestEventTypes.SIGN:
+              if (!account) return null;
+
               return (
                 <OperationSigningDialog
                   networkUrl={currentNetwork}
                   accountAddress={accountAddress}
                   account={account}
+                  content={parsedContent}
                 />
               );
 
@@ -113,31 +138,69 @@ export default function Wallet() {
               return <GetAddressDialog currentAddress={accountAddress} />;
 
             default:
-              return <></>;
+              return null;
           }
         })()}
     </div>
   );
 }
 
+interface OperationSigningDialogProps {
+  account: KeyStorage;
+  accountAddress: string;
+  networkUrl?: string;
+  content: SignOperationContent;
+}
+
 function OperationSigningDialog({
   account,
   accountAddress,
   networkUrl,
-}: {
-  account?: KeyStorage;
-  accountAddress: string;
-  networkUrl?: string;
-}) {
+  content,
+}: OperationSigningDialogProps) {
   const { close } = useWindowContext();
+
+  const wallet = usePasskeyWallet();
+
   async function handleConfirm() {
+    const operation = await createOperation({
+      content,
+      address: accountAddress,
+      publicKey: account[StorageKeys.PUBLIC_KEY],
+      baseURL: networkUrl,
+    });
+
+    // If `secretKey` exists that means that it's a normal non-passkey account
+    const secretKey = account[StorageKeys.PRIVATE_KEY];
+
+    let signature;
+    let verifier = null;
+    if (secretKey) {
+      signature = sign(operation, secretKey);
+    } else {
+      const {
+        signature: passKeySignature,
+        authenticatorData,
+        clientDataJSON,
+      } = await wallet.current.passkeySign(operation);
+
+      signature = passKeySignature;
+
+      verifier = {
+        Passkey: {
+          authenticatorData,
+          clientDataJSON,
+        },
+      };
+    }
+
     await chrome.runtime.sendMessage({
       type: ResponseEventTypes.PROCESS_QUEUE,
       data: {
-        address: accountAddress,
-        privateKey: account?.[StorageKeys.PRIVATE_KEY],
-        publicKey: account?.[StorageKeys.PUBLIC_KEY],
-        networkUrl,
+        signature,
+        operation,
+        verifier,
+        accountAddress,
       },
     });
 
@@ -194,10 +257,13 @@ function Balance({ address }: BalanceProps) {
   const currentNetwork = useVault.use.currentNetwork();
 
   const {
-    data: { data: balance },
+    data: { data: balance, error },
   } = useSuspenseQuery({
     queryKey: ["balance", address, currentNetwork],
-    queryFn: () => $fetch<number>(`${currentNetwork}/accounts/${address}/balance`),
+    queryFn: () =>
+      $fetch(`${currentNetwork}/accounts/${address}/balance`, {
+        output: z.number(),
+      }),
   });
 
   return (
@@ -212,7 +278,7 @@ function Balance({ address }: BalanceProps) {
               "h-8 items-center justify-center",
             )}
           >
-            <p className="max-w-24 truncate">{toTezString(balance)}</p>
+            <p className="max-w-24 truncate">{!error ? toTezString(balance) : "n/a"}</p>
           </AlertDescription>
         </TooltipTrigger>
         <TooltipContent>

@@ -13,11 +13,12 @@ export default defineConfig({
     react(),
     tailwindcss(),
     tsconfigPaths(),
-    nodePolyfills({ include: ["stream", "events"] }),
+    nodePolyfills({ include: ["stream", "events", "buffer", "util"] }),
     wasm(),
     topLevelAwait(),
   ],
   build: {
+    minify: false,
     rollupOptions: {
       input: {
         main: "index.html",

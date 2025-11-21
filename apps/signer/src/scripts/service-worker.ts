@@ -1,6 +1,6 @@
 import { Jstz } from "@jstz-dev/jstz-client";
+import SuperJSON from "superjson";
 
-import { sign } from "~/lib/jstz";
 import type { WalletType } from "~/lib/vault";
 
 export enum RequestEventTypes {
@@ -25,10 +25,12 @@ interface RequestEvent {
   type: RequestEventTypes;
 }
 
+export type SignOperationContent = Jstz.Operation.DeployFunction | Jstz.Operation.RunFunction;
+
 export interface SignEvent extends RequestEvent {
   type: RequestEventTypes.SIGN;
   data: NetworkDependentEvent & {
-    content: Jstz.Operation.DeployFunction | Jstz.Operation.RunFunction;
+    content: SignOperationContent;
   };
 }
 
@@ -49,8 +51,12 @@ interface SignResponse {
   data: {
     operation: Jstz.Operation;
     signature: string;
-    publicKey: string;
-    accountAddress: string;
+    verifier: {
+      Passkey: {
+        authenticatorData: string;
+        clientDataJSON: string;
+      };
+    } | null;
   };
 }
 
@@ -60,10 +66,9 @@ interface GetAddressResponse {
   };
 }
 
-interface QueuedSignRequest extends NetworkDependentEvent {
+export interface QueuedSignRequest extends NetworkDependentEvent {
   type: RequestEventTypes.SIGN;
   resolve: (res: SignResponse | ErrorResponse) => void;
-  content: SignEvent["data"]["content"];
 }
 
 interface QueuedGetAddressRequest {
@@ -76,9 +81,20 @@ let queuedRequest: QueuedSignRequest | QueuedGetAddressRequest | null = null;
 interface ResponseEvent {
   type: ResponseEventTypes;
 }
+
 interface ProcessQueueEvent extends ResponseEvent {
   type: ResponseEventTypes.PROCESS_QUEUE;
-  data: WalletType & NetworkDependentEvent;
+  data: Pick<WalletType, "address" | "publicKey"> & {
+    signature: string;
+    operation: Jstz.Operation;
+    accountAddress: string;
+    verifier: {
+      Passkey: {
+        authenticatorData: string;
+        clientDataJSON: string;
+      };
+    } | null;
+  } & NetworkDependentEvent;
 }
 
 interface DeclineEvent extends ResponseEvent {
@@ -133,23 +149,25 @@ chrome.runtime.onMessage.addListener(
             data: { success: true },
           }),
         );
+
         return false;
       }
 
       case RequestEventTypes.SIGN: {
-        const { content, networkUrl } = request.data;
+        const { content } = request.data;
 
-        openWalletDialog({ flow: RequestEventTypes.SIGN }, (window?: chrome.windows.Window) =>
-          closeDuplicateWindows(window?.id),
+        openWalletDialog(
+          { flow: RequestEventTypes.SIGN, content: SuperJSON.stringify(content) },
+          (window?: chrome.windows.Window) => closeDuplicateWindows(window?.id),
         );
+
         queuedRequest = {
           type: RequestEventTypes.SIGN,
           resolve: (data) => {
             sendResponse(JSON.stringify({ type: ResponseEventTypes.SIGN_RESPONSE, ...data }));
           },
-          content,
-          networkUrl,
         };
+
         return true;
       }
 
@@ -179,32 +197,20 @@ chrome.runtime.onMessage.addListener(
     // dialog to sw communication
     switch (request.type) {
       case ResponseEventTypes.PROCESS_QUEUE: {
-        const { address, publicKey, privateKey, networkUrl } = request.data;
+        const { signature, operation, verifier, accountAddress } = request.data;
 
-        const { content, networkUrl: overrideNetworkUrl, resolve } = queuedRequest as QueuedSignRequest;
-        void createOperation({
-          content,
-          address,
-          publicKey,
-          baseURL: overrideNetworkUrl ?? networkUrl
-        })
-          .then((operation) => {
-            const signature = sign(operation, privateKey);
+        const { resolve } = queuedRequest as QueuedSignRequest;
 
-            console.log(`Signature: ${signature}`);
+        const data = {
+          operation,
+          signature,
+          verifier,
+          accountAddress,
+        };
 
-            resolve({
-              data: {
-                operation,
-                signature,
-                publicKey,
-                accountAddress: address,
-              },
-            });
-          })
-          .catch((err: unknown) => {
-            resolve({ type: ResponseEventTypes.SIGN_RESPONSE, error: (err as Error).message });
-          });
+        resolve({
+          data,
+        });
 
         break;
       }
@@ -236,31 +242,6 @@ chrome.runtime.onMessage.addListener(
     return true; // Keep the message channel open for sendResponse
   },
 );
-
-async function createOperation({
-  content,
-  address,
-  publicKey,
-  baseURL,
-}: {
-  content: QueuedSignRequest["content"];
-  address: WalletType["address"];
-  publicKey: string;
-  baseURL?: string;
-}): Promise<Jstz.Operation> {
-  const jstzClient = new Jstz({
-    baseURL,
-    timeout: 6000,
-  });
-
-  const nonce = await jstzClient.accounts.getNonce(address).catch(() => Promise.resolve(0));
-
-  return {
-    content,
-    nonce,
-    publicKey,
-  };
-}
 
 async function closeDuplicateWindows(currentWindowId?: number) {
   const windows = await chrome.windows.getAll();

@@ -8,12 +8,12 @@ import { TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import z from "zod";
-import { Alert, AlertDescription, AlertTitle } from "../components/ui/alert";
-import { Button } from "../components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
-import { Input } from "../components/ui/input";
-import { signWithJstzSigner } from "../lib/jstz-extension-communication";
-import { type SignResponse } from "../lib/jstz-signer";
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { Button } from "~/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~/components/ui/card";
+import { Input } from "~/components/ui/input";
+import { signWithJstzSigner } from "~/lib/jstz-extension-communication";
+import { type SignResponse } from "~/lib/jstz-signer";
 
 const schema = z.object({
   smartFunctionAddress: z.string(),
@@ -25,7 +25,7 @@ const schema = z.object({
 export default function Home() {
   const { register, control } = useForm({
     defaultValues: {
-      smartFunctionAddress: "KT1N3iVBiZn7rEcCbhqKctHG44gbebPyzYTA",
+      smartFunctionAddress: "KT1Qt3s4YLC9BDZWoC3Yf79Y855CwVsGWPX4",
     },
     resolver: zodResolver(schema),
   });
@@ -62,9 +62,9 @@ export default function Home() {
   }
 
   async function onSignatureReceived(response: { data: SignResponse }) {
-    const { operation, signature, accountAddress } = response.data;
+    const { operation, signature, verifier } = response.data;
 
-    setNotification(`Operation signed with address: ${accountAddress}`);
+    setNotification(`Operation signed with address: ${operation.publicKey}`);
 
     const jstzClient = new Jstz.Jstz({
       baseURL: process.env.NEXT_PUBLIC_JSTZ_NODE_ENDPOINT,
@@ -77,12 +77,23 @@ export default function Home() {
       } = await jstzClient.operations.injectAndPoll({
         inner: operation,
         signature,
+        verifier: verifier ?? null,
       });
 
       let returnedMessage = "No message";
 
-      if (typeof inner === "object" && "body" in inner) {
-        returnedMessage = inner.body && JSON.parse(atob(inner.body));
+      if (typeof inner === "object" && "body" in inner && inner.body !== null) {
+        const body = atob(inner.body);
+
+        try {
+          returnedMessage = body && JSON.parse(body);
+        } catch (e) {
+          if (e instanceof SyntaxError) {
+            returnedMessage = body;
+          } else {
+            throw e;
+          }
+        }
       }
 
       if (typeof inner === "string") {
