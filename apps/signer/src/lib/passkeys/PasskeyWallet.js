@@ -5,27 +5,12 @@
  * @import {UserState} from "./userStore";
  */
 
-import { convert_passkey_signature } from "@jstz-dev/jstz_sdk";
+import { convert_passkey_signature, hash_operation } from "@jstz-dev/jstz_sdk";
 import * as SimpleWebAuthnBrowser from "@simplewebauthn/browser";
 import * as SimpleWebAuthnServer from "@simplewebauthn/server";
 
-import { $fetch } from "~/lib/$fetch";
 import { parseKey } from "./encode";
 import { asyncFind } from "./utils";
-
-/**
- * @param {Jstz.Operation} operation
- * @todo Replace this with a local hashing function
- */
-function hash_operation(operation) {
-  return $fetch("https://privatenet.jstz.info/operations/hash", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(operation),
-  });
-}
 
 export class PasskeyWallet {
   /** @type {Map<string, string>} */
@@ -156,8 +141,7 @@ export class PasskeyWallet {
   async generateAuthenticationOptions(operation) {
     const user = this.#user.getState();
 
-    const { data } = await hash_operation(operation);
-    const challenge = typeof data === "string" ? data : undefined;
+    const challenge = hash_operation(operation);
 
     if (!challenge) {
       throw new Error("Couldn't hash challenge");
