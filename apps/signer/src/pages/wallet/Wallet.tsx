@@ -200,6 +200,7 @@ function OperationSigningDialog({
         signature,
         operation,
         verifier,
+        accountAddress,
       },
     });
 
