@@ -41,12 +41,12 @@ interface ExtensionResponse<T = unknown> {
 interface SignResponse {
   operation: Jstz.Operation;
   signature: string;
-  verifier?: {
+  verifier: {
     Passkey: {
       authenticatorData: string;
       clientDataJSON: string;
     };
-  };
+  } | null;
 }
 
 interface GetAddressResponse {
