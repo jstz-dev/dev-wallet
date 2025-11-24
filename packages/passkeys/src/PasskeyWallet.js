@@ -1,8 +1,7 @@
 /**
  * @import {Jstz} from "@jstz-dev/jstz-client";
  * @import {AuthenticationResponseJSON, GenerateAuthenticationOptionsOpts, GenerateRegistrationOptionsOpts, RegistrationResponseJSON, VerifyAuthenticationResponseOpts, VerifyRegistrationResponseOpts, WebAuthnCredential} from "@simplewebauthn/server";
- * @import {StoreApi} from "zustand";
- * @import {UserState} from "./userStore";
+ * @import {UserStore} from "./userStore";
  */
 
 import { convert_passkey_signature, hash_operation } from "@jstz-dev/jstz_sdk";
@@ -22,7 +21,7 @@ export class PasskeyWallet {
   #expectedOrigin;
 
   /**
-   * @param {StoreApi<UserState>} store
+   * @param {UserStore} store
    * @param {string} rpId
    * @param {string[] | string} expectedOrigin
    * @param {number} [timeout]
