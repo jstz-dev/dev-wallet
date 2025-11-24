@@ -1,0 +1,35 @@
+{
+  "name": "passkeys-react",
+  "version": "0.0.1",
+  "description": "",
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch"
+  },
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "files": [
+    "dist"
+  ],
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.12.4",
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "dependencies": {
+    "passkeys": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.6",
+    "react": "~19.2.0",
+    "tsdown": "^0.16.6",
+    "typescript": "^5.9.3"
+  },
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  }
+}

@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "jstz-ui/ui/tooltip";
 import { cn } from "jstz-ui/utils";
 import { Eye, EyeOff } from "lucide-react";
 import { useQueryStates } from "nuqs";
+import { usePasskeyWallet } from "passkeys-react";
 import { Suspense, useState } from "react";
 import { redirect, useParams, type LoaderFunctionArgs } from "react-router";
 import SuperJSON from "superjson";
@@ -24,7 +25,6 @@ import { useWindowContext } from "~/lib/Window.context.tsx";
 import { StorageKeys, type KeyStorage } from "~/lib/constants/storage";
 import { toTezString } from "~/lib/currency.utils.ts";
 import { createOperation, sign } from "~/lib/jstz";
-import { usePasskeyWallet } from "~/lib/passkeys/usePasskeyWallet";
 import { useVault } from "~/lib/vaultStore";
 import {
   RequestEventTypes,
@@ -160,7 +160,7 @@ function OperationSigningDialog({
 }: OperationSigningDialogProps) {
   const { close } = useWindowContext();
 
-  const wallet = usePasskeyWallet();
+  const { wallet } = usePasskeyWallet();
 
   async function handleConfirm() {
     const operation = await createOperation({
@@ -182,7 +182,7 @@ function OperationSigningDialog({
         signature: passKeySignature,
         authenticatorData,
         clientDataJSON,
-      } = await wallet.current.passkeySign(operation);
+      } = await wallet.passkeySign(operation);
 
       signature = passKeySignature;
 

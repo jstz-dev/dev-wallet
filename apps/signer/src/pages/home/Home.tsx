@@ -3,11 +3,11 @@ import * as SimpleWebAuthnBrowser from "@simplewebauthn/browser";
 import * as TaquitoUtils from "@taquito/utils";
 import { Button, buttonVariants } from "jstz-ui/ui/button";
 import { ArrowLeft, ExternalLink } from "lucide-react";
+import { parseKey } from "passkeys";
+import { usePasskeyWallet } from "passkeys-react";
 import { Link, redirect, useLocation, useNavigate, type LoaderFunctionArgs } from "react-router";
 import { AccountSelect } from "~/components/AccountSelect";
 import { StorageKeys } from "~/lib/constants/storage";
-import { parseKey } from "~/lib/passkeys/encode";
-import { usePasskeyWallet } from "~/lib/passkeys/usePasskeyWallet";
 import * as Vault from "~/lib/vault";
 import { useVault, vault } from "~/lib/vaultStore";
 import { loadHomeParams } from "./url-params";
@@ -113,7 +113,7 @@ interface RegisterPasskeyProps {
 }
 
 function RegisterPasskey({ onSuccess }: RegisterPasskeyProps) {
-  const wallet = usePasskeyWallet();
+  const { wallet } = usePasskeyWallet();
 
   const isPopup = (() => {
     const views = chrome.extension.getViews({ type: "popup" });
@@ -138,7 +138,7 @@ function RegisterPasskey({ onSuccess }: RegisterPasskeyProps) {
   async function handleCreatePasskeyWallet() {
     let attResp: RegistrationResponseJSON;
     try {
-      const opts = await wallet.current.generateRegistrationOptions();
+      const opts = await wallet.generateRegistrationOptions();
 
       attResp = await SimpleWebAuthnBrowser.startRegistration({ optionsJSON: opts });
     } catch (err) {
@@ -146,7 +146,7 @@ function RegisterPasskey({ onSuccess }: RegisterPasskeyProps) {
       return;
     }
 
-    const { verified, publicKey } = await wallet.current.verifyRegistration(attResp);
+    const { verified, publicKey } = await wallet.verifyRegistration(attResp);
 
     if (verified) {
       console.info(`Authenticator registered!`);
