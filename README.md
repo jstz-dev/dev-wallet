@@ -62,13 +62,17 @@ Follow these steps to build the extension and install it in Google Chrome:
    cd apps/signer
    ```
 
-3. Install the dependencies:
+4. Install the dependencies:
 
    ```sh
    pnpm i
    ```
 
-4. Build the extension:
+   We also have a `postinstall` hook in the root `package.json` that builds `packages/passkey-signer` and `packages/passkey-signer-react`.
+
+   Both of those packages have to be rebuilt after each change in their codebase.
+
+5. Build the extension:
 
    ```sh
    pnpm build
