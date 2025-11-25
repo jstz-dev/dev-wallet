@@ -13,12 +13,7 @@
 
     /* Language and Environment */
     "target": "ES2024",
-    "lib": [
-      "ES2024",
-      "DOM",
-      "DOM.Iterable"
-    ],
-    "jsx": "react-jsx",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
     // "experimentalDecorators": true,
     // "emitDecoratorMetadata": true,
     // "jsxFactory": "",
@@ -35,9 +30,7 @@
     "moduleResolution": "bundler",
     "baseUrl": "./",
     "paths": {
-      "~/*": [
-        "src/*"
-      ]
+      "~/*": ["src/*"]
     },
     // "rootDirs": [],
     // "typeRoots": [],
@@ -56,16 +49,16 @@
 
     /* JavaScript Support */
     "allowJs": true,
-    "checkJs": false,
+    "checkJs": true,
     // "maxNodeModuleJsDepth": 1,
 
     /* Emit */
-    // "declaration": true,
+    "declaration": true,
     // "declarationMap": true,
-    // "emitDeclarationOnly": true,
+    "emitDeclarationOnly": true,
     // "sourceMap": true,
     // "inlineSourceMap": true,
-    "noEmit": true,
+    "noEmit": false,
     // "outFile": "./",
     "outDir": "./dist",
     // "removeComments": true,
@@ -118,10 +111,6 @@
     // "skipDefaultLibCheck": true,
     "skipLibCheck": true
   },
-  "include": [
-    "src"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["src"],
+  "exclude": ["node_modules"]
 }

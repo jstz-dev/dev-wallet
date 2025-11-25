@@ -2,6 +2,24 @@ import bs58 from "bs58";
 import * as cbor from "cbor";
 
 /**
+ * Helper for concatenating `Uint8Arrays`
+ *
+ * @param {Uint8Array[]} arrays
+ */
+export function concatUint8Arrays(arrays) {
+  const totalLength = arrays.reduce((sum, arr) => sum + arr.length, 0);
+  const result = new Uint8Array(totalLength);
+
+  let offset = 0;
+  for (const arr of arrays) {
+    result.set(arr, offset);
+    offset += arr.length;
+  }
+
+  return result;
+}
+
+/**
  * Convert a COSE-encoded (CBOR) public key (EC2) to a raw uncompressed public key. Returns a
  * base64-encoded string of the raw key: 0x04 || X || Y
  *
@@ -9,17 +27,20 @@ import * as cbor from "cbor";
  * y-coordinate (byte string) 1: kty (should be 2 for EC2)
  *
  * If input is already a raw key, it will be returned as base64.
+ *
+ * @param {Uint8Array[]} buffer
  */
-export function coseToRaw(buffer: ArrayBuffer | Uint8Array | Buffer | string) {
+export function coseToRaw(buffer) {
   // Try decode as CBOR COSE key
-  const decoded = cbor.decodeAllSync(buffer)[0] as
-    | Map<number, Uint8Array>
-    | Record<string, Uint8Array>
-    | null;
+  const decoded = /** @type {Map<number, Uint8Array> | Record<string, Uint8Array> | null} */ (
+    cbor.decodeAllSync(buffer)[0]
+  );
 
   // decoded may be a Map (with numeric keys) or an object
-  let x: Uint8Array | undefined;
-  let y: Uint8Array | undefined;
+  /** @type {Uint8Array | undefined} */
+  let x;
+  /** @type {Uint8Array | undefined} */
+  let y;
 
   if (decoded instanceof Map) {
     const xb = decoded.get(-2);
@@ -36,24 +57,36 @@ export function coseToRaw(buffer: ArrayBuffer | Uint8Array | Buffer | string) {
     throw new TypeError("Could not find x/y coordinates when decoding COSE key");
   }
 
-  if (x.length !== y.length) {
+  const xArr = new Uint8Array(x);
+  const yArr = new Uint8Array(y);
+
+  if (xArr.length !== yArr.length) {
     // still proceed but warn
     // pad shorter to match (unlikely for valid keys)
-    const len = Math.max(x.length, y.length);
-    const xPad = Buffer.alloc(len);
-    const yPad = Buffer.alloc(len);
-    Buffer.from(x).copy(xPad, len - x.length);
-    Buffer.from(y).copy(yPad, len - y.length);
+    const len = Math.max(xArr.length, yArr.length);
+
+    const xPad = new Uint8Array(len);
+    const yPad = new Uint8Array(len);
+
+    xPad.set(xArr, len - xArr.length);
+    yPad.set(yArr, len - yArr.length);
+
     x = xPad;
     y = yPad;
+  } else {
+    x = xArr;
+    y = yArr;
   }
 
-  const raw = Buffer.concat([Buffer.from([0x04]), x, y]);
-  return new Uint8Array(raw);
+  return concatUint8Arrays([new Uint8Array([0x04]), x, y]);
 }
 
-/** Parse a COSE-encoded CBOR public key to a base58 string of the raw uncompressed key. */
-export async function parseKey(buffer: ArrayBuffer | Uint8Array | Buffer | string) {
+/**
+ * Parse a COSE-encoded CBOR public key to a base58 string of the raw uncompressed key.
+ *
+ * @param {ArrayBuffer | Uint8Array | string} buffer
+ */
+export async function parseKey(buffer) {
   const rawKey = coseToRaw(buffer);
   const compressedKey = compressPublicKey(rawKey);
 
@@ -74,7 +107,8 @@ export async function parseKey(buffer: ArrayBuffer | Uint8Array | Buffer | strin
   return bs58.encode(result);
 }
 
-function compressPublicKey(rawKey: Uint8Array) {
+/** @param {Uint8Array} rawKey */
+function compressPublicKey(rawKey) {
   if (rawKey.length !== 65 || rawKey[0] !== 0x04) {
     throw new Error("Expected uncompressed P-256 key");
   }
@@ -85,8 +119,8 @@ function compressPublicKey(rawKey: Uint8Array) {
   // Check parity of Y (last byte determines even/odd)
 
   // We're checking above if y[y.length - 1] exists
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const yIsOdd = (y[y.length - 1]! & 1) === 1;
+  // @ts-ignore
+  const yIsOdd = (y[y.length - 1] & 1) === 1;
   const prefix = yIsOdd ? 0x03 : 0x02;
 
   const compressed = new Uint8Array(33);
