@@ -1,5 +1,5 @@
 {
-  "name": "passkeys",
+  "name": "passkey-signer-react",
   "version": "0.0.1",
   "description": "",
   "scripts": {
@@ -16,15 +16,15 @@
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.12.4",
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
   "dependencies": {
-    "@jstz-dev/jstz-client": "0.1.1-alpha.5",
-    "@jstz-dev/jstz_sdk": "0.1.1-alpha.5",
-    "@simplewebauthn/browser": "^13.2.2",
-    "@simplewebauthn/server": "^13.2.2",
-    "bs58": "^6.0.0",
-    "cbor": "^10.0.11"
+    "passkey-signer": "workspace:*"
   },
   "devDependencies": {
+    "@types/react": "^19.2.6",
+    "react": "~19.2.0",
     "tsdown": "^0.16.6",
     "typescript": "^5.9.3"
   },
