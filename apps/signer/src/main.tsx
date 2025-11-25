@@ -1,4 +1,4 @@
-import { PasskeyProvider } from "passkeys-react";
+import { PasskeyProvider } from "passkey-signer-react";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router";
