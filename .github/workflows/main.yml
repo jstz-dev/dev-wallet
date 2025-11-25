@@ -38,6 +38,10 @@ jobs:
       - name: Install dependencies
         run: pnpm i --frozen-lockfile
 
+      - name: Build dependencies
+        working-directory: .
+        run: pnpm --filter passkeys --filter passkeys-react build
+
       - name: Run ESLint
         run: pnpm lint
 
@@ -71,6 +75,10 @@ jobs:
 
       - name: Install dependencies
         run: pnpm i --frozen-lockfile
+
+      - name: Build dependencies
+        working-directory: .
+        run: pnpm --filter passkeys --filter passkeys-react build
 
       - name: Run build
         working-directory: apps/signer
