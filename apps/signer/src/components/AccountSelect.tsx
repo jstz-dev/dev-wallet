@@ -1,9 +1,10 @@
 import { Button } from "jstz-ui/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "jstz-ui/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "jstz-ui/ui/tooltip";
-import { X } from "lucide-react";
+import { ExternalLink, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router";
 import type { Accounts } from "~/lib/constants/storage.ts";
+import { isPopup } from "~/lib/isPopup";
 import { shortenAddress } from "~/lib/utils.ts";
 import { useVault } from "~/lib/vaultStore.ts";
 
@@ -29,7 +30,24 @@ export function AccountSelect({
     void navigate(`/wallets/${newValue}${location.search}`);
   }
 
+  const popup = isPopup();
+
   const selectedAddress = Object.entries(accounts).find(([address]) => address === selectedAccount);
+
+  function openCreatePopup() {
+    const params = new URLSearchParams({
+      path: "/add-wallet",
+    });
+
+    void chrome.windows.create({
+      url: `index.html?${params}`,
+      type: "popup",
+      focused: true,
+      width: 450,
+      height: 720,
+      // incognito, top, left, ...
+    });
+  }
 
   function goToCreate() {
     void navigate(`/add-wallet${location.search}`);
@@ -94,7 +112,13 @@ export function AccountSelect({
           ))}
 
           {canAddWallet && (
-            <Button onClick={goToCreate} variant="secondary" className="w-full rounded-md text-sm">
+            <Button
+              onClick={popup ? openCreatePopup : goToCreate}
+              variant="secondary"
+              className="w-full rounded-md text-sm"
+              iconPosition="right"
+              renderIcon={() => popup && <ExternalLink />}
+            >
               Add Wallet
             </Button>
           )}

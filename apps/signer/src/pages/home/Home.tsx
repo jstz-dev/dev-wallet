@@ -8,6 +8,7 @@ import { usePasskeyWallet } from "passkey-signer-react";
 import { Link, redirect, useLocation, useNavigate, type LoaderFunctionArgs } from "react-router";
 import { AccountSelect } from "~/components/AccountSelect";
 import { StorageKeys } from "~/lib/constants/storage";
+import { isPopup } from "~/lib/isPopup";
 import * as Vault from "~/lib/vault";
 import { useVault, vault } from "~/lib/vaultStore";
 import { loadHomeParams } from "./url-params";
@@ -115,10 +116,7 @@ interface RegisterPasskeyProps {
 function RegisterPasskey({ onSuccess }: RegisterPasskeyProps) {
   const { wallet } = usePasskeyWallet();
 
-  const isPopup = (() => {
-    const views = chrome.extension.getViews({ type: "popup" });
-    return views.includes(window);
-  })();
+  const popup = isPopup();
 
   function openOptionsPage() {
     const params = new URLSearchParams({
@@ -162,8 +160,8 @@ function RegisterPasskey({ onSuccess }: RegisterPasskeyProps) {
     <Button
       variant="secondary"
       className="w-full rounded-md capitalize"
-      onClick={isPopup ? openOptionsPage : handleCreatePasskeyWallet}
-      renderIcon={() => isPopup && <ExternalLink />}
+      onClick={popup ? handleCreatePasskeyWallet : openOptionsPage}
+      renderIcon={() => popup && <ExternalLink />}
       iconPosition="right"
     >
       Create passkey wallet
