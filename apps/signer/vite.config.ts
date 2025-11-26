@@ -1,7 +1,7 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react-swc";
 
-import { defineConfig } from "vite";
+import { defineConfig } from "rolldown-vite";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 import topLevelAwait from "vite-plugin-top-level-await";
 import wasm from "vite-plugin-wasm";
@@ -19,7 +19,7 @@ export default defineConfig({
   ],
   build: {
     minify: false,
-    rollupOptions: {
+    rolldownOptions: {
       input: {
         main: "index.html",
         "service-worker": "src/scripts/service-worker.ts",
