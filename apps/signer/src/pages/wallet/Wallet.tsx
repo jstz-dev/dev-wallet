@@ -1,6 +1,4 @@
 import { QueryErrorResetBoundary, useSuspenseQuery } from "@tanstack/react-query";
-import { ErrorBoundary } from "react-error-boundary";
-
 import { Alert, AlertDescription } from "jstz-ui/ui/alert";
 import { Button } from "jstz-ui/ui/button";
 import { Label } from "jstz-ui/ui/label";
@@ -11,9 +9,11 @@ import { Eye, EyeOff } from "lucide-react";
 import { useQueryStates } from "nuqs";
 import { usePasskeyWallet } from "passkey-signer-react";
 import { Suspense, useRef, useState } from "react";
+import { ErrorBoundary } from "react-error-boundary";
 import { redirect, useParams, type LoaderFunctionArgs } from "react-router";
 import SuperJSON from "superjson";
 import { z } from "zod/v4-mini";
+
 import { AccountSelect } from "~/components/AccountSelect";
 import {
   CopyContainer,
@@ -32,6 +32,7 @@ import {
   ResponseEventTypes,
   type SignOperationContent,
 } from "~/scripts/service-worker";
+
 import { walletParsers } from "./url-params";
 
 export function loader({ params }: LoaderFunctionArgs) {
