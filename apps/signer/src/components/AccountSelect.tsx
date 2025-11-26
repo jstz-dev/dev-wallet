@@ -10,9 +10,14 @@ import { useVault } from "~/lib/vaultStore.ts";
 interface AccountSelectProps {
   selectedAccount: string | undefined;
   canAddWallet?: boolean;
+  onAccountSelected?: (accountAddress: string) => void;
 }
 
-export function AccountSelect({ selectedAccount, canAddWallet = true }: AccountSelectProps) {
+export function AccountSelect({
+  selectedAccount,
+  canAddWallet = true,
+  onAccountSelected = () => {},
+}: AccountSelectProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -20,6 +25,7 @@ export function AccountSelect({ selectedAccount, canAddWallet = true }: AccountS
 
   function handleOnSelect(newValue: string & {}) {
     setCurrentAddress(newValue);
+    onAccountSelected(newValue);
     void navigate(`/wallets/${newValue}${location.search}`);
   }
 
