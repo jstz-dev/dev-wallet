@@ -68,7 +68,7 @@ Follow these steps to build the extension and install it in Google Chrome:
    pnpm i
    ```
 
-   We also have a `postinstall` hook in the root `package.json` that builds `packages/passkey-signer` and `packages/passkey-signer-react`.
+   The`postinstall` hook in the root `package.json` will trigger builds for `packages/passkey-signer` and `packages/passkey-signer-react` modules which are required to be built prior to running app/signer `build` script.
 
    Both of those packages have to be rebuilt after each change in their codebase.
 
