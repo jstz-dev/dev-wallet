@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "jstz-ui/ui/tooltip";
 import { cn } from "jstz-ui/utils";
 import { Eye, EyeOff } from "lucide-react";
 import { useQueryStates } from "nuqs";
-import { usePasskeyWallet } from "passkeys-react";
+import { usePasskeyWallet } from "passkey-signer-react";
 import { Suspense, useState } from "react";
 import { redirect, useParams, type LoaderFunctionArgs } from "react-router";
 import SuperJSON from "superjson";

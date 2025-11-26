@@ -36,19 +36,19 @@ jobs:
         run: git submodule update --init --recursive
 
       - name: Install dependencies
-        run: pnpm i --frozen-lockfile
+        run: pnpm i --frozen-lockfile --ignore-scripts
 
       - name: Build dependencies
         working-directory: .
-        run: pnpm --filter passkeys --filter passkeys-react build
+        run: pnpm --filter passkey-signer --filter passkey-signer-react build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dist-files
           path: |
-            packages/passkeys/dist
-            packages/passkeys-react/dist
+            packages/passkey-signer/dist
+            packages/passkey-signer-react/dist
 
       - name: Run ESLint
         run: pnpm lint
@@ -82,7 +82,7 @@ jobs:
         run: git submodule update --init --recursive
 
       - name: Install dependencies
-        run: pnpm i --frozen-lockfile
+        run: pnpm i --frozen-lockfile --ignore-scripts
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4

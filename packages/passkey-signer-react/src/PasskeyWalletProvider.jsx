@@ -1,8 +1,8 @@
-import { PasskeyWallet } from "passkeys";
+import { PasskeyWallet } from "passkey-signer";
 import { createContext, useContext, useMemo, useRef } from "react";
 
 /** @import {PropsWithChildren, Context} from "react"; */
-/** @import {UserStore} from "passkeys"; */
+/** @import {UserStore} from "passkey-signer"; */
 
 /** @type {Context<{ wallet: PasskeyWallet }>} */
 const PasskeyContext = createContext(/** @type {{ wallet: PasskeyWallet }} */ ({}));
