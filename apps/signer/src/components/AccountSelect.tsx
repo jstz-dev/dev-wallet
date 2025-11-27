@@ -7,6 +7,7 @@ import type { Accounts } from "~/lib/constants/storage.ts";
 import { isPopup } from "~/lib/isPopup";
 import { shortenAddress } from "~/lib/utils.ts";
 import { useVault } from "~/lib/vaultStore.ts";
+import { useWindowContext } from "~/lib/Window.context";
 
 interface AccountSelectProps {
   selectedAccount: string | undefined;
@@ -21,6 +22,8 @@ export function AccountSelect({
 }: AccountSelectProps) {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const { close } = useWindowContext();
 
   const { accounts, setCurrentAddress, currentAddress, setAccounts } = useVault((state) => state);
 
@@ -47,6 +50,8 @@ export function AccountSelect({
       height: 720,
       // incognito, top, left, ...
     });
+
+    close();
   }
 
   function goToCreate() {
@@ -64,6 +69,7 @@ export function AccountSelect({
 
     if (currentAddress === address) {
       const goToAccount = Object.keys(updatedAccounts)[0];
+
       if (goToAccount) {
         handleOnSelect(goToAccount);
       } else {
@@ -71,6 +77,7 @@ export function AccountSelect({
         goToCreate();
       }
     }
+
     // Update the accounts in the vault store
     setAccounts(updatedAccounts);
   }
@@ -93,6 +100,7 @@ export function AccountSelect({
                 className="mb-2 flex flex-col items-start rounded-md"
               >
                 <span>{keyStorage.name ?? shortenAddress(address)}</span>
+
                 <span className="text-sm text-white/40">{shortenAddress(address)}</span>
               </SelectItem>
 
@@ -104,6 +112,7 @@ export function AccountSelect({
                     onClick={() => onAccountRemove(address)}
                   />
                 </TooltipTrigger>
+
                 <TooltipContent>
                   <p>WARNING! This will remove your account forever</p>
                 </TooltipContent>
