@@ -1,7 +1,0 @@
-onlyBuiltDependencies:
-  - esbuild
-  - sharp
-  - unrs-resolver
-
-settings:
-  ignore-workspace: true
