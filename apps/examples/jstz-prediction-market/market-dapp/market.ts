@@ -3,12 +3,16 @@ import { z } from "zod";
 
 const ONE_TOKEN = 1;
 const KV_ROOT = "root";
+const REFERER_HEADER = "Referer";
+const TRANSFER_HEADER = "X-JSTZ-TRANSFER";
+const AMOUNT_HEADER = "X-JSTZ-AMOUNT";
 
 // Schemas
 const tokenSchema = z.object({
   isSynthetic: z.boolean(),
   token: z.enum(["yes", "no"]),
   amount: z.number().min(0),
+  price: z.number().min(0).max(1_000_000),
 });
 
 const marketFormSchema = z.object({
@@ -20,7 +24,6 @@ const marketFormSchema = z.object({
   resolvedToken: z.enum(["yes", "no"]).nullish(),
   resolvedTokenPrice: z.number().min(0).max(1).nullish(),
   tokens: z.array(tokenSchema),
-  pool: z.number().min(0),
 });
 
 const betFormSchema = tokenSchema.pick({ token: true }).extend({
@@ -55,13 +58,37 @@ marketRouter.post(
 );
 marketRouter.post(
   "/bet",
-  withParseBody(async (_, body) => {
+  withParseBody(async (request, body) => {
+    const { state } = getState();
+    if (!state || state === "created") return errorResponse("Market is not initialized yet");
     // TODO: bet amount is in XTZ and transferred via "Referrer" header
     // add an approximate estimation of tokens on the FE basing on the current token price from Indexer
     const { success, error, data } = betFormSchema.safeParse(body);
-    if (!success) return errorResponse(error.message);
+    if (!success) throw new Error(error.message);
 
-    // TODO: add amount / price check and throw error if check fails
+    const address = request.headers.get(REFERER_HEADER);
+    if (!address) throw new Error("Referer address not found");
+
+    const receivedMutez = request.headers.get(AMOUNT_HEADER);
+
+    const tokenState = getTokenState(data.token);
+
+    const mutez = Number(receivedMutez);
+
+    if (!receivedMutez || isNaN(mutez) || mutez < tokenState.price)
+      throw new Error("Not enough tez for to make a bet");
+
+    const amount = mutez / tokenState.price;
+
+    dispatch({
+      type: "bet",
+      address,
+      token: data.token,
+      amount,
+      price: tokenState.price,
+    });
+
+    const newPrice = getNewTokenPrice(data.token, amount)
 
     return successResponse("Bet placed");
   }),
@@ -98,6 +125,15 @@ function getState(): KvState {
   return JSON.parse(Kv.get(KV_ROOT) ?? "{}");
 }
 
+function getTokenState(token: string): KvState["tokens"][number] {
+  const { tokens = [] } = getState();
+  const tokenState = tokens.find((t) => t.token === token);
+
+  if (!tokenState) throw new Error("Token not found");
+
+  return tokenState;
+}
+
 function dispatch(action: KvAction) {
   const state = getState();
   Kv.set(KV_ROOT, JSON.stringify(reducer(state, action)));
@@ -113,18 +149,25 @@ function reducer(state: KvState, action: KvAction): KvState {
       newState.resolutionDate = action.resolutionDate;
       newState.resolutionUrl = action.resolutionUrl;
       newState.tokens = action.tokens;
-      newState.pool = action.pool;
       newState.users = {};
+      newState.bets = [];
       break;
     case "bet":
-      if (!newState.bets) newState.bets = [];
-      if (!newState.users) newState.users = {};
+      if (!newState.tokens || !newState.bets || !newState.users)
+        throw new Error("Market in not initialized");
+
+      const token = newState.tokens.find((t) => t.token === action.token);
+      if (!token) throw new Error("Token not found");
+
+      token!.amount += action.amount;
+
       newState.bets.push({
         address: action.address,
         token: action.token,
         amount: action.amount,
         price: action.price,
       });
+
       newState.users[action.address] = {
         address: action.address,
         token: action.token,
@@ -134,6 +177,13 @@ function reducer(state: KvState, action: KvAction): KvState {
       break;
   }
   return newState;
+}
+
+function getNewTokenPrice(token: string, amountToBuy: number) {
+  const { tokens = [] } = getState();
+  const tokenState = getTokenState(token);
+  const sumOfTokens = tokens.reduce((acc, token) => acc + token.amount, 0);
+  return tokenState.amount + amountToBuy / sumOfTokens;
 }
 
 function withParseBody(handler: (request: Request, body: unknown) => Promise<Response>) {
