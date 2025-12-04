@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
 
   transpilePackages: ["jstz-ui"],
+
+  experimental: {
+    turbopackFileSystemCacheForDev: true,
+  },
 };
 
 export default nextConfig;
