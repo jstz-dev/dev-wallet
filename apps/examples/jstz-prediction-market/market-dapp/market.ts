@@ -17,6 +17,7 @@ const tokenSchema = z.object({
 
 const marketFormSchema = z.object({
   admins: z.array(z.string()),
+  master: z.string().length(36), // parent SF address
   question: z.string(),
   resolutionDate: z.iso.datetime(),
   resolutionUrl: z.string().nullish(),
