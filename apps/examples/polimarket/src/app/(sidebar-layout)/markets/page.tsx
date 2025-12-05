@@ -1,9 +1,14 @@
 import Link from "next/link";
+import { createLoader, parseAsString } from "nuqs/server";
 import { MarketCard } from "~/components/market-card";
 import { mockMarkets } from "~/mock/mock-markets";
 
+const loadSearchParams = createLoader({
+  category: parseAsString,
+});
+
 export default async function MarketsPage({ searchParams }: PageProps<"/markets">) {
-  const { category } = await searchParams;
+  const { category } = await loadSearchParams(searchParams);
 
   const filteredMarkets = category
     ? mockMarkets.filter((market) => market.category.toLowerCase() === category.toLowerCase())
