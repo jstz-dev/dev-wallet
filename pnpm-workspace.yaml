@@ -1,5 +1,6 @@
 packages:
   - apps/signer
+  - apps/examples/polimarket
   - packages/**
 
 onlyBuiltDependencies:
