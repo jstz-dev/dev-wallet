@@ -13,7 +13,7 @@ import { textDecode } from "~/lib/encoder";
 import { useJstzSignerExtension } from "~/lib/hooks/useJstzSigner";
 import { SignWithJstzSignerParams } from "~/lib/jstz-signer.service";
 import { marketSchema } from "~/lib/validators/market";
-import { useJstzClient } from "~/providers/sign-operation.context";
+import { useJstzClient } from "~/providers/jstz-client.context";
 
 export default function DeployPage() {
   const { signWithJstzExtension } = useJstzSignerExtension();
