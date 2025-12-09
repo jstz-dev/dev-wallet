@@ -5,7 +5,11 @@ import { z } from "zod";
 export const env = createEnv({
   extends: [vercel()],
 
-  server: {},
+  server: {
+    WALLET_ADDRESS: z.string(),
+    WALLET_PUBLIC_KEY: z.string(),
+    WALLET_SECRET_KEY: z.string(),
+  },
 
   client: {
     NEXT_PUBLIC_API_BASE_URL: z.string(),
