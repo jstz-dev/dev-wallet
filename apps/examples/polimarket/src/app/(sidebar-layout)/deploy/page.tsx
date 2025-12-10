@@ -9,7 +9,7 @@ import { Spinner } from "jstz-ui/ui/spinner";
 import { TriangleAlert } from "lucide-react";
 import { FormEvent, Suspense, use, useEffect, useEffectEvent, useState } from "react";
 import { useAppForm } from "~/components/ui/form";
-import { textDecode } from "~/lib/encoder";
+import { textDecode, textEncode } from "~/lib/encoder";
 import { useJstzSignerExtension } from "~/lib/hooks/useJstzSigner";
 import { SignWithJstzSignerParams } from "~/lib/jstz-signer.service";
 import { marketSchema } from "~/lib/validators/market";
@@ -49,10 +49,10 @@ export default function DeployPage() {
       const payload: SignWithJstzSignerParams = {
         content: {
           _type: "RunFunction",
-          uri: "jstz://KT1E4RkaHm7DGa4skL383QE7bWvCDcsnYQDo/health",
+          uri: "jstz://KT1PawM7fCT9atQb9jpjNfdyjNPsnwojapSc/market",
           headers: {},
-          method: "GET",
-          body: null,
+          method: "POST",
+          body: textEncode(value),
           gasLimit: 55_000,
         },
       };
@@ -62,13 +62,18 @@ export default function DeployPage() {
 
       const {
         result: { inner },
-      } = await jstzClient.operations.injectAndPoll({
-        inner: operation,
-        signature,
-        verifier: verifier ?? null,
-      });
+      } = await jstzClient.operations.injectAndPoll(
+        {
+          inner: operation,
+          signature,
+          verifier: verifier ?? null,
+        },
+        {
+          timeout: 100 * 1_000,
+        },
+      );
 
-      let returnedMessage = "No message.";
+      let returnedMessage: string | Record<string, unknown> = "No message.";
 
       if (typeof inner === "object" && "body" in inner) {
         returnedMessage =
@@ -86,6 +91,8 @@ export default function DeployPage() {
       } catch (e) {
         console.info(`Completed call. Response: ${returnedMessage}`);
       }
+
+      alert(JSON.parse(returnedMessage).address);
 
       return { message: returnedMessage };
     },
