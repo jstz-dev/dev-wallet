@@ -57,8 +57,6 @@ export default function DeployPage() {
         },
       };
 
-      console.log(value);
-
       const { operation, signature, verifier } = await signWithJstzExtension(payload);
       const jstzClient = getJstzClient();
 
