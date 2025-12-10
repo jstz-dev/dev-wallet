@@ -5,8 +5,8 @@ import { Alert, AlertDescription, AlertTitle } from "jstz-ui/ui/alert";
 import { Button } from "jstz-ui/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "jstz-ui/ui/card";
 import { Input } from "jstz-ui/ui/input";
-import { cn } from "jstz-ui/utils";
-import { Loader2, TriangleAlert } from "lucide-react";
+import { Spinner } from "jstz-ui/ui/spinner";
+import { TriangleAlert } from "lucide-react";
 import { FormEvent, Suspense, use, useEffect, useEffectEvent, useState } from "react";
 import { useAppForm } from "~/components/ui/form";
 import { textDecode } from "~/lib/encoder";
@@ -196,11 +196,9 @@ function DeployButton({ canSubmit, isSubmitting }: { canSubmit: boolean; isSubmi
       <Button
         type="submit"
         disabled={!isSignerAvailable || !canSubmit || isSubmitting}
-        iconPosition="right"
         className="max-w-min"
-        renderIcon={(props) =>
-          isSubmitting && <Loader2 {...props} className={cn(props.className, "animate-spin")} />
-        }
+        iconPosition="right"
+        renderIcon={(props) => isSubmitting && <Spinner {...props} />}
       >
         Deploy
       </Button>
