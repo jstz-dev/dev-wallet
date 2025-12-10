@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { readFileSync } from "node:fs";
-import SuperJSON from "superjson";
 import { z } from "zod/mini";
 import { env } from "~/env";
 import { createJstzClient } from "~/lib/jstz-signer.service";
@@ -16,11 +15,13 @@ const marketBodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  if (req.arrayBuffer.length === 0) {
+  const contentLength = Number.parseInt(req.headers.get("content-length") ?? "0", 10);
+
+  if (contentLength === 0) {
     return NextResponse.json({ message: "No body was provided." }, { status: 401 });
   }
 
-  const { data: body, error } = marketBodySchema.safeParse(SuperJSON.parse(await req.text()));
+  const { data: body, error } = marketBodySchema.safeParse(await req.json());
 
   if (error) {
     return NextResponse.json(error.message, { status: 401 });
@@ -35,15 +36,23 @@ export async function POST(req: NextRequest) {
     accountCredit: 100,
   };
 
-  const signedDeployOperation = signer.sign_operation(deployOperation, env.WALLET_SECRET_KEY);
-
   const jstz = createJstzClient();
+  let nonce = await jstz.accounts.getNonce(env.WALLET_ADDRESS);
+
+  const signedDeployOperation = signer.sign_operation(
+    {
+      content: deployOperation,
+      publicKey: env.WALLET_PUBLIC_KEY,
+      nonce,
+    },
+    env.WALLET_SECRET_KEY,
+  );
 
   const { result } = await jstz.operations.injectAndPoll({
     inner: {
       content: deployOperation,
       publicKey: env.WALLET_PUBLIC_KEY,
-      nonce: 0,
+      nonce,
     },
 
     signature: signedDeployOperation,
@@ -61,17 +70,31 @@ export async function POST(req: NextRequest) {
     method: "POST",
   };
 
-  const signedInitOperation = signer.sign_operation(deployOperation, env.WALLET_SECRET_KEY);
+  // NOTE: Getting the nonce once again, just for safeties sake.
+  // There is a possibility that in the meantime there will be another
+  // operation which mutate the nonce.
+  nonce = await jstz.accounts.getNonce(env.WALLET_ADDRESS);
+
+  const signedInitOperation = signer.sign_operation(
+    {
+      content: initOperation,
+      publicKey: env.WALLET_PUBLIC_KEY,
+      nonce,
+    },
+    env.WALLET_SECRET_KEY,
+  );
 
   const { result: _initResult } = await jstz.operations.injectAndPoll({
     inner: {
       content: initOperation,
       publicKey: env.WALLET_PUBLIC_KEY,
-      nonce: 0,
+      nonce,
     },
 
     signature: signedInitOperation,
   });
+
+  console.log(_initResult);
 
   return NextResponse.json({ address: smartFunctionAddress });
 }
