@@ -17,7 +17,7 @@ const tokenSchema = z.object({
 
 const marketFormSchema = z.object({
   question: z.string(),
-  resolutionDate: z.iso.date(),
+  resolutionDate: z.iso.datetime(),
   resolutionUrl: z.string().nullish(),
   tokens: z.array(tokenSchema),
   pool: z.number().min(0),
