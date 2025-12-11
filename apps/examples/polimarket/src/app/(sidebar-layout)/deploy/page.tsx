@@ -7,17 +7,29 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "jstz-ui/ui
 import { Input } from "jstz-ui/ui/input";
 import { Spinner } from "jstz-ui/ui/spinner";
 import { TriangleAlert } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { FormEvent, Suspense, use, useEffect, useEffectEvent, useState } from "react";
+import { z } from "zod/mini";
 import { useAppForm } from "~/components/ui/form";
-import { textDecode, textEncode } from "~/lib/encoder";
+import { textEncode } from "~/lib/encoder";
 import { useJstzSignerExtension } from "~/lib/hooks/useJstzSigner";
 import { SignWithJstzSignerParams } from "~/lib/jstz-signer.service";
 import { marketSchema } from "~/lib/validators/market";
 import { useJstzClient } from "~/providers/jstz-client.context";
 
+export const responseSchema = z.union([
+  z.object({
+    address: z.string(),
+  }),
+  z.object({
+    message: z.string(),
+  }),
+]);
+
 export default function DeployPage() {
   const { signWithJstzExtension } = useJstzSignerExtension();
   const { getJstzClient } = useJstzClient();
+  const router = useRouter();
 
   const form = useAppForm({
     defaultValues: {
@@ -73,28 +85,22 @@ export default function DeployPage() {
         },
       );
 
-      let returnedMessage: string | Record<string, unknown> = "No message.";
-
-      if (typeof inner === "object" && "body" in inner) {
-        returnedMessage =
-          (inner.body && JSON.stringify(textDecode(inner.body), null, 2)) ?? "No message.";
-      }
-
-      if (typeof inner === "string") {
-        returnedMessage = inner;
-      }
-
       try {
-        const message = JSON.parse(returnedMessage);
-        console.info(`Completed call. Response: `);
-        console.dir(JSON.stringify(message));
+        const parsed = JSON.parse(inner);
+        const { data: response, error } = responseSchema.safeParse(parsed);
+
+        if (error) {
+          console.error("Invalid response was given.");
+          return;
+        } else if ("message" in response) {
+          console.info(`Completed call. Response: ${response.message}`);
+          return;
+        }
+
+        router.push(`/markets/${response.address}`);
       } catch (e) {
-        console.info(`Completed call. Response: ${returnedMessage}`);
+        console.info(`Completed call. Couldn't parse it to JSON.`);
       }
-
-      alert(JSON.parse(returnedMessage).address);
-
-      return { message: returnedMessage };
     },
   });
 
