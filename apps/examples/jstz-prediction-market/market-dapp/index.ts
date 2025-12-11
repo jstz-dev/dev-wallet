@@ -1,19 +1,23 @@
 import { AutoRouter, json } from "itty-router";
 import { z } from "zod";
 
-const ONE_TOKEN = 1;
+const ONE_TEZ = 1_000_000;
 const SUPER_ADMIN = "tz1ZXxxkNYSUutm5VZvfudakRxx2mjpWko4J";
 const KV_ROOT = "root";
+const REFERER_HEADER = "Referer";
+
 // Schemas
+const addressSchema = z.string().length(36);
 const tokenSchema = z.object({
   isSynthetic: z.boolean(),
-  value: z.enum(["yes", "no"]),
-  amount: z.number().min(0),
+  token: z.enum(["yes", "no"]),
+  amount: z.number().min(1),
+  price: z.number().min(1).max(ONE_TEZ),
 });
 
 const marketFormSchema = z.object({
   question: z.string(),
-  resolutionDate: z.iso.date(),
+  resolutionDate: z.iso.datetime(),
   resolutionUrl: z.string().nullish(),
   tokens: z.array(tokenSchema),
   pool: z.number().min(0),
@@ -41,7 +45,40 @@ router.post(
       const { success, error, data } = marketFormSchema.safeParse(body);
       if (!success) return errorResponse(error.message);
 
-      return successResponse("Market created");
+      const referer = request.headers.get(REFERER_HEADER);
+      if (!referer) return errorResponse("Referer address not found");
+
+      const response = await fetch(
+        "https://glenda-belonoid-unvirtuously.ngrok-free.dev/api/market",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...data,
+            master: Ledger.selfAddress,
+            admins: [referer, SUPER_ADMIN],
+          }),
+        },
+      );
+
+      // TODO: add API error handling
+      if (!response.ok) {
+        console.log(response);
+        return errorResponse("Error creating the market.");
+      }
+
+      const { address } = await response.json();
+
+      dispatch({
+        type: "add-market",
+        address,
+        resolutionDate: data.resolutionDate,
+        referer,
+      });
+
+      return json({ address }, { status: 200 });
     } catch (err) {
       if (err instanceof Error) {
         return errorResponse(`Error: ${err.message}`);
@@ -61,8 +98,9 @@ const addAdminActionSchema = z.object({
 
 const addMarketActionSchema = z.object({
   type: z.literal("add-market"),
-  address: z.string().length(36),
   resolutionDate: marketFormSchema.shape.resolutionDate,
+  address: addressSchema,
+  referer: addressSchema,
 });
 
 type AddAdminAction = z.infer<typeof addAdminActionSchema>;
@@ -108,6 +146,7 @@ function reducer(state: Record<string, any>, action: KvAction): KvState {
       newState.markets[action.address] = {
         address: action.address,
         resolutionDate: action.resolutionDate,
+        referer: action.referer,
       };
       break;
   }
@@ -131,7 +170,3 @@ function withAdmin(handler: (request: Request) => Promise<Response>) {
 }
 
 export default handler;
-
-const marketSfCode = `
-
-`;

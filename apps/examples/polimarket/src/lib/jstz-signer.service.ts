@@ -18,10 +18,10 @@ export interface JstzSignerOptions {
 }
 
 export function createJstzClient(options?: Partial<JstzSignerClientOptions>) {
-  const { baseURL, timeout = 6000, ...restOptions } = options ?? {};
+  const { baseURL, timeout = 60_000, ...restOptions } = options ?? {};
   return new Jstz.Jstz({
     baseURL: baseURL ?? env.NEXT_PUBLIC_JSTZ_NODE_ENDPOINT,
-    timeout: 6000,
+    timeout,
     ...restOptions,
   });
 }
