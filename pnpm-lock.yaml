@@ -49,8 +49,8 @@ importers:
         specifier: ^1.1.18
         version: 1.1.18
       '@jstz-dev/jstz-client':
-        specifier: 0.1.1-alpha.5
-        version: 0.1.1-alpha.5
+        specifier: github:jstz-dev/jstz-client#ryan/fix-reject-and-poll-retry-timeout
+        version: https://codeload.github.com/jstz-dev/jstz-client/tar.gz/1a9afe90a78a85a8f7e0811e0719e9c96fdd1b36
       '@jstz-dev/jstz_sdk':
         specifier: 0.1.1-alpha.5
         version: 0.1.1-alpha.5
@@ -1169,6 +1169,10 @@ packages:
 
   '@jstz-dev/jstz-client@0.1.1-alpha.5':
     resolution: {integrity: sha512-cxBaf+1kDRUm2kmlf4JoJ+PqUc+yqe/3trq/8J3yJXGt7IUKk7WVhr//h7WR2G4pkMWmmE0F00nmfb0XeApWZw==}
+
+  '@jstz-dev/jstz-client@https://codeload.github.com/jstz-dev/jstz-client/tar.gz/1a9afe90a78a85a8f7e0811e0719e9c96fdd1b36':
+    resolution: {tarball: https://codeload.github.com/jstz-dev/jstz-client/tar.gz/1a9afe90a78a85a8f7e0811e0719e9c96fdd1b36}
+    version: 0.1.1-alpha.5
 
   '@jstz-dev/jstz@0.0.0':
     resolution: {integrity: sha512-/6TnpZ/4zmGi2sOBchZ4+l56xRJGC6azbeOlHCoXQ6ZGWaExyp6FXR1XApU2ZhMV0ZDv1gvhpThNn76qsNfhBA==}
@@ -6368,6 +6372,18 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
+  '@jstz-dev/jstz-client@https://codeload.github.com/jstz-dev/jstz-client/tar.gz/1a9afe90a78a85a8f7e0811e0719e9c96fdd1b36':
+    dependencies:
+      '@types/node': 20.19.25
+      '@types/node-fetch': 2.6.13
+      abort-controller: 3.0.0
+      agentkeepalive: 4.6.0
+      form-data-encoder: 1.7.2
+      formdata-node: 4.4.1
+      node-fetch: 2.7.0
+    transitivePeerDependencies:
+      - encoding
+
   '@jstz-dev/jstz@0.0.0':
     dependencies:
       '@jstz-dev/types': 0.0.0
@@ -7797,11 +7813,11 @@ snapshots:
 
   '@types/bn.js@5.2.0':
     dependencies:
-      '@types/node': 22.18.12
+      '@types/node': 24.10.1
 
   '@types/bs58check@2.1.2':
     dependencies:
-      '@types/node': 22.18.12
+      '@types/node': 24.10.1
 
   '@types/chai@5.2.3':
     dependencies:
