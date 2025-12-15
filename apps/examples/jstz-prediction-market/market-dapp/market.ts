@@ -94,6 +94,7 @@ marketRouter.post(
     return successResponse("Bet placed");
   }),
 );
+
 marketRouter.post("/resolve", (request) => {
   const { state } = getState();
   if (!state || state === "created") return errorResponse("Market is not initialized yet");

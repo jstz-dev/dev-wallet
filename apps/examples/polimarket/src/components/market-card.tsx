@@ -1,98 +1,91 @@
 "use client";
 
 import { Badge } from "jstz-ui/ui/badge";
-import { Card } from "jstz-ui/ui/card";
-import { cn } from "jstz-ui/utils";
-import { Clock, TrendingDown, TrendingUp } from "lucide-react";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "jstz-ui/ui/card";
+import { Progress } from "jstz-ui/ui/progress";
+import { Separator } from "jstz-ui/ui/separator";
+import { Clock } from "lucide-react";
+import assert from "node:assert";
+import { Market } from "~/lib/validators/market";
 
-export interface Market {
-  id: string;
-  title: string;
-  category: string;
-  yesPrice: number;
-  noPrice: number;
-  priceChange: number;
-  totalVolume: string;
-  endDate: string;
-  status: "active" | "resolved";
-  winningOutcome?: "yes" | "no";
-  userPosition?: {
-    side: "yes" | "no";
-    amount: string;
-  };
-}
+type MarketCardProps = Market;
 
-interface MarketCardProps {
-  market: Market;
-  onClick?: () => void;
-}
+export function MarketCard({ state, question, tokens, resolutionDate, bets }: MarketCardProps) {
+  const isResolved = state === "resolved";
 
-export function MarketCard({ market, onClick }: MarketCardProps) {
-  const isResolved = market.status === "resolved";
-  const changeColor = market.priceChange >= 0 ? "text-success" : "text-destructive";
-  const ChangeIcon = market.priceChange >= 0 ? TrendingUp : TrendingDown;
+  const noToken = tokens.find((token) => token.token === "no");
+  assert(noToken, "Token should be defined.");
+
+  const yesToken = tokens.find((token) => token.token === "yes");
+  assert(yesToken, "Token should be defined.");
+
+  const volume = tokens.reduce((acc, token) => {
+    if (token.isSynthetic) return acc;
+    return acc + token.amount * token.price;
+  }, 0);
+
+  const [yesCount, noCount] = bets.reduce(
+    (acc, bet) => {
+      if (bet.isSynthetic) return acc;
+
+      switch (bet.token) {
+        case "yes":
+          acc[0] += 1;
+          break;
+        case "no":
+          acc[1] += 1;
+          break;
+      }
+
+      return acc;
+    },
+    [0, 0],
+  );
+
+  const yesRatio = yesCount / bets.length;
+  const noRatio = noCount / bets.length;
 
   return (
-    <Card
-      className={cn(
-        "group cursor-pointer overflow-hidden border-border bg-card transition-all hover:border-primary/50",
-        onClick && "hover:shadow-lg hover:shadow-primary/10",
-      )}
-      onClick={onClick}
-    >
-      <div className="p-5">
-        {/* Header */}
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
-              <span className="text-xs font-bold text-primary-foreground">XTZ</span>
-            </div>
-
-            <Badge variant="secondary" className="text-xs">
-              {market.category}
-            </Badge>
+    <Card className="group cursor-pointer overflow-hidden border-border bg-card transition-all hover:border-primary/50">
+      {/* Header */}
+      <CardHeader>
+        <div className="flex items-center gap-2 justify-between">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
+            <span className="text-xs font-bold text-primary-foreground">XTZ</span>
           </div>
 
-          <div className="flex flex-col items-end gap-1">
-            <div className={cn("flex items-center gap-1 text-sm font-semibold", changeColor)}>
-              <ChangeIcon className="size-3" />
-              {market.priceChange > 0 ? "+" : ""}
-              {market.priceChange}%
-            </div>
-          </div>
+          {bets.length === 0 && <Badge>No bets yet.</Badge>}
         </div>
 
         {/* Title */}
-        <h3 className="mb-4 text-base font-semibold leading-snug text-card-foreground group-hover:text-primary transition-colors">
-          {market.title}
-        </h3>
+        <CardTitle>{question}</CardTitle>
+      </CardHeader>
 
-        {/* Probability Display */}
+      {/* Probability Display */}
+      <CardContent>
         {!isResolved && (
           <>
             <div className="mb-3 flex items-center justify-between text-sm">
-              <span className="font-medium text-muted-foreground">YES {market.yesPrice}%</span>
-              <span className="font-medium text-muted-foreground">NO {market.noPrice}%</span>
+              <span className="font-medium text-muted-foreground">
+                YES - {yesRatio}
+                {!Number.isNaN(yesRatio) && "%"}
+              </span>
+
+              <span className="font-medium text-muted-foreground">
+                NO - {noRatio}
+                {!Number.isNaN(noRatio) && "%"}
+              </span>
             </div>
 
             {/* Probability Bar */}
-            <div className="mb-4 h-2 overflow-hidden rounded-full bg-secondary">
-              <div
-                className="h-full rounded-full bg-linear-to-r from-success to-destructive transition-all"
-                style={{ width: `${market.yesPrice}%` }}
-              />
-            </div>
-
-            {/* Action Buttons */}
-            <div className="grid grid-cols-2 gap-2">
-              <button className="rounded-lg bg-success/20 py-2 text-sm font-semibold text-success transition-colors hover:bg-success/30">
-                YES
-              </button>
-
-              <button className="rounded-lg bg-destructive/20 py-2 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/30">
-                NO
-              </button>
-            </div>
+            <Progress
+              value={Number.isNaN(yesRatio) ? 50 : yesRatio}
+              indicatorProps={{
+                className: Number.isNaN(yesRatio)
+                  ? "bg-destructive/20"
+                  : "bg-destructive rounded-r-md",
+              }}
+            />
           </>
         )}
 
@@ -111,39 +104,41 @@ export function MarketCard({ market, onClick }: MarketCardProps) {
               </div>
             </div>
 
-            {market.userPosition && (
-              <button className="mt-3 w-full rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">
-                Claim winnings
-              </button>
-            )}
+            {/* {market.userPosition && ( */}
+            {/*   <button className="mt-3 w-full rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"> */}
+            {/*     Claim winnings */}
+            {/*   </button> */}
+            {/* )} */}
           </div>
         )}
+      </CardContent>
 
-        {/* Footer */}
-        <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <DollarSign className="h-3 w-3" />
-            <span>{market.totalVolume}</span>
-          </div>
+      <Separator />
 
-          <div className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            <span>{market.endDate}</span>
-          </div>
-
-          {isResolved && (
-            <Badge variant="destructive" className="text-xs">
-              Resolved
-            </Badge>
-          )}
-
-          {!isResolved && market.userPosition && (
-            <Badge variant="default" className="bg-primary text-xs">
-              Active
-            </Badge>
-          )}
+      {/* Footer */}
+      <CardFooter className="flex justify-between">
+        <div className="flex items-center gap-1">
+          <DollarSign className="h-3 w-3" />
+          <span>{volume}</span>
         </div>
-      </div>
+
+        <div className="flex items-center gap-1">
+          <Clock className="h-3 w-3" />
+          <span>{resolutionDate.split("T")[0]}</span>
+        </div>
+
+        {isResolved && (
+          <Badge variant="destructive" className="text-xs">
+            Resolved
+          </Badge>
+        )}
+
+        {/* {!isResolved && market.userPosition && ( */}
+        {/*   <Badge variant="default" className="bg-primary text-xs"> */}
+        {/*     Active */}
+        {/*   </Badge> */}
+        {/* )} */}
+      </CardFooter>
     </Card>
   );
 }

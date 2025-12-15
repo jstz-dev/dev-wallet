@@ -1,4 +1,5 @@
 "use client";
+
 import { Badge } from "jstz-ui/ui/badge";
 import { Button } from "jstz-ui/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "jstz-ui/ui/card";
@@ -7,29 +8,25 @@ import { Slider } from "jstz-ui/ui/slider";
 import { Spinner } from "jstz-ui/ui/spinner";
 import { cn } from "jstz-ui/utils";
 import { AlertTriangle, Clock, DollarSign } from "lucide-react";
-import { FormEvent } from "react";
-import { z } from "zod/mini";
-import { tokenSchema } from "~/lib/validators/token";
 import type { Market } from "./market-card";
-import { useAppForm } from "./ui/form";
 
 const MIN_BET = 10;
 const MAX_BET = 100;
 
 const betFormSchema = z.pick(tokenSchema, { token: true, amount: true });
 
-type BettingPanelProps = Pick<
-  Market,
-  "id" | "title" | "yesPrice" | "noPrice" | "status" | "userPosition"
->;
+const betFormSchema = z.pick(tokenSchema, { token: true, amount: true });
+
+interface BettingPanelProps extends Market {
+  address: string;
+}
 
 export function BettingPanel({
-  id,
-  title,
-  yesPrice,
-  noPrice,
-  status,
-  userPosition,
+  address,
+  question,
+  state,
+  tokens,
+  resolutionDate,
 }: BettingPanelProps) {
   const form = useAppForm({
     defaultValues: {
@@ -52,6 +49,17 @@ export function BettingPanel({
     void form.handleSubmit();
   }
 
+  const noToken = tokens.find((token) => token.token === "no");
+  assert(noToken, "Token should be defined.");
+
+  const yesToken = tokens.find((token) => token.token === "yes");
+  assert(yesToken, "Token should be defined.");
+
+  const volume = tokens.reduce((acc, token) => {
+    if (token.isSynthetic) return acc;
+    return acc + token.amount * token.price;
+  }, 0);
+
   function calculatePotentialWin(side: "yes" | "no", betAmount: number) {
     const odds = side === "yes" ? 100 / yesPrice : 100 / noPrice;
     return (betAmount * odds).toFixed(2);
@@ -67,9 +75,30 @@ export function BettingPanel({
     return ((profit / betAmount) * 100).toFixed(1);
   }
 
-  if (status === "resolved") {
+  const StateBadge = (() => {
+    switch (state) {
+      case "on-going":
+        return <Badge className="text-xs">Active</Badge>;
+
+      case "created":
+        return (
+          <Badge variant="destructive" className=" text-xs">
+            Inactive
+          </Badge>
+        );
+
+      case "resolved":
+        return (
+          <Badge variant="destructive" className="text-xs">
+            Resolved
+          </Badge>
+        );
+    }
+  })();
+
+  if (state === "resolved") {
     return (
-      <Card className="border-border bg-card p-6">
+      <Card>
         <CardHeader>
           <div className="mb-4 flex items-start justify-between">
             <div className="flex items-center gap-2">
@@ -77,13 +106,13 @@ export function BettingPanel({
                 <span className="text-sm font-bold text-primary-foreground">M</span>
               </div>
 
-              <Badge variant="secondary">Market #{id}</Badge>
+              <Badge variant="secondary">Market {address}</Badge>
             </div>
 
-            <Badge variant="destructive">Resolved</Badge>
+            {StateBadge}
           </div>
 
-          <CardTitle>{title}</CardTitle>
+          <CardTitle>{question}</CardTitle>
         </CardHeader>
 
         <CardContent>
@@ -117,7 +146,7 @@ export function BettingPanel({
   }
 
   return (
-    <Card className="border-border bg-card p-6">
+    <Card>
       <CardHeader>
         <div className="mb-4 flex items-start justify-between">
           <div className="flex items-center gap-2">
@@ -125,13 +154,13 @@ export function BettingPanel({
               <span className="text-sm font-bold text-primary-foreground">M</span>
             </div>
 
-            <Badge variant="secondary">Market #{id}</Badge>
+            <Badge variant="secondary">Market {address}</Badge>
           </div>
 
-          {userPosition && <Badge className="bg-primary">Active</Badge>}
+          {StateBadge}
         </div>
 
-        <CardTitle>{title}</CardTitle>
+        <CardTitle>{question}</CardTitle>
       </CardHeader>
 
       {/* Betting Side Selection */}
@@ -264,16 +293,16 @@ export function BettingPanel({
       {/* Footer Info */}
       <CardFooter className="justify-between w-full">
         <div className="flex items-center gap-1">
-          <DollarSign className="size-4" />
-          <span>0 XTZ</span>
+          <DollarSign className="size-3" />
+          <span>{CurrencyConverter.toTez(volume)} XTZ</span>
         </div>
 
         <div className="flex items-center gap-1">
-          <Clock className="size-4" />
-          <span>19/09/2025</span>
+          <Clock className="size-3" />
+          <span>{resolutionDate.split("T")[0]}</span>
         </div>
 
-        <Badge className="bg-primary text-xs">Active</Badge>
+        {StateBadge}
       </CardFooter>
     </Card>
   );
