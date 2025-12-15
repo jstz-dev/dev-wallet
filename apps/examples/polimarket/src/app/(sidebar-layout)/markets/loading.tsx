@@ -1,7 +1,7 @@
 import { Skeleton } from "jstz-ui/ui/skeleton";
 
 export default function MarketsPageLoading() {
-  const skeletonCards = Array.from(Array(8).keys());
+  const skeletonCards = Array.from(Array(9).keys());
 
   return (
     <main className="flex-1">
