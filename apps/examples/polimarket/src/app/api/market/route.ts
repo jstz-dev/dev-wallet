@@ -3,14 +3,14 @@ import { readFileSync } from "node:fs";
 import { z } from "zod/mini";
 import { env } from "~/env";
 import { createJstzClient } from "~/lib/jstz-signer.service";
-import { marketSchema } from "~/lib/validators/market";
+import { marketFormSchema } from "~/lib/validators/market";
 
 import Jstz from "@jstz-dev/jstz-client";
 import * as signer from "@jstz-dev/jstz_sdk";
-import { textEncode } from "~/lib/encoder";
+import { textDecode, textEncode } from "~/lib/encoder";
 
 const marketBodySchema = z.object({
-  ...marketSchema.shape,
+  ...marketFormSchema.shape,
   master: z.string(),
 });
 
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     env.WALLET_SECRET_KEY,
   );
 
-  const { result: _initResult } = await jstz.operations.injectAndPoll({
+  const { result: initResult } = await jstz.operations.injectAndPoll({
     inner: {
       content: initOperation,
       publicKey: env.WALLET_PUBLIC_KEY,
@@ -94,7 +94,8 @@ export async function POST(req: NextRequest) {
     signature: signedInitOperation,
   });
 
-  console.log(_initResult);
+  console.log(initResult);
+  console.log(textDecode(initResult.inner.body));
 
   return NextResponse.json({ address: smartFunctionAddress });
 }
