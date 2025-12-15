@@ -87,18 +87,20 @@ export default function DeployPage() {
       );
 
       try {
-        const parsed = JSON.parse(inner);
-        const { data: response, error } = responseSchema.safeParse(parsed);
+        if (typeof inner !== "string" && inner._type === "RunFunction") {
+          const { data: response, error } = responseSchema.safeParse(textDecode(inner.body));
 
-        if (error) {
-          console.error("Invalid response was given.");
-          return;
-        } else if ("message" in response) {
-          console.info(`Completed call. Response: ${response.message}`);
+          if (error) {
+            console.error("Invalid response was given.");
+            return;
+          } else if ("message" in response) {
+            console.info(`Completed call. Response: ${response.message}`);
+            return;
+          }
+
+          router.push(`/markets/${response.address}`);
           return;
         }
-
-        router.push(`/markets/${response.address}`);
       } catch (e) {
         console.info(`Completed call. Couldn't parse it to JSON.`);
         console.dir(textDecode(inner.body));
