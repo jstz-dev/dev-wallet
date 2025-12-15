@@ -8,12 +8,16 @@ import { Slider } from "jstz-ui/ui/slider";
 import { Spinner } from "jstz-ui/ui/spinner";
 import { cn } from "jstz-ui/utils";
 import { AlertTriangle, Clock, DollarSign } from "lucide-react";
-import type { Market } from "./market-card";
+import assert from "node:assert";
+import { FormEvent } from "react";
+import { z } from "zod/mini";
+import * as CurrencyConverter from "~/lib/currencyConverter";
+import type { Market } from "~/lib/validators/market";
+import { tokenSchema } from "~/lib/validators/token";
+import { useAppForm } from "./ui/form";
 
 const MIN_BET = 10;
 const MAX_BET = 100;
-
-const betFormSchema = z.pick(tokenSchema, { token: true, amount: true });
 
 const betFormSchema = z.pick(tokenSchema, { token: true, amount: true });
 
@@ -61,7 +65,7 @@ export function BettingPanel({
   }, 0);
 
   function calculatePotentialWin(side: "yes" | "no", betAmount: number) {
-    const odds = side === "yes" ? 100 / yesPrice : 100 / noPrice;
+    const odds = side === "yes" ? 100 / yesToken.price : 100 / noToken.price;
     return (betAmount * odds).toFixed(2);
   }
 
