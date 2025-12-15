@@ -39,7 +39,8 @@ function errorResponse(message: any, status = 400) {
 const router = AutoRouter();
 router.post(
   "/market",
-  withAdmin(async (request) => {
+  // withAdmin(
+  async (request) => {
     try {
       const body = await request.json();
       const { success, error, data } = marketFormSchema.safeParse(body);
@@ -85,7 +86,8 @@ router.post(
       }
       return errorResponse(`Error: ${err}`);
     }
-  }),
+  },
+  // ),
 );
 
 const handler = (request: Request): Promise<Response> => router.fetch(request);
