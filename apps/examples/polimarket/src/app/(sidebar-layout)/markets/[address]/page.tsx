@@ -1,18 +1,58 @@
 import { Button } from "jstz-ui/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "jstz-ui/ui/card";
+import { Progress } from "jstz-ui/ui/progress";
 import { Separator } from "jstz-ui/ui/separator";
-import { cn } from "jstz-ui/utils";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { BettingPanel } from "~/components/betting-panel";
+import { createJstzClient } from "~/lib/jstz-signer.service";
+import { marketSchema } from "~/lib/validators/market";
 import { mockMarkets } from "~/mock/mock-markets";
 
-export default async function MarketPage({ params }: PageProps<"/markets/[id]">) {
-  const { id } = await params;
-  const market = mockMarkets.find((m) => m.id === id);
+export default async function MarketPage({ params }: PageProps<"/markets/[address]">) {
+  const { address } = await params;
 
-  if (!market) {
+  const jstz = createJstzClient();
+
+  const [kv, balance] = await Promise.all([
+    jstz.accounts.getKv(address, {
+      key: "root",
+    }),
+    jstz.accounts.getBalance(address),
+  ]);
+
+  const { data: market, error } = marketSchema.safeParse(JSON.parse(kv));
+
+  if (error) {
+    console.error(error);
+    return redirect("/404");
+  }
+
+  const [yesCount, noCount] = market.bets.reduce(
+    (acc, bet) => {
+      if (bet.isSynthetic) return acc;
+
+      switch (bet.token) {
+        case "yes":
+          acc[0] += 1;
+          break;
+        case "no":
+          acc[1] += 1;
+          break;
+      }
+
+      return acc;
+    },
+    [0, 0],
+  );
+
+  const yesRatio = yesCount / market.bets.length;
+  const noRatio = noCount / market.bets.length;
+
+  const marketOld = mockMarkets.find((m) => m.id === "1");
+
+  if (!marketOld) {
     return notFound();
   }
 
@@ -40,33 +80,42 @@ export default async function MarketPage({ params }: PageProps<"/markets/[id]">)
 
                   <div>
                     <span className="rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
-                      {market.category}
+                      {marketOld.category}
                     </span>
                   </div>
 
                   <div className="text-right">
                     <div className="text-2xl font-bold text-card-foreground">
-                      {market.yesPrice}%
+                      {Number.isNaN(yesRatio) ? "No bets yet." : `${yesRatio}%`}
                     </div>
                     <div className="text-xs text-muted-foreground">Current odds</div>
                   </div>
                 </div>
 
-                <CardTitle>{market.title}</CardTitle>
+                <CardTitle>{market.question}</CardTitle>
               </CardHeader>
 
               {/* Probability Bar */}
               <CardContent>
                 <div className="mb-2 flex items-center justify-between text-sm">
-                  <span className="font-medium text-muted-foreground">YES {market.yesPrice}%</span>
-                  <span className="font-medium text-muted-foreground">NO {market.noPrice}%</span>
+                  <span className="font-medium text-muted-foreground">
+                    YES - {yesRatio}
+                    {!Number.isNaN(yesRatio) && "%"}
+                  </span>
+                  <span className="font-medium text-muted-foreground">
+                    NO - {noRatio}
+                    {!Number.isNaN(noRatio) && "%"}
+                  </span>
                 </div>
-                <div className="h-3 overflow-hidden rounded-full bg-secondary">
-                  <div
-                    className="h-full rounded-full bg-linear-to-r from-success to-destructive transition-all"
-                    style={{ width: `${market.yesPrice}%` }}
-                  />
-                </div>
+
+                <Progress
+                  value={Number.isNaN(yesRatio) ? 50 : yesRatio}
+                  indicatorProps={{
+                    className: Number.isNaN(yesRatio)
+                      ? "bg-destructive/20"
+                      : "bg-destructive rounded-r-md",
+                  }}
+                />
               </CardContent>
 
               <Separator />
@@ -75,36 +124,22 @@ export default async function MarketPage({ params }: PageProps<"/markets/[id]">)
                 <div>
                   <div className="text-xs text-muted-foreground">Total Volume</div>
 
-                  <div className="mt-1 font-semibold text-card-foreground">
-                    {market.totalVolume}
-                  </div>
+                  <div className="mt-1 font-semibold text-card-foreground">{balance}</div>
                 </div>
 
                 <div>
                   <div className="text-xs text-muted-foreground">End Date</div>
 
-                  <div className="mt-1 font-semibold text-card-foreground">{market.endDate}</div>
+                  <div className="mt-1 font-semibold text-card-foreground">
+                    {market.resolutionDate.split("T")[0]}
+                  </div>
                 </div>
 
                 <div>
                   <div className="text-xs text-muted-foreground">Status</div>
 
                   <div className="mt-1 font-semibold text-card-foreground">
-                    {market.status === "active" ? "Active" : "Resolved"}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-xs text-muted-foreground">24h Change</div>
-
-                  <div
-                    className={cn(
-                      "mt-1 font-semibold",
-                      market.priceChange >= 0 ? "text-success" : "text-destructive",
-                    )}
-                  >
-                    {market.priceChange > 0 ? "+" : ""}
-                    {market.priceChange}%
+                    {market.state === "on-going" ? "Active" : "Resolved"}
                   </div>
                 </div>
               </CardFooter>
@@ -112,7 +147,7 @@ export default async function MarketPage({ params }: PageProps<"/markets/[id]">)
           </div>
 
           <div>
-            <BettingPanel {...market} />
+            <BettingPanel address={address} {...market} />
           </div>
         </div>
       </div>

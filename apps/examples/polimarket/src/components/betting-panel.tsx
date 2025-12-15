@@ -6,27 +6,26 @@ import { Separator } from "jstz-ui/ui/separator";
 import { Slider } from "jstz-ui/ui/slider";
 import { cn } from "jstz-ui/utils";
 import { AlertTriangle, Clock, DollarSign } from "lucide-react";
+import { ok } from "node:assert";
 import { useState } from "react";
-import type { Market } from "./market-card";
+import type { Market } from "~/lib/validators/market";
 
 const MIN_BET = 10;
 const MAX_BET = 100;
 
-type BettingPanelProps = Pick<
-  Market,
-  "id" | "title" | "yesPrice" | "noPrice" | "status" | "userPosition"
->;
+interface BettingPanelProps extends Market {
+  address: string;
+}
 
-export function BettingPanel({
-  id,
-  title,
-  yesPrice,
-  noPrice,
-  status,
-  userPosition,
-}: BettingPanelProps) {
+export function BettingPanel({ address, question, state, tokens }: BettingPanelProps) {
   const [selectedSide, setSelectedSide] = useState("yes");
   const [betAmount, setBetAmount] = useState(99);
+
+  const noToken = tokens.find((token) => token.token === "no");
+  ok(noToken, "Token should be defined.");
+
+  const yesToken = tokens.find((token) => token.token === "yes");
+  ok(yesToken, "Token should be defined.");
 
   function calculatePotentialWin() {
     const odds = selectedSide === "yes" ? 100 / yesPrice : 100 / noPrice;
@@ -43,7 +42,7 @@ export function BettingPanel({
     return ((profit / betAmount) * 100).toFixed(1);
   }
 
-  if (status === "resolved") {
+  if (state === "resolved") {
     return (
       <Card className="border-border bg-card p-6">
         <CardHeader>
@@ -53,13 +52,13 @@ export function BettingPanel({
                 <span className="text-sm font-bold text-primary-foreground">M</span>
               </div>
 
-              <Badge variant="secondary">Market #{id}</Badge>
+              <Badge variant="secondary">Market {address}</Badge>
             </div>
 
             <Badge variant="destructive">Resolved</Badge>
           </div>
 
-          <CardTitle>{title}</CardTitle>
+          <CardTitle>{question}</CardTitle>
         </CardHeader>
 
         <CardContent>
@@ -101,13 +100,13 @@ export function BettingPanel({
               <span className="text-sm font-bold text-primary-foreground">M</span>
             </div>
 
-            <Badge variant="secondary">Market #{id}</Badge>
+            <Badge variant="secondary">Market {address}</Badge>
           </div>
 
-          {userPosition && <Badge className="bg-primary">Active</Badge>}
+          {true && <Badge className="bg-primary">Active</Badge>}
         </div>
 
-        <CardTitle>{title}</CardTitle>
+        <CardTitle>{question}</CardTitle>
       </CardHeader>
 
       <CardContent>
@@ -122,7 +121,7 @@ export function BettingPanel({
               className={cn(
                 "rounded-lg border-2 py-3 text-sm font-semibold transition-all",
                 selectedSide === "yes"
-                  ? "border-success bg-success text-success-foreground"
+                  ? "border-primary bg-primary text-primary-foreground"
                   : "border-border bg-success/10 text-success hover:border-success/50",
               )}
             >
@@ -183,14 +182,7 @@ export function BettingPanel({
 
         {/* Action Buttons */}
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="flex-1 bg-transparent"
-            onClick={() => setBetAmount(99)}
-          >
-            Cancel
-          </Button>
-          <Button className="flex-1 bg-success text-success-foreground hover:bg-success/90">
+          <Button className="flex-1 bg-secondary text-success-foreground hover:bg-secondary/90">
             Place Bet
           </Button>
         </div>
