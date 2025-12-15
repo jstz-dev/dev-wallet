@@ -1,4 +1,5 @@
 "use client";
+
 import { Badge } from "jstz-ui/ui/badge";
 import { Button } from "jstz-ui/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "jstz-ui/ui/card";
@@ -6,9 +7,11 @@ import { Separator } from "jstz-ui/ui/separator";
 import { Slider } from "jstz-ui/ui/slider";
 import { cn } from "jstz-ui/utils";
 import { AlertTriangle, Clock, DollarSign } from "lucide-react";
-import { ok } from "node:assert";
+import assert from "node:assert";
 import { useState } from "react";
+import * as CurrencyConverter from "~/lib/currencyConverter";
 import type { Market } from "~/lib/validators/market";
+import { Token } from "~/lib/validators/token";
 
 const MIN_BET = 10;
 const MAX_BET = 100;
@@ -17,18 +20,29 @@ interface BettingPanelProps extends Market {
   address: string;
 }
 
-export function BettingPanel({ address, question, state, tokens }: BettingPanelProps) {
-  const [selectedSide, setSelectedSide] = useState("yes");
+export function BettingPanel({
+  address,
+  question,
+  state,
+  tokens,
+  resolutionDate,
+}: BettingPanelProps) {
+  const [selectedSide, setSelectedSide] = useState<Token["token"]>("yes");
   const [betAmount, setBetAmount] = useState(99);
 
   const noToken = tokens.find((token) => token.token === "no");
-  ok(noToken, "Token should be defined.");
+  assert(noToken, "Token should be defined.");
 
   const yesToken = tokens.find((token) => token.token === "yes");
-  ok(yesToken, "Token should be defined.");
+  assert(yesToken, "Token should be defined.");
+
+  const volume = tokens.reduce((acc, token) => {
+    if (token.isSynthetic) return acc;
+    return acc + token.amount * token.price;
+  }, 0);
 
   function calculatePotentialWin() {
-    const odds = selectedSide === "yes" ? 100 / yesPrice : 100 / noPrice;
+    const odds = selectedSide === "yes" ? 100 / yesToken.price : 100 / noToken.price;
     return (betAmount * odds).toFixed(2);
   }
 
@@ -42,9 +56,30 @@ export function BettingPanel({ address, question, state, tokens }: BettingPanelP
     return ((profit / betAmount) * 100).toFixed(1);
   }
 
+  const StateBadge = (() => {
+    switch (state) {
+      case "on-going":
+        return <Badge className="text-xs">Active</Badge>;
+
+      case "created":
+        return (
+          <Badge variant="destructive" className=" text-xs">
+            Inactive
+          </Badge>
+        );
+
+      case "resolved":
+        return (
+          <Badge variant="destructive" className="text-xs">
+            Resolved
+          </Badge>
+        );
+    }
+  })();
+
   if (state === "resolved") {
     return (
-      <Card className="border-border bg-card p-6">
+      <Card>
         <CardHeader>
           <div className="mb-4 flex items-start justify-between">
             <div className="flex items-center gap-2">
@@ -55,7 +90,7 @@ export function BettingPanel({ address, question, state, tokens }: BettingPanelP
               <Badge variant="secondary">Market {address}</Badge>
             </div>
 
-            <Badge variant="destructive">Resolved</Badge>
+            {StateBadge}
           </div>
 
           <CardTitle>{question}</CardTitle>
@@ -92,7 +127,7 @@ export function BettingPanel({ address, question, state, tokens }: BettingPanelP
   }
 
   return (
-    <Card className="border-border bg-card p-6">
+    <Card>
       <CardHeader>
         <div className="mb-4 flex items-start justify-between">
           <div className="flex items-center gap-2">
@@ -103,7 +138,7 @@ export function BettingPanel({ address, question, state, tokens }: BettingPanelP
             <Badge variant="secondary">Market {address}</Badge>
           </div>
 
-          {true && <Badge className="bg-primary">Active</Badge>}
+          {StateBadge}
         </div>
 
         <CardTitle>{question}</CardTitle>
@@ -169,6 +204,7 @@ export function BettingPanel({ address, question, state, tokens }: BettingPanelP
             <span className="text-muted-foreground">Potential Win:</span>
             <span className="font-semibold text-success">{calculatePotentialWin()} XTZ</span>
           </div>
+
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Profit:</span>
             <span className="font-semibold text-success">{calculateProfit()} XTZ</span>
@@ -194,15 +230,15 @@ export function BettingPanel({ address, question, state, tokens }: BettingPanelP
       <CardFooter className="justify-between w-full">
         <div className="flex items-center gap-1">
           <DollarSign className="h-3 w-3" />
-          <span>0 XTZ</span>
+          <span>{CurrencyConverter.toTez(volume)} XTZ</span>
         </div>
 
         <div className="flex items-center gap-1">
           <Clock className="h-3 w-3" />
-          <span>19/09/2025</span>
+          <span>{resolutionDate.split("T")[0]}</span>
         </div>
 
-        <Badge className="bg-primary text-xs">Active</Badge>
+        {StateBadge}
       </CardFooter>
     </Card>
   );

@@ -4,11 +4,10 @@ import { Progress } from "jstz-ui/ui/progress";
 import { Separator } from "jstz-ui/ui/separator";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { BettingPanel } from "~/components/betting-panel";
 import { createJstzClient } from "~/lib/jstz-signer.service";
 import { marketSchema } from "~/lib/validators/market";
-import { mockMarkets } from "~/mock/mock-markets";
 
 export default async function MarketPage({ params }: PageProps<"/markets/[address]">) {
   const { address } = await params;
@@ -50,12 +49,6 @@ export default async function MarketPage({ params }: PageProps<"/markets/[addres
   const yesRatio = yesCount / market.bets.length;
   const noRatio = noCount / market.bets.length;
 
-  const marketOld = mockMarkets.find((m) => m.id === "1");
-
-  if (!marketOld) {
-    return notFound();
-  }
-
   return (
     <main className="flex-1">
       <div className="p-8">
@@ -68,20 +61,14 @@ export default async function MarketPage({ params }: PageProps<"/markets/[addres
         </Link>
 
         {/* Market Details */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+        <div className="grid gap-6 grid-cols-1 xl:grid-cols-3">
+          <div className="xl:col-span-2">
             {/* Market Info Card */}
             <Card>
               <CardHeader>
                 <div className="mb-4 flex items-start justify-between">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary">
                     <span className="text-sm font-bold text-primary-foreground">XTZ</span>
-                  </div>
-
-                  <div>
-                    <span className="rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
-                      {marketOld.category}
-                    </span>
                   </div>
 
                   <div className="text-right">
@@ -102,6 +89,7 @@ export default async function MarketPage({ params }: PageProps<"/markets/[addres
                     YES - {yesRatio}
                     {!Number.isNaN(yesRatio) && "%"}
                   </span>
+
                   <span className="font-medium text-muted-foreground">
                     NO - {noRatio}
                     {!Number.isNaN(noRatio) && "%"}
@@ -146,9 +134,7 @@ export default async function MarketPage({ params }: PageProps<"/markets/[addres
             </Card>
           </div>
 
-          <div>
-            <BettingPanel address={address} {...market} />
-          </div>
+          <BettingPanel address={address} {...market} />
         </div>
       </div>
     </main>
