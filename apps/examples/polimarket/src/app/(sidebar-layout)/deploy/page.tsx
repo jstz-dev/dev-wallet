@@ -11,10 +11,11 @@ import { useRouter } from "next/navigation";
 import { FormEvent, Suspense, use, useEffect, useEffectEvent, useState } from "react";
 import { z } from "zod/mini";
 import { useAppForm } from "~/components/ui/form";
-import { textEncode } from "~/lib/encoder";
+import { env } from "~/env";
+import { textDecode, textEncode } from "~/lib/encoder";
 import { useJstzSignerExtension } from "~/lib/hooks/useJstzSigner";
 import { SignWithJstzSignerParams } from "~/lib/jstz-signer.service";
-import { marketSchema } from "~/lib/validators/market";
+import { marketFormSchema } from "~/lib/validators/market";
 import { useJstzClient } from "~/providers/jstz-client.context";
 
 export const responseSchema = z.union([
@@ -54,14 +55,14 @@ export default function DeployPage() {
     },
 
     validators: {
-      onSubmit: marketSchema,
+      onSubmit: marketFormSchema,
     },
 
     onSubmit: async ({ value }) => {
       const payload: SignWithJstzSignerParams = {
         content: {
           _type: "RunFunction",
-          uri: "jstz://KT1PawM7fCT9atQb9jpjNfdyjNPsnwojapSc/market",
+          uri: `jstz://${env.NEXT_PUBLIC_PARENT_SF_ADDRESS}/market`,
           headers: {},
           method: "POST",
           body: textEncode(value),
@@ -100,6 +101,7 @@ export default function DeployPage() {
         router.push(`/markets/${response.address}`);
       } catch (e) {
         console.info(`Completed call. Couldn't parse it to JSON.`);
+        console.dir(textDecode(inner.body));
       }
     },
   });
