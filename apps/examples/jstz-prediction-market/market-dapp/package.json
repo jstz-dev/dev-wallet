@@ -2,6 +2,7 @@
   "name": "jstz-dex",
   "version": "1.0.0",
   "main": "index.ts",
+  "type": "module",
   "private": true,
   "dependencies": {
     "@jstz-dev/jstz": "^0.0.0",
@@ -9,9 +10,11 @@
     "zod": "^4"
   },
   "devDependencies": {
-    "esbuild": "0.25.0"
+    "@types/node": "^24.10.1",
+    "esbuild": "0.25.0",
+    "tsx": "^4.21.0"
   },
   "scripts": {
-    "build": "esbuild index.ts --bundle --format=esm --target=esnext --outfile=dist/index.js"
+    "build": "tsx esbuild.config.ts"
   }
 }

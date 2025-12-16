@@ -1,12 +1,16 @@
 packages:
   - apps/signer
   - apps/examples/polimarket
+  - apps/examples/jstz-prediction-market/market-dapp
   - packages/**
 
 onlyBuiltDependencies:
-  - "@swc/core"
-  - "@tailwindcss/oxide"
-  - "@taquito/taquito"
+  - '@swc/core'
+  - '@tailwindcss/oxide'
+  - '@taquito/taquito'
   - esbuild
   - sharp
   - unrs-resolver
+
+patchedDependencies:
+  '@jstz-dev/jstz-client': patches/@jstz-dev__jstz-client.patch

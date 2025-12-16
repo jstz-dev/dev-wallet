@@ -27,10 +27,7 @@ export function useJstzSignerExtension({ onFill }: { onFill?: (address: string) 
       return data.success;
     } catch (e) {
       console.warn(e);
-      const { data } = await checkExtensionAvailability();
-      setIsExtensionAvailable(data.success);
-
-      return data.success;
+      return false;
     } finally {
       setIsLoading(false);
     }

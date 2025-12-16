@@ -1,4 +1,5 @@
 "use client";
+
 import { Badge } from "jstz-ui/ui/badge";
 import { Button } from "jstz-ui/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "jstz-ui/ui/card";
@@ -6,30 +7,42 @@ import { Separator } from "jstz-ui/ui/separator";
 import { Slider } from "jstz-ui/ui/slider";
 import { cn } from "jstz-ui/utils";
 import { AlertTriangle, Clock, DollarSign } from "lucide-react";
+import assert from "node:assert";
 import { useState } from "react";
-import type { Market } from "./market-card";
+import * as CurrencyConverter from "~/lib/currencyConverter";
+import type { Market } from "~/lib/validators/market";
+import { Token } from "~/lib/validators/token";
 
 const MIN_BET = 10;
 const MAX_BET = 100;
 
-type BettingPanelProps = Pick<
-  Market,
-  "id" | "title" | "yesPrice" | "noPrice" | "status" | "userPosition"
->;
+interface BettingPanelProps extends Market {
+  address: string;
+}
 
 export function BettingPanel({
-  id,
-  title,
-  yesPrice,
-  noPrice,
-  status,
-  userPosition,
+  address,
+  question,
+  state,
+  tokens,
+  resolutionDate,
 }: BettingPanelProps) {
-  const [selectedSide, setSelectedSide] = useState("yes");
+  const [selectedSide, setSelectedSide] = useState<Token["token"]>("yes");
   const [betAmount, setBetAmount] = useState(99);
 
+  const noToken = tokens.find((token) => token.token === "no");
+  assert(noToken, "Token should be defined.");
+
+  const yesToken = tokens.find((token) => token.token === "yes");
+  assert(yesToken, "Token should be defined.");
+
+  const volume = tokens.reduce((acc, token) => {
+    if (token.isSynthetic) return acc;
+    return acc + token.amount * token.price;
+  }, 0);
+
   function calculatePotentialWin() {
-    const odds = selectedSide === "yes" ? 100 / yesPrice : 100 / noPrice;
+    const odds = selectedSide === "yes" ? 100 / yesToken.price : 100 / noToken.price;
     return (betAmount * odds).toFixed(2);
   }
 
@@ -43,9 +56,30 @@ export function BettingPanel({
     return ((profit / betAmount) * 100).toFixed(1);
   }
 
-  if (status === "resolved") {
+  const StateBadge = (() => {
+    switch (state) {
+      case "on-going":
+        return <Badge className="text-xs">Active</Badge>;
+
+      case "created":
+        return (
+          <Badge variant="destructive" className=" text-xs">
+            Inactive
+          </Badge>
+        );
+
+      case "resolved":
+        return (
+          <Badge variant="destructive" className="text-xs">
+            Resolved
+          </Badge>
+        );
+    }
+  })();
+
+  if (state === "resolved") {
     return (
-      <Card className="border-border bg-card p-6">
+      <Card>
         <CardHeader>
           <div className="mb-4 flex items-start justify-between">
             <div className="flex items-center gap-2">
@@ -53,13 +87,13 @@ export function BettingPanel({
                 <span className="text-sm font-bold text-primary-foreground">M</span>
               </div>
 
-              <Badge variant="secondary">Market #{id}</Badge>
+              <Badge variant="secondary">Market {address}</Badge>
             </div>
 
-            <Badge variant="destructive">Resolved</Badge>
+            {StateBadge}
           </div>
 
-          <CardTitle>{title}</CardTitle>
+          <CardTitle>{question}</CardTitle>
         </CardHeader>
 
         <CardContent>
@@ -93,7 +127,7 @@ export function BettingPanel({
   }
 
   return (
-    <Card className="border-border bg-card p-6">
+    <Card>
       <CardHeader>
         <div className="mb-4 flex items-start justify-between">
           <div className="flex items-center gap-2">
@@ -101,13 +135,13 @@ export function BettingPanel({
               <span className="text-sm font-bold text-primary-foreground">M</span>
             </div>
 
-            <Badge variant="secondary">Market #{id}</Badge>
+            <Badge variant="secondary">Market {address}</Badge>
           </div>
 
-          {userPosition && <Badge className="bg-primary">Active</Badge>}
+          {StateBadge}
         </div>
 
-        <CardTitle>{title}</CardTitle>
+        <CardTitle>{question}</CardTitle>
       </CardHeader>
 
       <CardContent>
@@ -122,7 +156,7 @@ export function BettingPanel({
               className={cn(
                 "rounded-lg border-2 py-3 text-sm font-semibold transition-all",
                 selectedSide === "yes"
-                  ? "border-success bg-success text-success-foreground"
+                  ? "border-primary bg-primary text-primary-foreground"
                   : "border-border bg-success/10 text-success hover:border-success/50",
               )}
             >
@@ -170,6 +204,7 @@ export function BettingPanel({
             <span className="text-muted-foreground">Potential Win:</span>
             <span className="font-semibold text-success">{calculatePotentialWin()} XTZ</span>
           </div>
+
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Profit:</span>
             <span className="font-semibold text-success">{calculateProfit()} XTZ</span>
@@ -183,14 +218,7 @@ export function BettingPanel({
 
         {/* Action Buttons */}
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="flex-1 bg-transparent"
-            onClick={() => setBetAmount(99)}
-          >
-            Cancel
-          </Button>
-          <Button className="flex-1 bg-success text-success-foreground hover:bg-success/90">
+          <Button className="flex-1 bg-secondary text-success-foreground hover:bg-secondary/90">
             Place Bet
           </Button>
         </div>
@@ -202,15 +230,15 @@ export function BettingPanel({
       <CardFooter className="justify-between w-full">
         <div className="flex items-center gap-1">
           <DollarSign className="h-3 w-3" />
-          <span>0 XTZ</span>
+          <span>{CurrencyConverter.toTez(volume)} XTZ</span>
         </div>
 
         <div className="flex items-center gap-1">
           <Clock className="h-3 w-3" />
-          <span>19/09/2025</span>
+          <span>{resolutionDate.split("T")[0]}</span>
         </div>
 
-        <Badge className="bg-primary text-xs">Active</Badge>
+        {StateBadge}
       </CardFooter>
     </Card>
   );

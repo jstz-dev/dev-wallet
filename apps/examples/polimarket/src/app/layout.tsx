@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { SidebarProvider } from "~/components/ui/sidebar";
+import { JstzClientContextProvider } from "~/providers/jstz-client.context";
 import { QueryProvider } from "~/providers/query-provider";
 import { ThemeProvider } from "~/providers/theme-provider";
 import "./globals.css";
@@ -50,7 +51,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           <QueryProvider>
             <SidebarProvider open>
-              <NuqsAdapter>{children}</NuqsAdapter>
+              <NuqsAdapter>
+                <JstzClientContextProvider>{children}</JstzClientContextProvider>
+              </NuqsAdapter>
             </SidebarProvider>
           </QueryProvider>
         </ThemeProvider>
