@@ -12,6 +12,6 @@
     "esbuild": "0.25.0"
   },
   "scripts": {
-    "build": "esbuild market.ts --bundle --format=esm --target=esnext --outfile=dist/index.js"
+    "build": "esbuild index.ts --bundle --format=esm --target=esnext --outfile=dist/index.js"
   }
 }

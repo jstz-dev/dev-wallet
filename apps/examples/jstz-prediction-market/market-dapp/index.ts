@@ -1,14 +1,18 @@
 import { AutoRouter, json } from "itty-router";
 import { z } from "zod";
 
-const ONE_TOKEN = 1;
+const ONE_TEZ = 1_000_000;
 const SUPER_ADMIN = "tz1ZXxxkNYSUutm5VZvfudakRxx2mjpWko4J";
 const KV_ROOT = "root";
+const REFERER_HEADER = "Referer";
+
 // Schemas
+const addressSchema = z.string().length(36);
 const tokenSchema = z.object({
   isSynthetic: z.boolean(),
-  value: z.enum(["yes", "no"]),
-  amount: z.number().min(0),
+  token: z.enum(["yes", "no"]),
+  amount: z.number().min(1),
+  price: z.number().min(1).max(ONE_TEZ),
 });
 
 const marketFormSchema = z.object({
@@ -35,12 +39,80 @@ function errorResponse(message: any, status = 400) {
 const router = AutoRouter();
 router.post(
   "/market",
-  withAdmin(async (request) => {
+ async (request) => {
     try {
       const body = await request.json();
       const { success, error, data } = marketFormSchema.safeParse(body);
       if (!success) return errorResponse(error.message);
 
+      const referer = request.headers.get(REFERER_HEADER);
+      if (!referer) return errorResponse("Referer address not found");
+
+      const response = await fetch("http://localhost:8080/market", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...data,
+          master: Ledger.selfAddress,
+          admins: [referer, SUPER_ADMIN],
+        }),
+      });
+      // TODO: add API error handling
+      if (!response.ok) return errorResponse("Error creating market");
+
+      const { address } = await response.json();
+
+      dispatch({
+        type: "add-market",
+        address,
+        resolutionDate: data.resolutionDate,
+        referer,
+      });
+      return successResponse("Market created");
+    } catch (err) {
+      if (err instanceof Error)  {
+        return errorResponse(`Error: ${err.message}`);
+      }
+      return errorResponse(`Error: ${err}`);
+    }
+  },
+);
+
+router.post(
+  "/resolve-market",
+  async (request) => {
+    try {
+      const body = await request.json();
+      const { success, error, data } = marketFormSchema.safeParse(body);
+      if (!success) return errorResponse(error.message);
+
+      const referer = request.headers.get(REFERER_HEADER);
+      if (!referer) return errorResponse("Referer address not found");
+
+      const response = await fetch("http://localhost:8080/market", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...data,
+          master: Ledger.selfAddress,
+          admins: [referer, SUPER_ADMIN],
+        }),
+      });
+      // TODO: add API error handling
+      if (!response.ok) return errorResponse("Error creating market");
+
+      const { address } = await response.json();
+
+      dispatch({
+        type: "add-market",
+        address,
+        resolutionDate: data.resolutionDate,
+        referer,
+      });
       return successResponse("Market created");
     } catch (err) {
       if (err instanceof Error) {
@@ -48,7 +120,7 @@ router.post(
       }
       return errorResponse(`Error: ${err}`);
     }
-  }),
+  },
 );
 
 const handler = (request: Request): Promise<Response> => router.fetch(request);
@@ -61,8 +133,9 @@ const addAdminActionSchema = z.object({
 
 const addMarketActionSchema = z.object({
   type: z.literal("add-market"),
-  address: z.string().length(36),
   resolutionDate: marketFormSchema.shape.resolutionDate,
+  address: addressSchema,
+  referer: addressSchema,
 });
 
 type AddAdminAction = z.infer<typeof addAdminActionSchema>;
@@ -108,6 +181,7 @@ function reducer(state: Record<string, any>, action: KvAction): KvState {
       newState.markets[action.address] = {
         address: action.address,
         resolutionDate: action.resolutionDate,
+        referer: action.referer,
       };
       break;
   }
@@ -131,7 +205,3 @@ function withAdmin(handler: (request: Request) => Promise<Response>) {
 }
 
 export default handler;
-
-const marketSfCode = `
-
-`;

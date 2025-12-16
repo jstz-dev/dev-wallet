@@ -1,7 +1,7 @@
 import { AutoRouter, json } from "itty-router";
 import { z } from "zod";
 
-const ONE_TOKEN = 1;
+const ONE_TEZ = 1_000_000;
 const KV_ROOT = "root";
 const REFERER_HEADER = "Referer";
 const TRANSFER_HEADER = "X-JSTZ-TRANSFER";
@@ -9,33 +9,42 @@ const AMOUNT_HEADER = "X-JSTZ-AMOUNT";
 
 // Schemas
 const tokenSchema = z.object({
-  isSynthetic: z.boolean(),
   token: z.enum(["yes", "no"]),
-  amount: z.number().min(0),
-  price: z.number().min(0).max(1_000_000),
+  amount: z.number().min(1),
+  price: z.number().min(1).max(ONE_TEZ),
 });
 
 const marketFormSchema = z.object({
-  state: z.enum(["created", "on-going", "resolved"]),
-  admins: z.array(z.string()),
+  admins: z.array(z.string()).min(1),
+  master: z.string().length(36), // parent SF address
   question: z.string(),
-  resolutionDate: z.iso.date(),
+  resolutionDate: z.iso.datetime(),
   resolutionUrl: z.string().nullish(),
-  resolvedToken: z.enum(["yes", "no"]).nullish(),
-  resolvedTokenPrice: z.number().min(0).max(1).nullish(),
   tokens: z.array(tokenSchema),
 });
 
-const betFormSchema = tokenSchema.pick({ token: true }).extend({
-  isSynthetic: false,
+const marketSchema = marketFormSchema.extend({
+  state: z.enum(["created", "on-going", "resolved"]),
+  resolvedToken: tokenSchema,
 });
 
-function successResponse(message: any, status = 200) {
-  return json({ ...message, status }, { status });
+const betFormSchema = tokenSchema.pick({ token: true });
+
+const resolutionFormSchema = tokenSchema.pick({ token: true });
+
+interface ResponseMessage extends Record<any, any> {
+  message: string;
 }
 
-function errorResponse(message: any, status = 400) {
-  return successResponse({ message }, status);
+function successResponse(message: ResponseMessage | string, options?: ResponseInit) {
+  const payload = typeof message === "string" ? { message } : message;
+
+  const { status = 200, ...rest } = options ?? {};
+  return json({ ...payload, status }, { status, ...rest });
+}
+
+function errorResponse(message: ResponseMessage | string, options: ResponseInit = {}) {
+  return successResponse(message, { ...options, status: options.status ?? 400 });
 }
 
 const marketRouter = AutoRouter();
@@ -61,13 +70,14 @@ marketRouter.post(
   withParseBody(async (request, body) => {
     const { state } = getState();
     if (!state || state === "created") return errorResponse("Market is not initialized yet");
+    if (!!state && state !== "on-going") return errorResponse("Market is closed for betting");
     // TODO: bet amount is in XTZ and transferred via "Referrer" header
     // add an approximate estimation of tokens on the FE basing on the current token price from Indexer
     const { success, error, data } = betFormSchema.safeParse(body);
-    if (!success) throw new Error(error.message);
+    if (!success) return errorResponse(error.message);
 
-    const address = request.headers.get(REFERER_HEADER);
-    if (!address) throw new Error("Referer address not found");
+    const referer = request.headers.get(REFERER_HEADER);
+    if (!referer) return errorResponse("Referer address not found");
 
     const receivedMutez = request.headers.get(AMOUNT_HEADER);
 
@@ -76,47 +86,96 @@ marketRouter.post(
     const mutez = Number(receivedMutez);
 
     if (!receivedMutez || isNaN(mutez) || mutez < tokenState.price)
-      throw new Error("Not enough tez for to make a bet");
+      return errorResponse("Not enough tez for to make a bet");
 
-    const amount = mutez / tokenState.price;
+    const amount = Math.floor(mutez / tokenState.price);
 
     dispatch({
       type: "bet",
-      address,
+      isSynthetic: false,
+      referer,
       token: data.token,
       amount,
       price: tokenState.price,
     });
 
-    const newPrice = getNewTokenPrice(data.token, amount)
+    const headers: ResponseInit["headers"] = {};
+    const change = mutez - amount * tokenState.price;
 
-    return successResponse("Bet placed");
+    if (change > 0) {
+      headers[TRANSFER_HEADER] = change.toString();
+    }
+
+    return successResponse("Bet placed", { headers });
   }),
 );
-marketRouter.post("/resolve", (request) => {
-  const { state } = getState();
+marketRouter.post(
+  "/resolve",
+  withParseBody(async (_, body) => {
+    const { state } = getState();
+    if (!state || state === "created") return errorResponse("Market is not initialized yet");
+    if (state === "resolved") return errorResponse("Market already resolved");
+
+    const { success, error, data } = resolutionFormSchema.safeParse(body);
+    if (!success) return errorResponse(error.message);
+
+    dispatch({
+      type: "resolve",
+      token: data.token,
+    });
+
+    return successResponse("Market resolved");
+  }),
+);
+
+marketRouter.get("/payout", async () => {
+  const { state, bets = [], resolvedToken } = getState();
   if (!state || state === "created") return errorResponse("Market is not initialized yet");
-  if (state === "resolved") return errorResponse("Market already resolved");
+  if (state !== "resolved" || !resolvedToken) return errorResponse("Market is not resolved");
+
+  const payoutReqs = [];
+  const payouts = [];
+  for (let i = 0; i < bets.length; i++) {
+    const bet = bets[i];
+    if (!bet.isSynthetic && bet.token === resolvedToken.token) {
+      const transferAmount = bet.amount * resolvedToken.price;
+
+      payouts.push({ transferAmount, bet });
+      await fetch(
+        new Request(`jstz://${bet.referer}/`, {
+          headers: {
+            [TRANSFER_HEADER]: transferAmount.toString(),
+          },
+        }),
+      );
+    }
+  }
+
+  return successResponse({ message: "Payout successful", payouts });
 });
 
 // KV
 const initActionSchema = marketFormSchema.extend({
   type: z.literal("init"),
 });
-const betActionSchema = tokenSchema.omit({ isSynthetic: true }).extend({
+const betActionSchema = tokenSchema.extend({
   type: z.literal("bet"),
-  address: z.string().length(36),
-  price: z.number().min(0).max(1),
+  referer: z.string().length(36),
+  price: z.number().min(1).max(ONE_TEZ),
+  isSynthetic: z.boolean(),
+});
+const resolveActionSchema = marketSchema.shape.resolvedToken.pick({ token: true }).extend({
+  type: z.literal("resolve"),
 });
 
 type InitAction = z.infer<typeof initActionSchema>;
 type BetAction = z.infer<typeof betActionSchema>;
+type ResolveAction = z.infer<typeof resolveActionSchema>;
 
-type KvAction = InitAction | BetAction;
+type KvAction = InitAction | BetAction | ResolveAction;
 
-const kvSchema = marketFormSchema.extend({
+const kvSchema = marketSchema.extend({
   bets: z.array(betActionSchema.omit({ type: true })).optional(),
-  users: z.record(betActionSchema.shape.address, betActionSchema.omit({ type: true })).optional(),
 });
 
 type KvState = z.infer<typeof kvSchema>;
@@ -129,7 +188,7 @@ function getTokenState(token: string): KvState["tokens"][number] {
   const { tokens = [] } = getState();
   const tokenState = tokens.find((t) => t.token === token);
 
-  if (!tokenState) throw new Error("Token not found");
+  if (!tokenState) throw errorResponse("Token not found");
 
   return tokenState;
 }
@@ -149,41 +208,66 @@ function reducer(state: KvState, action: KvAction): KvState {
       newState.resolutionDate = action.resolutionDate;
       newState.resolutionUrl = action.resolutionUrl;
       newState.tokens = action.tokens;
-      newState.users = {};
       newState.bets = [];
+      action.tokens.forEach((token) =>
+        newState.bets!.push({
+          referer: action.admins[0],
+          token: token.token,
+          amount: token.amount,
+          price: token.price,
+          isSynthetic: true,
+        }),
+      );
       break;
     case "bet":
-      if (!newState.tokens || !newState.bets || !newState.users)
-        throw new Error("Market in not initialized");
+      if (!newState.tokens || !newState.bets) throw errorResponse("Market in not initialized");
 
       const token = newState.tokens.find((t) => t.token === action.token);
-      if (!token) throw new Error("Token not found");
+      if (!token) throw errorResponse("Token not found");
 
+      // update purchased token's amount
       token!.amount += action.amount;
 
       newState.bets.push({
-        address: action.address,
+        referer: action.referer,
         token: action.token,
         amount: action.amount,
         price: action.price,
+        isSynthetic: false,
       });
-
-      newState.users[action.address] = {
-        address: action.address,
-        token: action.token,
-        amount: action.amount,
-        price: action.price,
-      };
+      // update tokens prices
+      const sumOfTokens = newState.tokens.reduce((acc, token) => acc + token.amount, 0);
+      newState.tokens.forEach((token) => {
+        token.price = Math.floor((token.amount / sumOfTokens) * ONE_TEZ);
+      });
       break;
+
+    case "resolve": {
+      if (!newState.tokens || !newState.bets) throw errorResponse("Market in not initialized");
+      const token = newState.tokens.find((t) => t.token === action.token);
+      if (!token) throw errorResponse("Token not found");
+
+      const balance = Ledger.balance(Ledger.selfAddress);
+
+      const syntheticTokensAmount = newState.bets.reduce((acc, token) => {
+        if (token.isSynthetic) {
+          return acc + token.amount;
+        }
+        return acc;
+      }, 0);
+
+      const resolvedTokenPrice = Math.floor(balance / (token.amount - syntheticTokensAmount));
+
+      newState.resolvedToken = {
+        token: action.token,
+        amount: token.amount - syntheticTokensAmount,
+        price: resolvedTokenPrice,
+      };
+
+      newState.state = "resolved";
+    }
   }
   return newState;
-}
-
-function getNewTokenPrice(token: string, amountToBuy: number) {
-  const { tokens = [] } = getState();
-  const tokenState = getTokenState(token);
-  const sumOfTokens = tokens.reduce((acc, token) => acc + token.amount, 0);
-  return tokenState.amount + amountToBuy / sumOfTokens;
 }
 
 function withParseBody(handler: (request: Request, body: unknown) => Promise<Response>) {
