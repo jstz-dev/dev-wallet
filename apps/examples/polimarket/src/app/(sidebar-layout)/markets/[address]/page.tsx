@@ -1,25 +1,30 @@
+"use client";
+
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Button } from "jstz-ui/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "jstz-ui/ui/card";
 import { Progress } from "jstz-ui/ui/progress";
 import { Separator } from "jstz-ui/ui/separator";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { redirect, useParams } from "next/navigation";
 import { BettingPanel } from "~/components/betting-panel";
+import * as CurrencyConverter from "~/lib/currencyConverter";
 import { createJstzClient } from "~/lib/jstz-signer.service";
 import { marketSchema } from "~/lib/validators/market";
+import { accounts } from "~/queries/account.queries";
+import { smartFunctions } from "~/queries/smartFunctions.queries";
 
-export default async function MarketPage({ params }: PageProps<"/markets/[address]">) {
-  const { address } = await params;
+type Params = Awaited<PageProps<"/markets/[address]">["params"]>;
 
-  const jstz = createJstzClient();
+export default function MarketPage() {
+  const { address } = useParams<Params>();
 
-  const [kv, balance] = await Promise.all([
-    jstz.accounts.getKv(address, {
-      key: "root",
-    }),
-    jstz.accounts.getBalance(address),
-  ]);
+  const jstzClient = createJstzClient();
+
+  const { data: kv } = useSuspenseQuery(smartFunctions.getKv(address, "root", jstzClient));
+
+  const { data: balance } = useSuspenseQuery(accounts.balance(address));
 
   const { data: market, error } = marketSchema.safeParse(JSON.parse(kv));
 
@@ -46,8 +51,8 @@ export default async function MarketPage({ params }: PageProps<"/markets/[addres
     [0, 0],
   );
 
-  const yesRatio = yesCount / market.bets.length;
-  const noRatio = noCount / market.bets.length;
+  const yesRatio = (yesCount / market.bets.length) * 100;
+  const noRatio = (noCount / market.bets.length) * 100;
 
   return (
     <main className="flex-1">
@@ -73,7 +78,7 @@ export default async function MarketPage({ params }: PageProps<"/markets/[addres
 
                   <div className="text-right">
                     <div className="text-2xl font-bold text-card-foreground">
-                      {Number.isNaN(yesRatio) ? "No bets yet." : `${yesRatio}%`}
+                      {Number.isNaN(yesRatio) ? "No bets yet." : `${yesRatio.toFixed(2)}%`}
                     </div>
                     <div className="text-xs text-muted-foreground">Current odds</div>
                   </div>
@@ -86,12 +91,12 @@ export default async function MarketPage({ params }: PageProps<"/markets/[addres
               <CardContent>
                 <div className="mb-2 flex items-center justify-between text-sm">
                   <span className="font-medium text-muted-foreground">
-                    YES - {yesRatio}
+                    YES - {yesRatio.toFixed(2)}
                     {!Number.isNaN(yesRatio) && "%"}
                   </span>
 
                   <span className="font-medium text-muted-foreground">
-                    NO - {noRatio}
+                    NO - {noRatio.toFixed(2)}
                     {!Number.isNaN(noRatio) && "%"}
                   </span>
                 </div>
@@ -112,7 +117,9 @@ export default async function MarketPage({ params }: PageProps<"/markets/[addres
                 <div>
                   <div className="text-xs text-muted-foreground">Total Volume</div>
 
-                  <div className="mt-1 font-semibold text-card-foreground">{balance}</div>
+                  <div className="mt-1 font-semibold text-card-foreground">
+                    {CurrencyConverter.toTez(balance)}
+                  </div>
                 </div>
 
                 <div>
