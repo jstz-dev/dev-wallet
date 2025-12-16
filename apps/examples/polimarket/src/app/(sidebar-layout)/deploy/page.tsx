@@ -1,5 +1,6 @@
 "use client";
 
+import { useMutation } from "@tanstack/react-query";
 import { useIsClient } from "@uidotdev/usehooks";
 import { Alert, AlertDescription, AlertTitle } from "jstz-ui/ui/alert";
 import { Button } from "jstz-ui/ui/button";
@@ -15,7 +16,8 @@ import { env } from "~/env";
 import { textDecode, textEncode } from "~/lib/encoder";
 import { useJstzSignerExtension } from "~/lib/hooks/useJstzSigner";
 import { SignWithJstzSignerParams } from "~/lib/jstz-signer.service";
-import { marketFormSchema } from "~/lib/validators/market";
+import { MarketForm, marketFormSchema } from "~/lib/validators/market";
+import { Token } from "~/lib/validators/token";
 import { useJstzClient } from "~/providers/jstz-client.context";
 
 export const responseSchema = z.union([
@@ -32,40 +34,15 @@ export default function DeployPage() {
   const { getJstzClient } = useJstzClient();
   const router = useRouter();
 
-  const form = useAppForm({
-    defaultValues: {
-      admins: [] as string[],
-      question: "Will Jstz be released to the mainnet by the end of Q2 2026?",
-      resolutionDate: new Date().toISOString(),
-      pool: 0,
-      tokens: [
-        {
-          isSynthetic: true,
-          token: "yes",
-          amount: 70,
-          price: 1,
-        },
-        {
-          isSynthetic: true,
-          token: "no",
-          amount: 30,
-          price: 1,
-        },
-      ],
-    },
-
-    validators: {
-      onSubmit: marketFormSchema,
-    },
-
-    onSubmit: async ({ value }) => {
+  const { mutateAsync: deployMarket } = useMutation({
+    mutationFn: async (market: MarketForm) => {
       const payload: SignWithJstzSignerParams = {
         content: {
           _type: "RunFunction",
           uri: `jstz://${env.NEXT_PUBLIC_PARENT_SF_ADDRESS}/market`,
           headers: {},
           method: "POST",
-          body: textEncode(value),
+          body: textEncode(market),
           gasLimit: 55_000,
         },
       };
@@ -105,6 +82,37 @@ export default function DeployPage() {
         console.info(`Completed call. Couldn't parse it to JSON.`);
         console.dir(textDecode(inner.body));
       }
+    },
+  });
+
+  const form = useAppForm({
+    defaultValues: {
+      admins: [] as string[],
+      question: "Will Jstz be released to the mainnet by the end of Q2 2026?",
+      resolutionDate: new Date().toISOString(),
+      pool: 0,
+      tokens: [
+        {
+          isSynthetic: true,
+          token: "yes" as Token["token"],
+          amount: 70,
+          price: 1,
+        },
+        {
+          isSynthetic: true,
+          token: "no" as Token["token"],
+          amount: 30,
+          price: 1,
+        },
+      ],
+    },
+
+    validators: {
+      onSubmit: marketFormSchema,
+    },
+
+    onSubmit: async ({ value }) => {
+      await deployMarket(value);
     },
   });
 
