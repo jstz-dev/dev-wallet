@@ -1,5 +1,6 @@
 "use client";
 
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Badge } from "jstz-ui/ui/badge";
 import { Button } from "jstz-ui/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "jstz-ui/ui/card";
@@ -12,11 +13,17 @@ import assert from "node:assert";
 import { FormEvent } from "react";
 import { z } from "zod/mini";
 import * as CurrencyConverter from "~/lib/currencyConverter";
+import { textEncode } from "~/lib/encoder";
+import { useJstzSignerExtension } from "~/lib/hooks/useJstzSigner";
+import { SignWithJstzSignerParams } from "~/lib/jstz-signer.service";
 import type { Market } from "~/lib/validators/market";
-import { tokenSchema } from "~/lib/validators/token";
+import { Token, tokenSchema } from "~/lib/validators/token";
+import { useJstzClient } from "~/providers/jstz-client.context";
+import { accounts } from "~/queries/account.queries";
+import { smartFunctions } from "~/queries/smartFunctions.queries";
 import { useAppForm } from "./ui/form";
 
-const MIN_BET = 10;
+const MIN_BET = 1;
 const MAX_BET = 100;
 
 const betFormSchema = z.pick(tokenSchema, { token: true, amount: true });
@@ -31,19 +38,66 @@ export function BettingPanel({
   state,
   tokens,
   resolutionDate,
+  bets,
 }: BettingPanelProps) {
+  const { signWithJstzExtension } = useJstzSignerExtension();
+  const { getJstzClient } = useJstzClient();
+
+  const jstzClient = getJstzClient();
+
+  const { data: balance } = useSuspenseQuery(accounts.balance(address));
+
+  const queryClient = useQueryClient();
+
+  const { mutateAsync: placeBet } = useMutation({
+    mutationFn: async ({ token, amount }: Pick<Token, "token"> & { amount: number }) => {
+      const payload: SignWithJstzSignerParams = {
+        content: {
+          _type: "RunFunction",
+          uri: `jstz://${address}/bet`,
+          headers: {
+            "X-JSTZ-TRANSFER": CurrencyConverter.toMutez(amount).toString(),
+          },
+          method: "POST",
+          body: textEncode({ token }),
+          gasLimit: 55_000,
+        },
+      };
+
+      const { operation, signature, verifier } = await signWithJstzExtension(payload);
+
+      const {
+        result: { inner },
+      } = await jstzClient.operations.injectAndPoll(
+        {
+          inner: operation,
+          signature,
+          verifier: verifier ?? null,
+        },
+        {
+          timeout: 100 * 1_000,
+        },
+      );
+    },
+
+    onSuccess: () => {
+      void queryClient.invalidateQueries(smartFunctions.getKv(address, "root", jstzClient));
+      void queryClient.invalidateQueries(accounts.balance(address, jstzClient));
+    },
+  });
+
   const form = useAppForm({
     defaultValues: {
-      token: "yes" as "yes" | "no",
-      amount: MIN_BET,
+      token: "yes" as Token["token"],
+      amount: 50,
     },
 
     validators: {
       onSubmit: betFormSchema,
     },
 
-    onSubmit: ({ value }) => {
-      console.log(value);
+    onSubmit: async ({ value }) => {
+      await placeBet(value);
     },
   });
 
@@ -59,14 +113,19 @@ export function BettingPanel({
   const yesToken = tokens.find((token) => token.token === "yes");
   assert(yesToken, "Token should be defined.");
 
-  const volume = tokens.reduce((acc, token) => {
-    if (token.isSynthetic) return acc;
-    return acc + token.amount * token.price;
-  }, 0);
-
   function calculatePotentialWin(side: "yes" | "no", betAmount: number) {
-    const odds = side === "yes" ? 100 / yesToken.price : 100 / noToken.price;
-    return (betAmount * odds).toFixed(2);
+    const token = side === "yes" ? yesToken : noToken;
+    const tokensToBuy = Math.floor(CurrencyConverter.toMutez(betAmount) / token.price);
+
+    console.log("price:", token?.price);
+    console.log("balance:", balance);
+    console.log("amount:", token.amount);
+
+    const result =
+      (CurrencyConverter.toTez(balance) + betAmount) /
+      (CurrencyConverter.toTez(token?.amount) + tokensToBuy);
+
+    return result.toFixed(2);
   }
 
   function calculateProfit(side: "yes" | "no", betAmount: number) {
@@ -167,10 +226,10 @@ export function BettingPanel({
         <CardTitle>{question}</CardTitle>
       </CardHeader>
 
-      {/* Betting Side Selection */}
-      <CardContent>
-        <form.AppForm>
-          <form onSubmit={onSubmit}>
+      <form.AppForm>
+        <form onSubmit={onSubmit}>
+          {/* Betting Side Selection */}
+          <CardContent>
             <form.AppField name="token">
               {(field) => (
                 <field.FormItem className="mb-6">
@@ -181,6 +240,7 @@ export function BettingPanel({
                   <field.FormControl>
                     <div className="grid grid-cols-2 gap-2">
                       <Button
+                        type="button"
                         onClick={() => field.handleChange("yes")}
                         className={cn(
                           "rounded-lg border-2",
@@ -193,6 +253,7 @@ export function BettingPanel({
                       </Button>
 
                       <Button
+                        type="button"
                         variant="destructive"
                         onClick={() => field.handleChange("no")}
                         className={cn(
@@ -209,105 +270,106 @@ export function BettingPanel({
                 </field.FormItem>
               )}
             </form.AppField>
-          </form>
-        </form.AppForm>
 
-        {/* Bet Amount Slider */}
-        <form.AppField name="amount">
-          {(field) => (
-            <field.FormItem className="mb-6">
-              <div className="mb-3 flex items-center justify-between">
-                <field.FormLabel
-                  htmlFor="bet-amount"
-                  className="text-sm font-medium text-muted-foreground"
-                >
-                  Bet Amount:
-                </field.FormLabel>
+            {/* Bet Amount Slider */}
+            <form.AppField name="amount">
+              {(field) => (
+                <field.FormItem className="mb-6">
+                  <div className="mb-3 flex items-center justify-between">
+                    <field.FormLabel
+                      htmlFor="bet-amount"
+                      className="text-sm font-medium text-muted-foreground"
+                    >
+                      Bet Amount:
+                    </field.FormLabel>
 
-                <span className="text-lg font-bold text-primary">{field.state.value} XTZ</span>
-              </div>
+                    <span className="text-lg font-bold text-primary">{field.state.value} XTZ</span>
+                  </div>
 
-              <field.FormControl>
-                <Slider
-                  name="bet-amount"
-                  value={[field.state.value]}
-                  onValueChange={(value) => field.handleChange(value[0])}
-                  min={MIN_BET}
-                  max={MAX_BET}
-                  step={1}
-                  className="mb-2"
-                />
-              </field.FormControl>
+                  <field.FormControl>
+                    <Slider
+                      name="bet-amount"
+                      value={[field.state.value]}
+                      onValueChange={(value) => field.handleChange(value[0])}
+                      min={MIN_BET}
+                      max={MAX_BET}
+                      step={1}
+                      className="mb-2"
+                    />
+                  </field.FormControl>
 
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>{MIN_BET} XTZ</span>
-                <span>{MAX_BET} XTZ</span>
-              </div>
-            </field.FormItem>
-          )}
-        </form.AppField>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{MIN_BET} XTZ</span>
+                    <span>{MAX_BET} XTZ</span>
+                  </div>
+                </field.FormItem>
+              )}
+            </form.AppField>
 
-        {/* Potential Returns */}
-        <form.Subscribe selector={({ values }) => [values.token, values.amount] as const}>
-          {([token, amount]) => (
-            <div className="mb-6 space-y-2 rounded-lg bg-secondary p-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Potential Win:</span>
-                <span className="font-semibold text-success">
-                  {calculatePotentialWin(token, amount)} XTZ
-                </span>
-              </div>
+            {/* Potential Returns */}
+            <form.Subscribe selector={({ values }) => [values.token, values.amount] as const}>
+              {([token, amount]) => (
+                <div className="mb-6 space-y-2 rounded-lg bg-secondary p-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Potential Win:</span>
+                    <span className="font-semibold text-success">
+                      {calculatePotentialWin(token, amount)} XTZ
+                    </span>
+                  </div>
 
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Profit:</span>
-                <span className="font-semibold text-success">
-                  {calculateProfit(token, amount)} XTZ
-                </span>
-              </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Profit:</span>
+                    <span className="font-semibold text-success">
+                      {calculateProfit(token, amount)} XTZ
+                    </span>
+                  </div>
 
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Return:</span>
-                <span className="font-semibold text-primary">
-                  +{calculateReturn(token, amount)}%
-                </span>
-              </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Return:</span>
+                    <span className="font-semibold text-primary">
+                      +{calculateReturn(token, amount)}%
+                    </span>
+                  </div>
+                </div>
+              )}
+            </form.Subscribe>
+
+            {/* Action Buttons */}
+            <div className="flex">
+              <form.Subscribe selector={({ canSubmit, isSubmitting }) => [canSubmit, isSubmitting]}>
+                {([canSubmit, isSubmitting]) => (
+                  <Button
+                    type="submit"
+                    className="flex-1 bg-success text-success-foreground hover:bg-success/90"
+                    disabled={!canSubmit || isSubmitting}
+                    iconPosition="right"
+                    renderIcon={(props) => isSubmitting && <Spinner {...props} />}
+                  >
+                    Place Bet
+                  </Button>
+                )}
+              </form.Subscribe>
             </div>
-          )}
-        </form.Subscribe>
+          </CardContent>
 
-        {/* Action Buttons */}
-        <div className="flex">
-          <form.Subscribe selector={({ canSubmit, isSubmitting }) => [canSubmit, isSubmitting]}>
-            {([canSubmit, isSubmitting]) => (
-              <Button
-                className="flex-1 bg-success text-success-foreground hover:bg-success/90"
-                disabled={!canSubmit || isSubmitting}
-                iconPosition="right"
-                renderIcon={(props) => isSubmitting && <Spinner {...props} />}
-              >
-                Place Bet
-              </Button>
-            )}
-          </form.Subscribe>
-        </div>
-      </CardContent>
+          <Separator className="my-6" />
 
-      <Separator />
+          {/* Footer Info */}
+          <CardFooter className="justify-between w-full">
+            <div className="flex items-center gap-1">
+              <DollarSign className="size-3" />
+              <span>{CurrencyConverter.toTez(balance)} XTZ</span>
+            </div>
 
-      {/* Footer Info */}
-      <CardFooter className="justify-between w-full">
-        <div className="flex items-center gap-1">
-          <DollarSign className="size-3" />
-          <span>{CurrencyConverter.toTez(volume)} XTZ</span>
-        </div>
+            <div className="flex items-center gap-1">
+              <Clock className="size-3" />
+              <span>{resolutionDate.split("T")[0]}</span>
+            </div>
 
-        <div className="flex items-center gap-1">
-          <Clock className="size-3" />
-          <span>{resolutionDate.split("T")[0]}</span>
-        </div>
-
-        {StateBadge}
-      </CardFooter>
+            {StateBadge}
+          </CardFooter>
+        </form>
+      </form.AppForm>
     </Card>
   );
 }
