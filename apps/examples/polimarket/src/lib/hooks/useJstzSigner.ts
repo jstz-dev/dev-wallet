@@ -50,7 +50,7 @@ export function useJstzSignerExtension({ onFill }: { onFill?: (address: string) 
   const { data: jstzWalletBalance } = useQuery({
     ...accounts.balance(jstzWalletAddress),
     select: (data) => ({
-      balance: data?.balance,
+      balance: data,
       isValid: accountSchema.shape.address.safeParse(jstzWalletAddress).success,
     }),
     enabled:
