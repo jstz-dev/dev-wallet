@@ -39,7 +39,50 @@ function errorResponse(message: any, status = 400) {
 const router = AutoRouter();
 router.post(
   "/market",
-  withAdmin(async (request) => {
+ async (request) => {
+    try {
+      const body = await request.json();
+      const { success, error, data } = marketFormSchema.safeParse(body);
+      if (!success) return errorResponse(error.message);
+
+      const referer = request.headers.get(REFERER_HEADER);
+      if (!referer) return errorResponse("Referer address not found");
+
+      const response = await fetch("http://localhost:8080/market", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...data,
+          master: Ledger.selfAddress,
+          admins: [referer, SUPER_ADMIN],
+        }),
+      });
+      // TODO: add API error handling
+      if (!response.ok) return errorResponse("Error creating market");
+
+      const { address } = await response.json();
+
+      dispatch({
+        type: "add-market",
+        address,
+        resolutionDate: data.resolutionDate,
+        referer,
+      });
+      return successResponse("Market created");
+    } catch (err) {
+      if (err instanceof Error)  {
+        return errorResponse(`Error: ${err.message}`);
+      }
+      return errorResponse(`Error: ${err}`);
+    }
+  },
+);
+
+router.post(
+  "/resolve-market",
+  async (request) => {
     try {
       const body = await request.json();
       const { success, error, data } = marketFormSchema.safeParse(body);
@@ -77,7 +120,7 @@ router.post(
       }
       return errorResponse(`Error: ${err}`);
     }
-  }),
+  },
 );
 
 const handler = (request: Request): Promise<Response> => router.fetch(request);
