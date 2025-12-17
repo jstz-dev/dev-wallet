@@ -50,7 +50,7 @@ router.post(
       if (!referer) return errorResponse("Referer address not found");
 
       const response = await fetch(
-        "https://glenda-belonoid-unvirtuously.ngrok-free.dev/api/market",
+        "https://dev-wallet-jstz-prediction-market.vercel.app/api/market",
         {
           method: "POST",
           headers: {

@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(error.message, { status: 401 });
   }
 
-  const smartFunctionBody = readFileSync("./market-dapp/dist/market.js").toString("utf8");
+  const smartFunctionBody = readFileSync("./src/app/api/market/market.js").toString("utf8");
 
   // Deploy smart function
   const deployOperation: Jstz.Operation.DeployFunction = {
