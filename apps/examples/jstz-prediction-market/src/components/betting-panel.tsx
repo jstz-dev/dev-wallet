@@ -1,5 +1,6 @@
 "use client";
 
+import Jstz from "@jstz-dev/jstz-client";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Badge } from "jstz-ui/ui/badge";
 import { Button } from "jstz-ui/ui/button";
@@ -55,6 +56,8 @@ export function BettingPanel({
           _type: "RunFunction",
           uri: `jstz://${address}/bet`,
           headers: {
+            // @ts-expect-error The types for headers require `number` but when you pass it signing will fail.
+            // It that's why we are passing it as a `string`.
             "X-JSTZ-TRANSFER": amount.toString(),
           },
           method: "POST",
@@ -67,7 +70,7 @@ export function BettingPanel({
 
       const {
         result: { inner },
-      } = await jstzClient.operations.injectAndPoll(
+      } = (await jstzClient.operations.injectAndPoll(
         {
           inner: operation,
           signature,
@@ -76,7 +79,11 @@ export function BettingPanel({
         {
           timeout: 100 * 1_000,
         },
-      );
+        // HACK: This is a workaround for the current version of `jstz-client`.
+        // There's an open PR that adds proper inference for the return type of `injectAndPoll`
+        // so it returns concrete Receipt based on provided `content._type` instead of a union
+        // of all possible Receipts
+      )) as { result: { inner: Jstz.Receipt.Success.RunFunction } };
 
       console.log(textDecode(inner.body));
     },
@@ -116,6 +123,10 @@ export function BettingPanel({
 
   function calculatePotentialWin(side: "yes" | "no", betAmount: number) {
     const token = side === "yes" ? yesToken : noToken;
+    assert(
+      token,
+      "If `token` is `undefined` at this point something is wrong with the logic of assigning the initial tokens.",
+    );
 
     const syntheticTokensAmount = bets.reduce((acc, token) => {
       if (token.isSynthetic && side === token.token) {
@@ -127,7 +138,7 @@ export function BettingPanel({
 
     const tokensToBuy = betAmount / token.price;
 
-    const result = (balance + betAmount) / (token?.amount - syntheticTokensAmount + tokensToBuy);
+    const result = (balance + betAmount) / (token.amount - syntheticTokensAmount + tokensToBuy);
 
     return result * tokensToBuy;
   }

@@ -1,5 +1,6 @@
 "use client";
 
+import Jstz from "@jstz-dev/jstz-client";
 import { useMutation } from "@tanstack/react-query";
 import { useIsClient } from "@uidotdev/usehooks";
 import { Alert, AlertDescription, AlertTitle } from "jstz-ui/ui/alert";
@@ -15,7 +16,6 @@ import { useAppForm } from "~/components/ui/form";
 import { env } from "~/env";
 import { textDecode, textEncode } from "~/lib/encoder";
 import { useJstzSignerExtension } from "~/lib/hooks/useJstzSigner";
-import { SignWithJstzSignerParams } from "~/lib/jstz-signer.service";
 import { MarketForm, marketFormSchema } from "~/lib/validators/market";
 import { Token } from "~/lib/validators/token";
 import { useJstzClient } from "~/providers/jstz-client.context";
@@ -36,7 +36,7 @@ export default function DeployPage() {
 
   const { mutateAsync: deployMarket } = useMutation({
     mutationFn: async (market: MarketForm) => {
-      const payload: SignWithJstzSignerParams = {
+      const payload = {
         content: {
           _type: "RunFunction",
           uri: `jstz://${env.NEXT_PUBLIC_PARENT_SF_ADDRESS}/market`,
@@ -44,7 +44,7 @@ export default function DeployPage() {
           method: "POST",
           body: textEncode(market),
           gasLimit: 55_000,
-        },
+        } satisfies Jstz.Operation.RunFunction,
       };
 
       const { operation, signature, verifier } = await signWithJstzExtension(payload);
@@ -52,7 +52,7 @@ export default function DeployPage() {
 
       const {
         result: { inner },
-      } = await jstzClient.operations.injectAndPoll(
+      } = (await jstzClient.operations.injectAndPoll(
         {
           inner: operation,
           signature,
@@ -61,26 +61,31 @@ export default function DeployPage() {
         {
           timeout: 100 * 1_000,
         },
-      );
+        // HACK: This is a workaround for the current version of `jstz-client`.
+        // There's an open PR that adds proper inference for the return type of `injectAndPoll`
+        // so it returns concrete Receipt based on provided `content._type` instead of a union
+        // of all possible Receipts
+      )) as { result: { inner: Jstz.Receipt.Success.RunFunction } };
 
       try {
-        if (typeof inner !== "string" && inner._type === "RunFunction") {
-          const { data: response, error } = responseSchema.safeParse(textDecode(inner.body));
+        const { data: response, error } = responseSchema.safeParse(textDecode(inner.body));
 
-          if (error) {
-            console.error("Invalid response was given.");
-            return;
-          } else if ("message" in response) {
-            console.info(`Completed call. Response: ${response.message}`);
-            return;
-          }
-
-          router.push(`/markets/${response.address}`);
+        if (error) {
+          console.error("Invalid response was given.");
+          return;
+        } else if ("message" in response) {
+          console.info(`Completed call. Response: ${response.message}`);
           return;
         }
+
+        router.push(`/markets/${response.address}`);
+        return;
       } catch (e) {
         console.info(`Completed call. Couldn't parse it to JSON.`);
-        console.dir(textDecode(inner.body));
+
+        if (typeof inner !== "string") {
+          console.dir(textDecode(inner.body));
+        }
       }
     },
   });
