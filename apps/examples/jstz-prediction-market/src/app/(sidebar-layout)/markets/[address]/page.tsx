@@ -26,7 +26,8 @@ export default function MarketPage() {
 
   const { data: balance } = useSuspenseQuery(accounts.balance(address));
 
-  const { data: market, error } = marketSchema.safeParse(JSON.parse(kv));
+  // FIXME: get rid of type assertion
+  const { data: market, error } = marketSchema.safeParse(JSON.parse(kv as string));
 
   if (error) {
     console.error(error);

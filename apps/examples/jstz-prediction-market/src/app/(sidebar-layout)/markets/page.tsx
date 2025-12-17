@@ -31,7 +31,7 @@ export default async function MarketsPage() {
   const markets = await (async () => {
     if (!kv) return [];
 
-    const { data: marketsFromRoot, error } = marketFromRoot.safeParse(JSON.parse(kv));
+    const { data: marketsFromRoot, error } = marketFromRoot.safeParse(JSON.parse(kv as string));
     if (error) {
       throw error;
     }
@@ -42,7 +42,7 @@ export default async function MarketsPage() {
         await queryClient.prefetchQuery(options);
 
         const kv = await queryClient.getQueryData(options.queryKey);
-        return { ...marketSchema.parse(JSON.parse(kv)), address };
+        return { ...marketSchema.parse(JSON.parse(kv as string)), address };
       }),
     );
   })();
