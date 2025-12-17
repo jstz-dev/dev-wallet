@@ -13,7 +13,7 @@ import assert from "node:assert";
 import { FormEvent } from "react";
 import { z } from "zod/mini";
 import * as CurrencyConverter from "~/lib/currencyConverter";
-import { textEncode } from "~/lib/encoder";
+import { textDecode, textEncode } from "~/lib/encoder";
 import { useJstzSignerExtension } from "~/lib/hooks/useJstzSigner";
 import { SignWithJstzSignerParams } from "~/lib/jstz-signer.service";
 import type { Market } from "~/lib/validators/market";
@@ -22,9 +22,6 @@ import { useJstzClient } from "~/providers/jstz-client.context";
 import { accounts } from "~/queries/account.queries";
 import { smartFunctions } from "~/queries/smartFunctions.queries";
 import { useAppForm } from "./ui/form";
-
-const MIN_BET = 1;
-const MAX_BET = 100;
 
 const betFormSchema = z.pick(tokenSchema, { token: true, amount: true });
 
@@ -51,12 +48,14 @@ export function BettingPanel({
 
   const { mutateAsync: placeBet } = useMutation({
     mutationFn: async ({ token, amount }: Pick<Token, "token"> & { amount: number }) => {
+      console.log(amount);
+
       const payload: SignWithJstzSignerParams = {
         content: {
           _type: "RunFunction",
           uri: `jstz://${address}/bet`,
           headers: {
-            "X-JSTZ-TRANSFER": CurrencyConverter.toMutez(amount).toString(),
+            "X-JSTZ-TRANSFER": amount.toString(),
           },
           method: "POST",
           body: textEncode({ token }),
@@ -78,6 +77,8 @@ export function BettingPanel({
           timeout: 100 * 1_000,
         },
       );
+
+      console.log(textDecode(inner.body));
     },
 
     onSuccess: () => {
@@ -86,10 +87,16 @@ export function BettingPanel({
     },
   });
 
+  const noToken = tokens.find((token) => token.token === "no");
+  assert(noToken, "Token should be defined.");
+
+  const yesToken = tokens.find((token) => token.token === "yes");
+  assert(yesToken, "Token should be defined.");
+
   const form = useAppForm({
     defaultValues: {
       token: "yes" as Token["token"],
-      amount: 50,
+      amount: yesToken.price,
     },
 
     validators: {
@@ -107,35 +114,32 @@ export function BettingPanel({
     void form.handleSubmit();
   }
 
-  const noToken = tokens.find((token) => token.token === "no");
-  assert(noToken, "Token should be defined.");
-
-  const yesToken = tokens.find((token) => token.token === "yes");
-  assert(yesToken, "Token should be defined.");
-
   function calculatePotentialWin(side: "yes" | "no", betAmount: number) {
     const token = side === "yes" ? yesToken : noToken;
-    const tokensToBuy = Math.floor(CurrencyConverter.toMutez(betAmount) / token.price);
 
-    console.log("price:", token?.price);
-    console.log("balance:", balance);
-    console.log("amount:", token.amount);
+    const syntheticTokensAmount = bets.reduce((acc, token) => {
+      if (token.isSynthetic && side === token.token) {
+        return acc + token.amount;
+      }
 
-    const result =
-      (CurrencyConverter.toTez(balance) + betAmount) /
-      (CurrencyConverter.toTez(token?.amount) + tokensToBuy);
+      return acc;
+    }, 0);
 
-    return result.toFixed(2);
+    const tokensToBuy = betAmount / token.price;
+
+    const result = (balance + betAmount) / (token?.amount - syntheticTokensAmount + tokensToBuy);
+
+    return result * tokensToBuy;
   }
 
   function calculateProfit(side: "yes" | "no", betAmount: number) {
-    const win = Number.parseFloat(calculatePotentialWin(side, betAmount));
-    return (win - betAmount).toFixed(2);
+    const win = calculatePotentialWin(side, betAmount);
+    return Math.max(win - betAmount, 0);
   }
 
   function calculateReturn(side: "yes" | "no", betAmount: number) {
-    const profit = Number.parseFloat(calculateProfit(side, betAmount));
-    return ((profit / betAmount) * 100).toFixed(1);
+    const profit = calculateProfit(side, betAmount);
+    return (profit / betAmount) * 100;
   }
 
   const StateBadge = (() => {
@@ -241,7 +245,10 @@ export function BettingPanel({
                     <div className="grid grid-cols-2 gap-2">
                       <Button
                         type="button"
-                        onClick={() => field.handleChange("yes")}
+                        onClick={() => {
+                          field.handleChange("yes");
+                          form.setFieldValue("amount", yesToken.price);
+                        }}
                         className={cn(
                           "rounded-lg border-2",
                           field.state.value === "yes"
@@ -255,7 +262,10 @@ export function BettingPanel({
                       <Button
                         type="button"
                         variant="destructive"
-                        onClick={() => field.handleChange("no")}
+                        onClick={() => {
+                          field.handleChange("no");
+                          form.setFieldValue("amount", noToken.price);
+                        }}
                         className={cn(
                           "rounded-lg border-2",
                           field.state.value === "no"
@@ -273,37 +283,46 @@ export function BettingPanel({
 
             {/* Bet Amount Slider */}
             <form.AppField name="amount">
-              {(field) => (
-                <field.FormItem className="mb-6">
-                  <div className="mb-3 flex items-center justify-between">
-                    <field.FormLabel
-                      htmlFor="bet-amount"
-                      className="text-sm font-medium text-muted-foreground"
-                    >
-                      Bet Amount:
-                    </field.FormLabel>
+              {(field) => {
+                const side = form.getFieldValue("token");
 
-                    <span className="text-lg font-bold text-primary">{field.state.value} XTZ</span>
-                  </div>
+                const token = side === "yes" ? yesToken : noToken;
+                const price = token.price;
 
-                  <field.FormControl>
-                    <Slider
-                      name="bet-amount"
-                      value={[field.state.value]}
-                      onValueChange={(value) => field.handleChange(value[0])}
-                      min={MIN_BET}
-                      max={MAX_BET}
-                      step={1}
-                      className="mb-2"
-                    />
-                  </field.FormControl>
+                return (
+                  <field.FormItem className="mb-6">
+                    <div className="mb-3 flex items-center justify-between">
+                      <field.FormLabel
+                        htmlFor="bet-amount"
+                        className="text-sm font-medium text-muted-foreground"
+                      >
+                        Bet Amount:
+                      </field.FormLabel>
 
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>{MIN_BET} XTZ</span>
-                    <span>{MAX_BET} XTZ</span>
-                  </div>
-                </field.FormItem>
-              )}
+                      <span className="text-lg font-bold text-primary">
+                        {CurrencyConverter.toTez(field.state.value)} XTZ
+                      </span>
+                    </div>
+
+                    <field.FormControl>
+                      <Slider
+                        name="bet-amount"
+                        value={[field.state.value]}
+                        onValueChange={(value) => field.handleChange(value[0])}
+                        min={price}
+                        max={price * 100}
+                        step={price}
+                        className="mb-2"
+                      />
+                    </field.FormControl>
+
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>{CurrencyConverter.toTez(price)} XTZ</span>
+                      <span>{CurrencyConverter.toTez(price * 100)} XTZ</span>
+                    </div>
+                  </field.FormItem>
+                );
+              }}
             </form.AppField>
 
             {/* Potential Returns */}
@@ -313,21 +332,21 @@ export function BettingPanel({
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Potential Win:</span>
                     <span className="font-semibold text-success">
-                      {calculatePotentialWin(token, amount)} XTZ
+                      {CurrencyConverter.toTez(calculatePotentialWin(token, amount))} XTZ
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Profit:</span>
                     <span className="font-semibold text-success">
-                      {calculateProfit(token, amount)} XTZ
+                      {CurrencyConverter.toTez(calculateProfit(token, amount))} XTZ
                     </span>
                   </div>
 
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Return:</span>
                     <span className="font-semibold text-primary">
-                      +{calculateReturn(token, amount)}%
+                      +{calculateReturn(token, amount).toFixed(2)}%
                     </span>
                   </div>
                 </div>

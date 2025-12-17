@@ -93,16 +93,14 @@ export default function DeployPage() {
       pool: 0,
       tokens: [
         {
-          isSynthetic: true,
           token: "yes" as Token["token"],
-          amount: 70,
-          price: 1,
+          amount: 500,
+          price: 500_000,
         },
         {
-          isSynthetic: true,
           token: "no" as Token["token"],
-          amount: 30,
-          price: 1,
+          amount: 500,
+          price: 500_000,
         },
       ],
     },

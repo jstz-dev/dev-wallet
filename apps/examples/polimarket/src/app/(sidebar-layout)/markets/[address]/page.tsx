@@ -35,14 +35,12 @@ export default function MarketPage() {
 
   const [yesCount, noCount] = market.bets.reduce(
     (acc, bet) => {
-      if (bet.isSynthetic) return acc;
-
       switch (bet.token) {
         case "yes":
-          acc[0] += 1;
+          acc[0] += bet.amount;
           break;
         case "no":
-          acc[1] += 1;
+          acc[1] += bet.amount;
           break;
       }
 
@@ -51,8 +49,10 @@ export default function MarketPage() {
     [0, 0],
   );
 
-  const yesRatio = (yesCount / market.bets.length) * 100;
-  const noRatio = (noCount / market.bets.length) * 100;
+  const numberOfTokens = market.tokens.reduce((acc, token) => acc + token.amount, 0);
+
+  const yesRatio = (yesCount / numberOfTokens) * 100;
+  const noRatio = (noCount / numberOfTokens) * 100;
 
   return (
     <main className="flex-1">

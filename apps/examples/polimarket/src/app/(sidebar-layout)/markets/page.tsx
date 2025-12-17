@@ -1,4 +1,5 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { z } from "zod/mini";
 import { MarketCard } from "~/components/market-card";
@@ -26,20 +27,25 @@ export default async function MarketsPage() {
   await queryClient.prefetchQuery(options);
 
   const kv = await queryClient.getQueryData(options.queryKey);
-  const { data: marketsFromRoot, error } = marketFromRoot.safeParse(JSON.parse(kv));
-  if (error) {
-    throw error;
-  }
 
-  const markets = await Promise.all(
-    Object.values(marketsFromRoot.markets).map(async ({ address }) => {
-      const options = smartFunctions.getKv(address, "root", jstzClient);
-      await queryClient.prefetchQuery(options);
+  const markets = await (async () => {
+    if (!kv) return [];
 
-      const kv = await queryClient.getQueryData(options.queryKey);
-      return { ...marketSchema.parse(JSON.parse(kv)), address };
-    }),
-  );
+    const { data: marketsFromRoot, error } = marketFromRoot.safeParse(JSON.parse(kv));
+    if (error) {
+      throw error;
+    }
+
+    return Promise.all(
+      Object.values(marketsFromRoot.markets).map(async ({ address }) => {
+        const options = smartFunctions.getKv(address, "root", jstzClient);
+        await queryClient.prefetchQuery(options);
+
+        const kv = await queryClient.getQueryData(options.queryKey);
+        return { ...marketSchema.parse(JSON.parse(kv)), address };
+      }),
+    );
+  })();
 
   return (
     <main className="flex-1">
@@ -53,21 +59,21 @@ export default async function MarketsPage() {
           </p>
         </div>
 
-        <HydrationBoundary state={dehydrate(queryClient)}>
-          {markets.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-              <div className="rounded-full bg-muted p-6 mb-4">
-                <TrendingUp className="h-12 w-12 text-muted-foreground" />
-              </div>
-
-              <h3 className="text-xl font-semibold mb-2">No markets available</h3>
-              <p className="text-muted-foreground max-w-md">
-                There are no prediction markets in this category yet. Check back soon or explore
-                other categories.
-              </p>
+        {markets.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+            <div className="rounded-full bg-muted p-6 mb-4">
+              <TrendingUp className="h-12 w-12 text-muted-foreground" />
             </div>
-          )}
 
+            <h3 className="text-xl font-semibold mb-2">No markets available</h3>
+            <p className="text-muted-foreground max-w-md">
+              There are no prediction markets in this category yet. Check back soon or explore other
+              categories.
+            </p>
+          </div>
+        )}
+
+        <HydrationBoundary state={dehydrate(queryClient)}>
           {markets.length !== 0 && (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {markets.map((market) => (
