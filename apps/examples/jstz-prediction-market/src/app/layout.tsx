@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Polimarket",
-  description: "Example app depicting a theoretical implementation of a polimarket betting site.",
+  title: "Jstz prediction market",
+  description: "Example app depicting a theoretical implementation of a prediction market betting site through Jstz.",
   icons: {
     icon: [
       {

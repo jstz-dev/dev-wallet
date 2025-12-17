@@ -1,7 +1,6 @@
 packages:
   - apps/signer
-  - apps/examples/polimarket
-  - apps/examples/jstz-prediction-market/market-dapp
+  - apps/examples/jstz-prediction-market/**
   - packages/**
 
 onlyBuiltDependencies:
