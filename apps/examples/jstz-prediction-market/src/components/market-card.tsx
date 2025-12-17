@@ -99,6 +99,7 @@ export function MarketCard({
         )}
 
         {/* Resolved State */}
+        {/* TODO: Add a proper display of the resolved market. */}
         {isResolved && (
           <div className="rounded-lg bg-success/20 border border-success/30 p-4">
             <div className="flex items-center justify-between">
@@ -108,7 +109,7 @@ export function MarketCard({
                 </div>
 
                 <p className="mt-1 text-sm text-success/80">
-                  Winning side: {market.winningOutcome?.toUpperCase()}
+                  Winning side: {/* market.winningOutcome?.toUpperCase() */}
                 </p>
               </div>
             </div>
