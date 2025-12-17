@@ -59,6 +59,8 @@ export default function Wallet() {
 
   const [privateKeyVisible, setPrivateKeyVisible] = useState(false);
 
+  const isPasskeyAccount = account?.[StorageKeys.PRIVATE_KEY] === null;
+
   return (
     <div className="flex w-full flex-col gap-4 p-4">
       <div className="flex w-full flex-col gap-2">
@@ -70,8 +72,8 @@ export default function Wallet() {
         <div className="flex flex-col gap-2">
           <div className="grid grid-cols-3 gap-2">
             <div className="col-span-2 space-y-2">
-              <Label>Account</Label>
               <AccountSelect selectedAccount={accountAddress} />
+              <Label>{isPasskeyAccount ? "Passkey" : "Account"}</Label>
             </div>
 
             <div className="col-span-1 space-y-2">
