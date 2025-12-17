@@ -1,5 +1,4 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
-
+import { QueryErrorResetBoundary, useSuspenseQuery } from "@tanstack/react-query";
 import { Alert, AlertDescription } from "jstz-ui/ui/alert";
 import { Button } from "jstz-ui/ui/button";
 import { Label } from "jstz-ui/ui/label";
@@ -9,10 +8,12 @@ import { cn } from "jstz-ui/utils";
 import { Eye, EyeOff } from "lucide-react";
 import { useQueryStates } from "nuqs";
 import { usePasskeyWallet } from "passkey-signer-react";
-import { Suspense, useState } from "react";
+import { Suspense, useRef, useState } from "react";
+import { ErrorBoundary } from "react-error-boundary";
 import { redirect, useParams, type LoaderFunctionArgs } from "react-router";
 import SuperJSON from "superjson";
 import { z } from "zod/v4-mini";
+
 import { AccountSelect } from "~/components/AccountSelect";
 import {
   CopyContainer,
@@ -31,6 +32,7 @@ import {
   ResponseEventTypes,
   type SignOperationContent,
 } from "~/scripts/service-worker";
+
 import { walletParsers } from "./url-params";
 
 export function loader({ params }: LoaderFunctionArgs) {
@@ -61,6 +63,7 @@ export default function Wallet() {
 
   const isPasskeyAccount = account?.[StorageKeys.PRIVATE_KEY] === null;
 
+  const resetBalanceErrorBoundary = useRef(() => {});
   return (
     <div className="flex w-full flex-col gap-4 p-4">
       <div className="flex w-full flex-col gap-2">
@@ -72,16 +75,45 @@ export default function Wallet() {
         <div className="flex flex-col gap-2">
           <div className="grid grid-cols-3 gap-2">
             <div className="col-span-2 space-y-2">
-              <AccountSelect selectedAccount={accountAddress} />
               <Label>{isPasskeyAccount ? "Passkey" : "Account"}</Label>
+              <AccountSelect
+                selectedAccount={accountAddress}
+                onAccountSelected={() => resetBalanceErrorBoundary.current()}
+              />
             </div>
 
             <div className="col-span-1 space-y-2">
               <Label>Balance</Label>
 
-              <Suspense fallback={<BalanceFallback />}>
-                <Balance address={accountAddress} />
-              </Suspense>
+              <QueryErrorResetBoundary>
+                {({ reset }) => (
+                  <ErrorBoundary
+                    onReset={reset}
+                    fallbackRender={({ resetErrorBoundary }) => {
+                      resetBalanceErrorBoundary.current = resetErrorBoundary;
+
+                      return (
+                        <Alert className={cn(copyContainerVariants({ variant: "secondary" }))}>
+                          <AlertDescription
+                            className={cn(
+                              descriptionVariants({
+                                variant: "secondary",
+                              }),
+                              "h-8 items-center",
+                            )}
+                          >
+                            <p className="max-w-24 truncate">n/a</p>
+                          </AlertDescription>
+                        </Alert>
+                      );
+                    }}
+                  >
+                    <Suspense fallback={<BalanceFallback />}>
+                      <Balance address={accountAddress} />
+                    </Suspense>
+                  </ErrorBoundary>
+                )}
+              </QueryErrorResetBoundary>
             </div>
           </div>
         </div>
@@ -97,7 +129,7 @@ export default function Wallet() {
         <CopyContainer>{account?.[StorageKeys.PUBLIC_KEY] ?? ""}</CopyContainer>
       </div>
 
-      {account?.[StorageKeys.PRIVATE_KEY] !== null && (
+      {!isPasskeyAccount && (
         <div className="flex w-full flex-col gap-2">
           <Label className="uppercase text-white/50">Private key:</Label>
 
@@ -259,7 +291,7 @@ function Balance({ address }: BalanceProps) {
   const currentNetwork = useVault.use.currentNetwork();
 
   const {
-    data: { data: balance, error },
+    data: { data: balance },
   } = useSuspenseQuery({
     queryKey: ["balance", address, currentNetwork],
     queryFn: () =>
@@ -280,9 +312,10 @@ function Balance({ address }: BalanceProps) {
               "h-8 items-center justify-center",
             )}
           >
-            <p className="max-w-24 truncate">{!error ? toTezString(balance) : "n/a"}</p>
+            <p className="max-w-24 truncate">{toTezString(balance)}</p>
           </AlertDescription>
         </TooltipTrigger>
+
         <TooltipContent>
           <p>{toTezString(balance)}</p>
         </TooltipContent>
@@ -292,5 +325,5 @@ function Balance({ address }: BalanceProps) {
 }
 
 function BalanceFallback() {
-  return <Skeleton className="h-[38.75px]" />;
+  return <Skeleton className="h-12" />;
 }
