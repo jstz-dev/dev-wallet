@@ -64,7 +64,6 @@ export default function Wallet() {
   const isPasskeyAccount = account?.[StorageKeys.PRIVATE_KEY] === null;
 
   const resetBalanceErrorBoundary = useRef(() => {});
-
   return (
     <div className="flex w-full flex-col gap-4 p-4">
       <div className="flex w-full flex-col gap-2">
