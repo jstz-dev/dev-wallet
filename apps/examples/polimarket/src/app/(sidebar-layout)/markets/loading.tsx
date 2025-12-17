@@ -15,9 +15,9 @@ export default function MarketsPageLoading() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 grid-rows-[auto]">
           {skeletonCards.map((idx) => (
-            <Skeleton key={idx} className="rounded-xl h-59.5 w-181" />
+            <Skeleton key={idx} className="rounded-xl self-stretch justify-self-stretch h-64.5" />
           ))}
         </div>
       </div>

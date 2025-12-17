@@ -1,22 +1,13 @@
+import Jstz from "@jstz-dev/jstz-client";
 import { createQueryKeys } from "@lukemorales/query-key-factory";
-import { z } from "zod/mini";
-import { $fetch } from "~/lib/$fetch";
-import { Account } from "~/lib/validators/account";
+import { createJstzClient } from "~/lib/jstz-signer.service";
+import type { Account } from "~/lib/validators/account";
 
 export const accounts = createQueryKeys("accounts", {
-  balance: (address: Account["address"]) => ({
+  balance: (address: Account["address"], jstzClient: Jstz = createJstzClient()) => ({
     queryKey: ["balance", address],
-    queryFn: async () => {
-      const { data, error } = await $fetch(`/accounts/${address}/balance`, {
-        output: z.object({ balance: z.nullish(z.number()) }),
-      });
-
-      if (error) {
-        console.error(error);
-        return null;
-      }
-
-      return data;
+    queryFn: async ({ signal }) => {
+      return jstzClient.accounts.getBalance(address, { signal });
     },
   }),
 });

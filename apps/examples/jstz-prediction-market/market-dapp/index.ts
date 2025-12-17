@@ -8,8 +8,8 @@ const REFERER_HEADER = "Referer";
 
 // Schemas
 const addressSchema = z.string().length(36);
+
 const tokenSchema = z.object({
-  isSynthetic: z.boolean(),
   token: z.enum(["yes", "no"]),
   amount: z.number().min(1),
   price: z.number().min(1).max(ONE_TEZ),

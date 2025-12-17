@@ -1,16 +1,28 @@
 "use client";
 
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { Badge } from "jstz-ui/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "jstz-ui/ui/card";
 import { Progress } from "jstz-ui/ui/progress";
 import { Separator } from "jstz-ui/ui/separator";
 import { Clock } from "lucide-react";
 import assert from "node:assert";
+import * as CurrencyConverter from "~/lib/currencyConverter";
 import { Market } from "~/lib/validators/market";
+import { accounts } from "~/queries/account.queries";
 
-type MarketCardProps = Market;
+interface MarketCardProps extends Market {
+  address: string;
+}
 
-export function MarketCard({ state, question, tokens, resolutionDate, bets }: MarketCardProps) {
+export function MarketCard({
+  state,
+  question,
+  tokens,
+  resolutionDate,
+  bets,
+  address,
+}: MarketCardProps) {
   const isResolved = state === "resolved";
 
   const noToken = tokens.find((token) => token.token === "no");
@@ -19,21 +31,16 @@ export function MarketCard({ state, question, tokens, resolutionDate, bets }: Ma
   const yesToken = tokens.find((token) => token.token === "yes");
   assert(yesToken, "Token should be defined.");
 
-  const volume = tokens.reduce((acc, token) => {
-    if (token.isSynthetic) return acc;
-    return acc + token.amount * token.price;
-  }, 0);
+  const { data: balance } = useSuspenseQuery(accounts.balance(address));
 
   const [yesCount, noCount] = bets.reduce(
     (acc, bet) => {
-      if (bet.isSynthetic) return acc;
-
       switch (bet.token) {
         case "yes":
-          acc[0] += 1;
+          acc[0] += bet.amount;
           break;
         case "no":
-          acc[1] += 1;
+          acc[1] += bet.amount;
           break;
       }
 
@@ -42,8 +49,10 @@ export function MarketCard({ state, question, tokens, resolutionDate, bets }: Ma
     [0, 0],
   );
 
-  const yesRatio = yesCount / bets.length;
-  const noRatio = noCount / bets.length;
+  const numberOfTokens = tokens.reduce((acc, token) => acc + token.amount, 0);
+
+  const yesRatio = (yesCount / numberOfTokens) * 100;
+  const noRatio = (noCount / numberOfTokens) * 100;
 
   return (
     <Card className="group cursor-pointer overflow-hidden border-border bg-card transition-all hover:border-primary/50">
@@ -67,12 +76,12 @@ export function MarketCard({ state, question, tokens, resolutionDate, bets }: Ma
           <>
             <div className="mb-3 flex items-center justify-between text-sm">
               <span className="font-medium text-muted-foreground">
-                YES - {yesRatio}
+                YES - {yesRatio.toFixed(2)}
                 {!Number.isNaN(yesRatio) && "%"}
               </span>
 
               <span className="font-medium text-muted-foreground">
-                NO - {noRatio}
+                NO - {noRatio.toFixed(2)}
                 {!Number.isNaN(noRatio) && "%"}
               </span>
             </div>
@@ -119,7 +128,7 @@ export function MarketCard({ state, question, tokens, resolutionDate, bets }: Ma
       <CardFooter className="flex justify-between">
         <div className="flex items-center gap-1">
           <DollarSign className="h-3 w-3" />
-          <span>{volume}</span>
+          <span>{CurrencyConverter.toTez(balance)}</span>
         </div>
 
         <div className="flex items-center gap-1">

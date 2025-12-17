@@ -1,20 +1,29 @@
 "use client";
 
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Badge } from "jstz-ui/ui/badge";
 import { Button } from "jstz-ui/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "jstz-ui/ui/card";
 import { Separator } from "jstz-ui/ui/separator";
 import { Slider } from "jstz-ui/ui/slider";
+import { Spinner } from "jstz-ui/ui/spinner";
 import { cn } from "jstz-ui/utils";
 import { AlertTriangle, Clock, DollarSign } from "lucide-react";
 import assert from "node:assert";
-import { useState } from "react";
+import { FormEvent } from "react";
+import { z } from "zod/mini";
 import * as CurrencyConverter from "~/lib/currencyConverter";
+import { textDecode, textEncode } from "~/lib/encoder";
+import { useJstzSignerExtension } from "~/lib/hooks/useJstzSigner";
+import { SignWithJstzSignerParams } from "~/lib/jstz-signer.service";
 import type { Market } from "~/lib/validators/market";
-import { Token } from "~/lib/validators/token";
+import { Token, tokenSchema } from "~/lib/validators/token";
+import { useJstzClient } from "~/providers/jstz-client.context";
+import { accounts } from "~/queries/account.queries";
+import { smartFunctions } from "~/queries/smartFunctions.queries";
+import { useAppForm } from "./ui/form";
 
-const MIN_BET = 10;
-const MAX_BET = 100;
+const betFormSchema = z.pick(tokenSchema, { token: true, amount: true });
 
 interface BettingPanelProps extends Market {
   address: string;
@@ -26,9 +35,57 @@ export function BettingPanel({
   state,
   tokens,
   resolutionDate,
+  bets,
 }: BettingPanelProps) {
-  const [selectedSide, setSelectedSide] = useState<Token["token"]>("yes");
-  const [betAmount, setBetAmount] = useState(99);
+  const { signWithJstzExtension } = useJstzSignerExtension();
+  const { getJstzClient } = useJstzClient();
+
+  const jstzClient = getJstzClient();
+
+  const { data: balance } = useSuspenseQuery(accounts.balance(address));
+
+  const queryClient = useQueryClient();
+
+  const { mutateAsync: placeBet } = useMutation({
+    mutationFn: async ({ token, amount }: Pick<Token, "token"> & { amount: number }) => {
+      console.log(amount);
+
+      const payload: SignWithJstzSignerParams = {
+        content: {
+          _type: "RunFunction",
+          uri: `jstz://${address}/bet`,
+          headers: {
+            "X-JSTZ-TRANSFER": amount.toString(),
+          },
+          method: "POST",
+          body: textEncode({ token }),
+          gasLimit: 55_000,
+        },
+      };
+
+      const { operation, signature, verifier } = await signWithJstzExtension(payload);
+
+      const {
+        result: { inner },
+      } = await jstzClient.operations.injectAndPoll(
+        {
+          inner: operation,
+          signature,
+          verifier: verifier ?? null,
+        },
+        {
+          timeout: 100 * 1_000,
+        },
+      );
+
+      console.log(textDecode(inner.body));
+    },
+
+    onSuccess: () => {
+      void queryClient.invalidateQueries(smartFunctions.getKv(address, "root", jstzClient));
+      void queryClient.invalidateQueries(accounts.balance(address, jstzClient));
+    },
+  });
 
   const noToken = tokens.find((token) => token.token === "no");
   assert(noToken, "Token should be defined.");
@@ -36,24 +93,53 @@ export function BettingPanel({
   const yesToken = tokens.find((token) => token.token === "yes");
   assert(yesToken, "Token should be defined.");
 
-  const volume = tokens.reduce((acc, token) => {
-    if (token.isSynthetic) return acc;
-    return acc + token.amount * token.price;
-  }, 0);
+  const form = useAppForm({
+    defaultValues: {
+      token: "yes" as Token["token"],
+      amount: yesToken.price,
+    },
 
-  function calculatePotentialWin() {
-    const odds = selectedSide === "yes" ? 100 / yesToken.price : 100 / noToken.price;
-    return (betAmount * odds).toFixed(2);
+    validators: {
+      onSubmit: betFormSchema,
+    },
+
+    onSubmit: async ({ value }) => {
+      await placeBet(value);
+    },
+  });
+
+  function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.stopPropagation();
+    e.preventDefault();
+    void form.handleSubmit();
   }
 
-  function calculateProfit() {
-    const win = Number.parseFloat(calculatePotentialWin());
-    return (win - betAmount).toFixed(2);
+  function calculatePotentialWin(side: "yes" | "no", betAmount: number) {
+    const token = side === "yes" ? yesToken : noToken;
+
+    const syntheticTokensAmount = bets.reduce((acc, token) => {
+      if (token.isSynthetic && side === token.token) {
+        return acc + token.amount;
+      }
+
+      return acc;
+    }, 0);
+
+    const tokensToBuy = betAmount / token.price;
+
+    const result = (balance + betAmount) / (token?.amount - syntheticTokensAmount + tokensToBuy);
+
+    return result * tokensToBuy;
   }
 
-  function calculateReturn() {
-    const profit = Number.parseFloat(calculateProfit());
-    return ((profit / betAmount) * 100).toFixed(1);
+  function calculateProfit(side: "yes" | "no", betAmount: number) {
+    const win = calculatePotentialWin(side, betAmount);
+    return Math.max(win - betAmount, 0);
+  }
+
+  function calculateReturn(side: "yes" | "no", betAmount: number) {
+    const profit = calculateProfit(side, betAmount);
+    return (profit / betAmount) * 100;
   }
 
   const StateBadge = (() => {
@@ -109,7 +195,7 @@ export function BettingPanel({
           <div className="mt-4 grid grid-cols-2 gap-2">
             <Button
               variant="outline"
-              className="border-success/50 text-success hover:bg-success/20 bg-transparent"
+              className="border-primary/50 text-primary hover:bg-primary/20 bg-transparent"
             >
               Choose Yes as winner
             </Button>
@@ -144,102 +230,165 @@ export function BettingPanel({
         <CardTitle>{question}</CardTitle>
       </CardHeader>
 
-      <CardContent>
-        {/* Betting Side Selection */}
-        <div className="mb-6">
-          <label className="mb-2 block text-sm font-medium text-muted-foreground">
-            Betting on:
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => setSelectedSide("yes")}
-              className={cn(
-                "rounded-lg border-2 py-3 text-sm font-semibold transition-all",
-                selectedSide === "yes"
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-success/10 text-success hover:border-success/50",
+      <form.AppForm>
+        <form onSubmit={onSubmit}>
+          {/* Betting Side Selection */}
+          <CardContent>
+            <form.AppField name="token">
+              {(field) => (
+                <field.FormItem className="mb-6">
+                  <field.FormLabel className="mb-2 block text-sm font-medium text-muted-foreground">
+                    Betting on:
+                  </field.FormLabel>
+
+                  <field.FormControl>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          field.handleChange("yes");
+                          form.setFieldValue("amount", yesToken.price);
+                        }}
+                        className={cn(
+                          "rounded-lg border-2",
+                          field.state.value === "yes"
+                            ? "border-primary bg-primary text-primary-foreground hover:bg-primary pointer-events-none"
+                            : "border-border bg-primary/10 text-primary hover:border-primary/50 hover:bg-secondary",
+                        )}
+                      >
+                        YES
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        onClick={() => {
+                          field.handleChange("no");
+                          form.setFieldValue("amount", noToken.price);
+                        }}
+                        className={cn(
+                          "rounded-lg border-2",
+                          field.state.value === "no"
+                            ? "border-destructive bg-destructive text-destructive-foreground pointer-events-none"
+                            : "border-border dark:bg-destructive/20 text-destructive hover:border-destructive/50",
+                        )}
+                      >
+                        NO
+                      </Button>
+                    </div>
+                  </field.FormControl>
+                </field.FormItem>
               )}
-            >
-              YES
-            </button>
-            <button
-              onClick={() => setSelectedSide("no")}
-              className={cn(
-                "rounded-lg border-2 py-3 text-sm font-semibold transition-all",
-                selectedSide === "no"
-                  ? "border-destructive bg-destructive text-destructive-foreground"
-                  : "border-border bg-destructive/10 text-destructive hover:border-destructive/50",
+            </form.AppField>
+
+            {/* Bet Amount Slider */}
+            <form.AppField name="amount">
+              {(field) => {
+                const side = form.getFieldValue("token");
+
+                const token = side === "yes" ? yesToken : noToken;
+                const price = token.price;
+
+                return (
+                  <field.FormItem className="mb-6">
+                    <div className="mb-3 flex items-center justify-between">
+                      <field.FormLabel
+                        htmlFor="bet-amount"
+                        className="text-sm font-medium text-muted-foreground"
+                      >
+                        Bet Amount:
+                      </field.FormLabel>
+
+                      <span className="text-lg font-bold text-primary">
+                        {CurrencyConverter.toTez(field.state.value)} XTZ
+                      </span>
+                    </div>
+
+                    <field.FormControl>
+                      <Slider
+                        name="bet-amount"
+                        value={[field.state.value]}
+                        onValueChange={(value) => field.handleChange(value[0])}
+                        min={price}
+                        max={price * 100}
+                        step={price}
+                        className="mb-2"
+                      />
+                    </field.FormControl>
+
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>{CurrencyConverter.toTez(price)} XTZ</span>
+                      <span>{CurrencyConverter.toTez(price * 100)} XTZ</span>
+                    </div>
+                  </field.FormItem>
+                );
+              }}
+            </form.AppField>
+
+            {/* Potential Returns */}
+            <form.Subscribe selector={({ values }) => [values.token, values.amount] as const}>
+              {([token, amount]) => (
+                <div className="mb-6 space-y-2 rounded-lg bg-secondary p-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Potential Win:</span>
+                    <span className="font-semibold text-success">
+                      {CurrencyConverter.toTez(calculatePotentialWin(token, amount))} XTZ
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Profit:</span>
+                    <span className="font-semibold text-success">
+                      {CurrencyConverter.toTez(calculateProfit(token, amount))} XTZ
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Return:</span>
+                    <span className="font-semibold text-primary">
+                      +{calculateReturn(token, amount).toFixed(2)}%
+                    </span>
+                  </div>
+                </div>
               )}
-            >
-              NO
-            </button>
-          </div>
-        </div>
+            </form.Subscribe>
 
-        {/* Bet Amount Slider */}
-        <div className="mb-6">
-          <div className="mb-3 flex items-center justify-between">
-            <label className="text-sm font-medium text-muted-foreground">Bet Amount:</label>
-            <span className="text-lg font-bold text-primary">{betAmount} XTZ</span>
-          </div>
+            {/* Action Buttons */}
+            <div className="flex">
+              <form.Subscribe selector={({ canSubmit, isSubmitting }) => [canSubmit, isSubmitting]}>
+                {([canSubmit, isSubmitting]) => (
+                  <Button
+                    type="submit"
+                    className="flex-1 bg-success text-success-foreground hover:bg-success/90"
+                    disabled={!canSubmit || isSubmitting}
+                    iconPosition="right"
+                    renderIcon={(props) => isSubmitting && <Spinner {...props} />}
+                  >
+                    Place Bet
+                  </Button>
+                )}
+              </form.Subscribe>
+            </div>
+          </CardContent>
 
-          <Slider
-            value={[betAmount]}
-            onValueChange={(value) => setBetAmount(value[0])}
-            min={MIN_BET}
-            max={MAX_BET}
-            step={1}
-            className="mb-2"
-          />
+          <Separator className="my-6" />
 
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{MIN_BET} XTZ</span>
-            <span>{MAX_BET} XTZ</span>
-          </div>
-        </div>
+          {/* Footer Info */}
+          <CardFooter className="justify-between w-full">
+            <div className="flex items-center gap-1">
+              <DollarSign className="size-3" />
+              <span>{CurrencyConverter.toTez(balance)} XTZ</span>
+            </div>
 
-        {/* Potential Returns */}
-        <div className="mb-6 space-y-2 rounded-lg bg-secondary p-4">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Potential Win:</span>
-            <span className="font-semibold text-success">{calculatePotentialWin()} XTZ</span>
-          </div>
+            <div className="flex items-center gap-1">
+              <Clock className="size-3" />
+              <span>{resolutionDate.split("T")[0]}</span>
+            </div>
 
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Profit:</span>
-            <span className="font-semibold text-success">{calculateProfit()} XTZ</span>
-          </div>
-
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Return:</span>
-            <span className="font-semibold text-primary">+{calculateReturn()}%</span>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-2">
-          <Button className="flex-1 bg-secondary text-success-foreground hover:bg-secondary/90">
-            Place Bet
-          </Button>
-        </div>
-      </CardContent>
-
-      <Separator />
-
-      {/* Footer Info */}
-      <CardFooter className="justify-between w-full">
-        <div className="flex items-center gap-1">
-          <DollarSign className="h-3 w-3" />
-          <span>{CurrencyConverter.toTez(volume)} XTZ</span>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <Clock className="h-3 w-3" />
-          <span>{resolutionDate.split("T")[0]}</span>
-        </div>
-
-        {StateBadge}
-      </CardFooter>
+            {StateBadge}
+          </CardFooter>
+        </form>
+      </form.AppForm>
     </Card>
   );
 }

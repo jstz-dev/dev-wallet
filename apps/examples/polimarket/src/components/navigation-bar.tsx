@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "jstz-ui/utils";
-import { Home, SquarePlus, TrendingUp } from "lucide-react";
+import { SquarePlus, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -16,7 +16,6 @@ import {
 } from "./ui/sidebar";
 
 const navigation = [
-  { name: "Home", href: "/", icon: Home },
   { name: "Markets", href: "/markets", icon: TrendingUp },
   { name: "Deploy", href: "/deploy", icon: SquarePlus },
 ];

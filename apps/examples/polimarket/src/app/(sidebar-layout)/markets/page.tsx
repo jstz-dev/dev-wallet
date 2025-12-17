@@ -1,3 +1,4 @@
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { z } from "zod/mini";
@@ -5,6 +6,8 @@ import { MarketCard } from "~/components/market-card";
 import { env } from "~/env";
 import { createJstzClient } from "~/lib/jstz-signer.service";
 import { marketSchema } from "~/lib/validators/market";
+import { getQueryClient } from "~/providers/query-provider";
+import { smartFunctions } from "~/queries/smartFunctions.queries";
 
 const marketFromRoot = z.object({
   markets: z.record(
@@ -16,30 +19,33 @@ const marketFromRoot = z.object({
 });
 
 export default async function MarketsPage() {
+  const queryClient = getQueryClient();
   const jstzClient = createJstzClient();
-  const kv = await jstzClient.accounts
-    .getKv(env.NEXT_PUBLIC_PARENT_SF_ADDRESS, { key: "root" })
-    .then((value): unknown => JSON.parse(value))
-    .catch((e) => {
-      if (!(e instanceof Error)) throw e;
 
-      // If kv returns as 404 there is either the SF address is wrong or
-      // there are no markets
-      if (e.message.includes("404")) return { markets: {} };
-    });
+  const options = smartFunctions.getKv(env.NEXT_PUBLIC_PARENT_SF_ADDRESS, "root", jstzClient);
 
-  const { data: marketsFromRoot, error } = marketFromRoot.safeParse(kv);
-  if (error) {
-    throw error;
-  }
+  await queryClient.prefetchQuery(options);
 
-  const markets = await Promise.all(
-    Object.values(marketsFromRoot.markets).map(async ({ address }) => {
-      const kv = await jstzClient.accounts.getKv(address, { key: "root" });
+  const kv = await queryClient.getQueryData(options.queryKey);
 
-      return { ...marketSchema.parse(JSON.parse(kv)), address };
-    }),
-  );
+  const markets = await (async () => {
+    if (!kv) return [];
+
+    const { data: marketsFromRoot, error } = marketFromRoot.safeParse(JSON.parse(kv));
+    if (error) {
+      throw error;
+    }
+
+    return Promise.all(
+      Object.values(marketsFromRoot.markets).map(async ({ address }) => {
+        const options = smartFunctions.getKv(address, "root", jstzClient);
+        await queryClient.prefetchQuery(options);
+
+        const kv = await queryClient.getQueryData(options.queryKey);
+        return { ...marketSchema.parse(JSON.parse(kv)), address };
+      }),
+    );
+  })();
 
   return (
     <main className="flex-1">
@@ -67,15 +73,17 @@ export default async function MarketsPage() {
           </div>
         )}
 
-        {markets.length !== 0 && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {markets.map((market) => (
-              <Link href={`/markets/${market.address}`} key={market.address}>
-                <MarketCard {...market} />
-              </Link>
-            ))}
-          </div>
-        )}
+        <HydrationBoundary state={dehydrate(queryClient)}>
+          {markets.length !== 0 && (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {markets.map((market) => (
+                <Link href={`/markets/${market.address}`} key={market.address}>
+                  <MarketCard {...market} />
+                </Link>
+              ))}
+            </div>
+          )}
+        </HydrationBoundary>
       </div>
     </main>
   );

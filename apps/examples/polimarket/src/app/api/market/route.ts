@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
   const { data: body, error } = marketBodySchema.safeParse(await req.json());
 
   if (error) {
+    console.log(error);
     return NextResponse.json(error.message, { status: 401 });
   }
 
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
   const deployOperation: Jstz.Operation.DeployFunction = {
     _type: "DeployFunction",
     functionCode: smartFunctionBody,
-    accountCredit: 100,
+    accountCredit: 0,
   };
 
   const jstz = createJstzClient();
