@@ -53,15 +53,31 @@ export default async function MarketsPage() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <HydrationBoundary state={dehydrate(queryClient)}>
-            {markets.map((market) => (
-              <Link href={`/markets/${market.address}`} key={market.address}>
-                <MarketCard {...market} />
-              </Link>
-            ))}
-          </HydrationBoundary>
-        </div>
+        <HydrationBoundary state={dehydrate(queryClient)}>
+          {markets.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+              <div className="rounded-full bg-muted p-6 mb-4">
+                <TrendingUp className="h-12 w-12 text-muted-foreground" />
+              </div>
+
+              <h3 className="text-xl font-semibold mb-2">No markets available</h3>
+              <p className="text-muted-foreground max-w-md">
+                There are no prediction markets in this category yet. Check back soon or explore
+                other categories.
+              </p>
+            </div>
+          )}
+
+          {markets.length !== 0 && (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {markets.map((market) => (
+                <Link href={`/markets/${market.address}`} key={market.address}>
+                  <MarketCard {...market} />
+                </Link>
+              ))}
+            </div>
+          )}
+        </HydrationBoundary>
       </div>
     </main>
   );

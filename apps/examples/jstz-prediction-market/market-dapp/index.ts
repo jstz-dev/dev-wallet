@@ -90,6 +90,21 @@ router.post(
   // ),
 );
 
+router.post("/market/:address/resolve", (request) => {
+  const { address } = request.params;
+  return fetch(
+    new Request(`jstz://${address}/resolve`, {
+      method: "POST",
+      body: JSON.stringify(request.json()),
+    }),
+  );
+});
+
+router.get("/market/:address/payout", (request) => {
+  const { address } = request.params;
+  return fetch(new Request(`jstz://${address}/payout`));
+});
+
 const handler = (request: Request): Promise<Response> => router.fetch(request);
 
 // KV
