@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "bun build ./market-dapp/market.ts --outdir ./src/app/api/market && bun run --bun next build",
+    "build": "bun run --bun next build && bun build ./market-dapp/market.ts --outdir ./src/app/api/market",
     "start": "bun run --bun next start",
     "lint": "eslint"
   },
