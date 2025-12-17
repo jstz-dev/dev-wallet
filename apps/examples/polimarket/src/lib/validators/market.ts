@@ -18,8 +18,7 @@ export const marketSchema = z.object({
   question: z.string(),
   resolutionDate: z.iso.datetime(),
   tokens: z.array(tokenSchema),
-  users: z.object(),
-  bets: z.array(tokenSchema),
+  bets: z.array(z.object({ ...tokenSchema.shape, isSynthetic: z.boolean() })),
 });
 
 export type Market = z.infer<typeof marketSchema>;
