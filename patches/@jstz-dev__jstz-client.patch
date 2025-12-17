@@ -1,0 +1,17 @@
+diff --git a/resources/operations.mjs b/resources/operations.mjs
+index 699aa0ee4341fd32de57c8c193d32fe07c0dd048..e22e8696e435c63cd480e31bad44e96e448dc5b2 100644
+--- a/resources/operations.mjs
++++ b/resources/operations.mjs
+@@ -51,8 +51,10 @@ export class Operations extends APIResource {
+                     }
+                 }
+                 catch (err) {
+-                    clearInterval(interval);
+-                    reject(err);
++                    if (!err.message.includes("404")) {
++                      clearInterval(interval);
++                      reject(err);
++                    }
+                 }
+             }, intervalRate);
+         });
