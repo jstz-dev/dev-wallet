@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const source = path.resolve("../market-dapp/dist");
-const target = path.resolve("./src/artifacts");
+const target = path.resolve("./artifacts");
 
 // Remove old artifacts.
 fs.rmSync(target, { recursive: true, force: true });
