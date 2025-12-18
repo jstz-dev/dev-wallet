@@ -7,12 +7,15 @@ import { marketFormSchema } from "~/lib/validators/market";
 
 import Jstz from "@jstz-dev/jstz-client";
 import * as signer from "@jstz-dev/jstz_sdk";
+import path from "node:path";
 import { textDecode, textEncode } from "~/lib/encoder";
 
 const marketBodySchema = z.object({
   ...marketFormSchema.shape,
   master: z.string(),
 });
+
+const smartFunctionBodyPath = path.join(process.cwd(), "src", "artifacts", "market.js");
 
 export async function POST(req: NextRequest) {
   const contentLength = Number.parseInt(req.headers.get("content-length") ?? "0", 10);
@@ -28,7 +31,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(error.message, { status: 401 });
   }
 
-  const smartFunctionBody = readFileSync("./src/app/api/market/market.js").toString("utf8");
+  const smartFunctionBody = readFileSync(smartFunctionBodyPath, "utf8");
 
   // Deploy smart function
   const deployOperation: Jstz.Operation.DeployFunction = {
@@ -99,4 +102,9 @@ export async function POST(req: NextRequest) {
   console.log(textDecode(initResult.inner.body));
 
   return NextResponse.json({ address: smartFunctionAddress });
+}
+
+export function GET() {
+  const smartFunctionBody = readFileSync(smartFunctionBodyPath);
+  return new NextResponse(smartFunctionBody);
 }
