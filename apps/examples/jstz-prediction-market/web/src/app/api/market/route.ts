@@ -103,8 +103,3 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ address: smartFunctionAddress });
 }
-
-export function GET() {
-  const smartFunctionBody = readFileSync(smartFunctionBodyPath);
-  return new NextResponse(smartFunctionBody);
-}
