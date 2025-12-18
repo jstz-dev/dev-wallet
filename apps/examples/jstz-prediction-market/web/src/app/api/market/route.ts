@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   };
 
   const jstz = createJstzClient();
-  let nonce = await jstz.accounts.getNonce(env.WALLET_ADDRESS);
+  let nonce = await jstz.accounts.getNonce(env.WALLET_ADDRESS).catch(() => Promise.resolve(0));
 
   const signedDeployOperation = signer.sign_operation(
     {
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
   // NOTE: Getting the nonce once again, just for safeties sake.
   // There is a possibility that in the meantime there will be another
   // operation which mutate the nonce.
-  nonce = await jstz.accounts.getNonce(env.WALLET_ADDRESS);
+  nonce = await jstz.accounts.getNonce(env.WALLET_ADDRESS).catch(() => Promise.resolve(0));
 
   const signedInitOperation = signer.sign_operation(
     {
