@@ -40,5 +40,4 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-src/app/api/market/index.js
-src/app/api/market/market.js
+src/artifacts/
