@@ -5,9 +5,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "bun run --bun next build",
-    "start": "bun run --bun next start",
-    "lint": "eslint"
+    "build:deps": "pnpm --filter market-dapp build",
+    "copy:artifacts": "bun scripts/copy-market.js",
+    "build": "pnpm build:deps && pnpm copy:artifacts && bun run --bun next build",
+    "start": "bun run --bun next start"
   },
   "dependencies": {
     "@better-fetch/fetch": "^1.1.18",
