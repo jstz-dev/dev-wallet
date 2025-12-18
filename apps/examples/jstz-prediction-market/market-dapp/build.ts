@@ -1,7 +1,5 @@
 import { build } from "bun";
 
-console.log("foo");
-
 try {
   const output = await build({
     entrypoints: ["index.ts", "market.ts"],
@@ -13,8 +11,6 @@ try {
     splitting: false,
     sourcemap: "none",
   });
-
-  console.log(output);
 } catch (err) {
   console.error(err);
   process.exit(1);
