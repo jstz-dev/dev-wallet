@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
 
   transpilePackages: ["jstz-ui"],
 
+  outputFileTracingIncludes: {
+    "/api/market": ["./artifacts/**/*"],
+  },
+
   experimental: {
     turbopackFileSystemCacheForDev: true,
   },
