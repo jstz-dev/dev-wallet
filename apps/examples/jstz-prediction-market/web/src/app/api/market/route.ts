@@ -15,7 +15,7 @@ const marketBodySchema = z.object({
   master: z.string(),
 });
 
-const smartFunctionBodyPath = path.join(process.cwd(), "artifacts", "market.js");
+const smartFunctionBodyPath = path.join(process.cwd(), "src", "artifacts", "market.js");
 
 export async function POST(req: NextRequest) {
   const contentLength = Number.parseInt(req.headers.get("content-length") ?? "0", 10);
