@@ -36,6 +36,10 @@ interface ResponseMessage extends Record<any, any> {
   message: string;
 }
 
+interface ErrorMessage extends Record<any, any> {
+  error: string;
+}
+
 function successResponse(message: ResponseMessage | string, options?: ResponseInit) {
   const payload = typeof message === "string" ? { message } : message;
 
@@ -43,8 +47,11 @@ function successResponse(message: ResponseMessage | string, options?: ResponseIn
   return json({ ...payload, status }, { status, ...rest });
 }
 
-function errorResponse(message: ResponseMessage | string, options: ResponseInit = {}) {
-  return successResponse(message, { ...options, status: options.status ?? 400 });
+function errorResponse(error: ErrorMessage | string, options: ResponseInit = {}) {
+  const payload = typeof error === "string" ? { error } : error;
+
+  const { status = 400, ...rest } = options ?? {};
+  return json({ ...payload, status }, { status, ...rest });
 }
 
 const marketRouter = AutoRouter();
@@ -71,8 +78,7 @@ marketRouter.post(
     const { state } = getState();
     if (!state || state === "created") return errorResponse("Market is not initialized yet");
     if (!!state && state !== "on-going") return errorResponse("Market is closed for betting");
-    // TODO: bet amount is in XTZ and transferred via "Referrer" header
-    // add an approximate estimation of tokens on the FE basing on the current token price from Indexer
+
     const { success, error, data } = betFormSchema.safeParse(body);
     if (!success) return errorResponse(error.message);
 
