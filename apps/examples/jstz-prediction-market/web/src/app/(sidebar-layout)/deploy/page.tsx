@@ -4,7 +4,7 @@ import Jstz from "@jstz-dev/jstz-client";
 import { Updater } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
 import { useIsClient } from "@uidotdev/usehooks";
-import { addDays, format, getHours, getMinutes } from "date-fns";
+import { addDays, getHours, getMinutes, setSeconds } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "jstz-ui/ui/alert";
 import { Button } from "jstz-ui/ui/button";
 import { Calendar } from "jstz-ui/ui/calendar";
@@ -20,8 +20,8 @@ import { useAppForm } from "~/components/ui/form";
 import { env } from "~/env";
 import { textDecode, textEncode } from "~/lib/encoder";
 import { useJstzSignerExtension } from "~/lib/hooks/useJstzSigner";
-import { MarketForm, marketFormSchema } from "~/lib/validators/market";
-import { Token } from "~/lib/validators/token";
+import { type CreateMarket, MarketForm, marketFormSchema } from "~/lib/validators/market";
+import { type Token } from "~/lib/validators/token";
 import { useJstzClient } from "~/providers/jstz-client.context";
 
 export const responseSchema = z.union([
@@ -39,7 +39,7 @@ export default function DeployPage() {
   const router = useRouter();
 
   const { mutateAsync: deployMarket } = useMutation({
-    mutationFn: async (market: MarketForm) => {
+    mutationFn: async (market: CreateMarket) => {
       const payload = {
         content: {
           _type: "RunFunction",
@@ -98,7 +98,7 @@ export default function DeployPage() {
     defaultValues: {
       admins: [] as string[],
       question: "",
-      resolutionDate: toISOStringWithTimezone(addDays(new Date(), 1)),
+      resolutionDate: setSeconds(addDays(new Date(), 1), 0),
       pool: 0,
       tokens: [
         {
@@ -119,10 +119,8 @@ export default function DeployPage() {
     },
 
     onSubmit: async ({ value }) => {
-      await deployMarket({
-        ...value,
-        resolutionDate: new Date(value.resolutionDate).toISOString(),
-      });
+      const newMarket = { ...value, resolutionDate: value.resolutionDate.toISOString() };
+      await deployMarket(newMarket);
     },
   });
 
@@ -169,7 +167,7 @@ export default function DeployPage() {
                       <field.FormItem className="flex-1">
                         <field.FormLabel htmlFor="resolutionDate">Resolution Date</field.FormLabel>
 
-                        <DatePicker dateString={field.state.value} onChange={field.handleChange} />
+                        <DatePicker date={field.state.value} onChange={field.handleChange} />
                       </field.FormItem>
 
                       <field.FormItem className="flex-1">
@@ -190,8 +188,7 @@ export default function DeployPage() {
                               current.setHours(hours);
                               current.setMinutes(minutes);
 
-                              const newDate = toISOStringWithTimezone(current);
-                              field.handleChange(newDate);
+                              field.handleChange(current);
                             }}
                           />
                         </field.FormControl>
@@ -282,16 +279,12 @@ function getCurrentTime() {
 
 const locale = new Intl.DateTimeFormat("en-uk");
 
-function toISOStringWithTimezone(date: Date) {
-  return format(date, "yyyy-MM-dd'T'HH:mm:ssXXX");
-}
-
 interface DatePickerProps {
-  dateString: string;
-  onChange: (value: Updater<string>) => void;
+  date: MarketForm["resolutionDate"];
+  onChange: (value: Updater<MarketForm["resolutionDate"]>) => void;
 }
 
-function DatePicker({ dateString, onChange }: DatePickerProps) {
+function DatePicker({ date, onChange }: DatePickerProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -303,7 +296,7 @@ function DatePicker({ dateString, onChange }: DatePickerProps) {
           iconPosition="right"
           renderIcon={(props) => <ChevronDown {...props} />}
         >
-          {dateString ? locale.format(new Date(dateString)) : "Select Date"}
+          {locale.format(new Date(date))}
         </Button>
       </PopoverTrigger>
 
@@ -311,20 +304,20 @@ function DatePicker({ dateString, onChange }: DatePickerProps) {
         <Calendar
           mode="single"
           captionLayout="dropdown"
-          selected={new Date(dateString)}
+          selected={new Date(date)}
           startMonth={new Date()}
           endMonth={new Date(2030, 11)}
           disabled={{ before: addDays(new Date(), 1) }}
           weekStartsOn={1}
-          onSelect={(date) => {
-            if (!date) return;
+          onSelect={(newDate) => {
+            if (!newDate) return;
 
-            const time = dateString.split("T")[1];
-            const newDate = toISOStringWithTimezone(date).split("T")[0];
+            newDate.setHours(date.getHours());
+            newDate.setMinutes(date.getMinutes());
 
-            const result = newDate + "T" + time;
+            console.log(newDate);
 
-            onChange(result);
+            onChange(newDate);
             setOpen(false);
           }}
         />
