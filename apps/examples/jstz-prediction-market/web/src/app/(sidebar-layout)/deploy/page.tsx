@@ -182,7 +182,7 @@ export default function DeployPage() {
                             defaultValue={getCurrentTime()}
                             className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
                             onChange={(e) => {
-                              const current = new Date(field.state.value);
+                              const current = field.state.value;
                               const [hours, minutes] = e.target.value.split(":").map(Number);
 
                               current.setHours(hours);
@@ -270,14 +270,15 @@ function DeployButton({ canSubmit, isSubmitting }: DeployButtonProps) {
 }
 
 function getCurrentTime() {
-  const hours = getHours(new Date());
-  const minutes = getMinutes(new Date());
+  const now = new Date();
+  const hours = getHours(now);
+  const minutes = getMinutes(now);
 
   const prefixZero = hours < 10 ? "0" : "";
   return prefixZero + `${hours}:${minutes}`;
 }
 
-const locale = new Intl.DateTimeFormat("en-uk");
+const locale = new Intl.DateTimeFormat("en-UK");
 
 interface DatePickerProps {
   date: MarketForm["resolutionDate"];
@@ -296,7 +297,7 @@ function DatePicker({ date, onChange }: DatePickerProps) {
           iconPosition="right"
           renderIcon={(props) => <ChevronDown {...props} />}
         >
-          {locale.format(new Date(date))}
+          {locale.format(date)}
         </Button>
       </PopoverTrigger>
 
@@ -304,7 +305,7 @@ function DatePicker({ date, onChange }: DatePickerProps) {
         <Calendar
           mode="single"
           captionLayout="dropdown"
-          selected={new Date(date)}
+          selected={date}
           startMonth={new Date()}
           endMonth={new Date(2030, 11)}
           disabled={{ before: addDays(new Date(), 1) }}
@@ -314,8 +315,6 @@ function DatePicker({ date, onChange }: DatePickerProps) {
 
             newDate.setHours(date.getHours());
             newDate.setMinutes(date.getMinutes());
-
-            console.log(newDate);
 
             onChange(newDate);
             setOpen(false);
