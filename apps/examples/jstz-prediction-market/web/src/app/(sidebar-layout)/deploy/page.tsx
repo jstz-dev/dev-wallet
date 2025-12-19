@@ -4,7 +4,7 @@ import Jstz from "@jstz-dev/jstz-client";
 import { Updater } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
 import { useIsClient } from "@uidotdev/usehooks";
-import { addDays, getHours, getMinutes, setSeconds } from "date-fns";
+import { addDays, setSeconds } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "jstz-ui/ui/alert";
 import { Button } from "jstz-ui/ui/button";
 import { Calendar } from "jstz-ui/ui/calendar";
@@ -269,16 +269,17 @@ function DeployButton({ canSubmit, isSubmitting }: DeployButtonProps) {
   );
 }
 
-function getCurrentTime() {
-  const now = new Date();
-  const hours = getHours(now);
-  const minutes = getMinutes(now);
+const localeTime = new Intl.DateTimeFormat("en-UK", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
 
-  const prefixZero = hours < 10 ? "0" : "";
-  return prefixZero + `${hours}:${minutes}`;
+function getCurrentTime() {
+  return localeTime.format(new Date());
 }
 
-const locale = new Intl.DateTimeFormat("en-UK");
+const localeDate = new Intl.DateTimeFormat("en-UK");
 
 interface DatePickerProps {
   date: MarketForm["resolutionDate"];
@@ -297,7 +298,7 @@ function DatePicker({ date, onChange }: DatePickerProps) {
           iconPosition="right"
           renderIcon={(props) => <ChevronDown {...props} />}
         >
-          {locale.format(date)}
+          {localeDate.format(date)}
         </Button>
       </PopoverTrigger>
 
