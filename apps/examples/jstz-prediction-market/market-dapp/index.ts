@@ -29,11 +29,11 @@ const adminFormSchema = z.object({
   address: addressSchema,
 });
 
-interface ResponseMessage extends Record<any, any> {
+interface ResponseMessage extends Record<string, unknown> {
   message: string;
 }
 
-interface ErrorMessage extends Record<any, any> {
+interface ErrorMessage extends Record<string, unknown> {
   error: string;
 }
 
