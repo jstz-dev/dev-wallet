@@ -3,7 +3,7 @@ import { tokenSchema } from "./token";
 
 export const marketFormSchema = z.object({
   question: z.string(),
-  resolutionDate: z.iso.datetime(),
+  resolutionDate: z.iso.datetime({ offset: true }),
   admins: z.array(z.string()),
   resolutionUrl: z.nullish(z.string()),
   tokens: z.array(tokenSchema),
