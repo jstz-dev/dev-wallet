@@ -4,7 +4,7 @@ import Jstz from "@jstz-dev/jstz-client";
 import { Updater } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
 import { useIsClient } from "@uidotdev/usehooks";
-import { format, getHours, getMinutes } from "date-fns";
+import { addDays, format, getHours, getMinutes } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "jstz-ui/ui/alert";
 import { Button } from "jstz-ui/ui/button";
 import { Calendar } from "jstz-ui/ui/calendar";
@@ -98,7 +98,7 @@ export default function DeployPage() {
     defaultValues: {
       admins: [] as string[],
       question: "",
-      resolutionDate: toISOStringWithTimezone(new Date()),
+      resolutionDate: toISOStringWithTimezone(addDays(new Date(), 1)),
       pool: 0,
       tokens: [
         {
@@ -314,7 +314,7 @@ function DatePicker({ dateString, onChange }: DatePickerProps) {
           selected={new Date(dateString)}
           startMonth={new Date()}
           endMonth={new Date(2030, 11)}
-          disabled={{ before: new Date() }}
+          disabled={{ before: addDays(new Date(), 1) }}
           weekStartsOn={1}
           onSelect={(date) => {
             if (!date) return;
