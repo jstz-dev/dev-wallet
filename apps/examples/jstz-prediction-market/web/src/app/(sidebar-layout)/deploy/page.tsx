@@ -93,8 +93,8 @@ export default function DeployPage() {
   const form = useAppForm({
     defaultValues: {
       admins: [] as string[],
-      question: "Will Jstz be released to the mainnet by the end of Q2 2026?",
       resolutionDate: new Date().toISOString(),
+      question: "",
       pool: 0,
       tokens: [
         {
@@ -144,6 +144,7 @@ export default function DeployPage() {
                         <Input
                           type="text"
                           name="question"
+                          placeholder="Will Jstz be released to the mainnet by the end of Q2 2026?"
                           value={field.state.value}
                           onChange={(e) => field.handleChange(e.target.value)}
                           onBlur={field.handleBlur}
