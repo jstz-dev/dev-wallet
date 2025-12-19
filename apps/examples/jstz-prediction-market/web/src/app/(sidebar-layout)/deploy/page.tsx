@@ -1,14 +1,18 @@
 "use client";
 
 import Jstz from "@jstz-dev/jstz-client";
+import { Updater } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
 import { useIsClient } from "@uidotdev/usehooks";
+import { format, getHours, getMinutes } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "jstz-ui/ui/alert";
 import { Button } from "jstz-ui/ui/button";
+import { Calendar } from "jstz-ui/ui/calendar";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "jstz-ui/ui/card";
 import { Input } from "jstz-ui/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "jstz-ui/ui/popover";
 import { Spinner } from "jstz-ui/ui/spinner";
-import { TriangleAlert } from "lucide-react";
+import { ChevronDown, TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, Suspense, use, useEffect, useEffectEvent, useState } from "react";
 import { z } from "zod/mini";
@@ -93,8 +97,8 @@ export default function DeployPage() {
   const form = useAppForm({
     defaultValues: {
       admins: [] as string[],
-      resolutionDate: new Date().toISOString(),
       question: "",
+      resolutionDate: toISOStringWithTimezone(new Date()),
       pool: 0,
       tokens: [
         {
@@ -115,7 +119,10 @@ export default function DeployPage() {
     },
 
     onSubmit: async ({ value }) => {
-      await deployMarket(value);
+      await deployMarket({
+        ...value,
+        resolutionDate: new Date(value.resolutionDate).toISOString(),
+      });
     },
   });
 
@@ -158,23 +165,38 @@ export default function DeployPage() {
 
                 <form.AppField name="resolutionDate">
                   {(field) => (
-                    <field.FormItem>
-                      <field.FormLabel htmlFor="resolutionDate">Resolution Date</field.FormLabel>
+                    <div className="flex gap-4 w-full">
+                      <field.FormItem className="flex-1">
+                        <field.FormLabel htmlFor="resolutionDate">Resolution Date</field.FormLabel>
 
-                      <field.FormControl>
-                        <Input
-                          type="datetime-local"
-                          name="resolutionDate"
-                          value={field.state.value.split(".")[0]}
-                          onChange={(e) => {
-                            if (e.target.valueAsDate) {
-                              field.handleChange(e.target.valueAsDate.toISOString());
-                            }
-                          }}
-                          onBlur={field.handleBlur}
-                        />
-                      </field.FormControl>
-                    </field.FormItem>
+                        <DatePicker dateString={field.state.value} onChange={field.handleChange} />
+                      </field.FormItem>
+
+                      <field.FormItem className="flex-1">
+                        <field.FormLabel htmlFor="time">Resolution Time</field.FormLabel>
+
+                        <field.FormControl>
+                          <Input
+                            type="time"
+                            name="time"
+                            id="time-picker"
+                            step="60"
+                            defaultValue={getCurrentTime()}
+                            className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                            onChange={(e) => {
+                              const current = new Date(field.state.value);
+                              const [hours, minutes] = e.target.value.split(":").map(Number);
+
+                              current.setHours(hours);
+                              current.setMinutes(minutes);
+
+                              const newDate = toISOStringWithTimezone(current);
+                              field.handleChange(newDate);
+                            }}
+                          />
+                        </field.FormControl>
+                      </field.FormItem>
+                    </div>
                   )}
                 </form.AppField>
               </CardContent>
@@ -202,13 +224,16 @@ export default function DeployPage() {
   );
 }
 
-function DeployButton({ canSubmit, isSubmitting }: { canSubmit: boolean; isSubmitting: boolean }) {
+interface DeployButtonProps {
+  canSubmit: boolean;
+  isSubmitting: boolean;
+}
+
+function DeployButton({ canSubmit, isSubmitting }: DeployButtonProps) {
   const isClient = useIsClient();
 
   const { checkExtensionAvailability } = useJstzSignerExtension();
-  const [availabilityPromise, setAvailabilityPromise] = useState<Promise<boolean>>(
-    Promise.resolve(false),
-  );
+  const [availabilityPromise, setAvailabilityPromise] = useState(Promise.resolve(false));
 
   const onRender = useEffectEvent(() => {
     setAvailabilityPromise(checkExtensionAvailability());
@@ -244,5 +269,66 @@ function DeployButton({ canSubmit, isSubmitting }: { canSubmit: boolean; isSubmi
         </Alert>
       )}
     </>
+  );
+}
+
+function getCurrentTime() {
+  const hours = getHours(new Date());
+  const minutes = getMinutes(new Date());
+
+  const prefixZero = hours < 10 ? "0" : "";
+  return prefixZero + `${hours}:${minutes}`;
+}
+
+const locale = new Intl.DateTimeFormat("en-uk");
+
+function toISOStringWithTimezone(date: Date) {
+  return format(date, "yyyy-MM-dd'T'HH:mm:ssXXX");
+}
+
+interface DatePickerProps {
+  dateString: string;
+  onChange: (value: Updater<string>) => void;
+}
+
+function DatePicker({ dateString, onChange }: DatePickerProps) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          className="rounded-xl p-5.5"
+          variant="outline"
+          iconPosition="right"
+          renderIcon={(props) => <ChevronDown {...props} />}
+        >
+          {dateString ? locale.format(new Date(dateString)) : "Select Date"}
+        </Button>
+      </PopoverTrigger>
+
+      <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+        <Calendar
+          mode="single"
+          captionLayout="dropdown"
+          selected={new Date(dateString)}
+          startMonth={new Date()}
+          endMonth={new Date(2030, 11)}
+          disabled={{ before: new Date() }}
+          weekStartsOn={1}
+          onSelect={(date) => {
+            if (!date) return;
+
+            const time = dateString.split("T")[1];
+            const newDate = toISOStringWithTimezone(date).split("T")[0];
+
+            const result = newDate + "T" + time;
+
+            onChange(result);
+            setOpen(false);
+          }}
+        />
+      </PopoverContent>
+    </Popover>
   );
 }
