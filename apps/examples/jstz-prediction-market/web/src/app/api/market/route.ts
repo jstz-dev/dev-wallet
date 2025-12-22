@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { z } from "zod/mini";
 import { env } from "~/env";
 import { createJstzClient } from "~/lib/jstz-signer.service";
-import { marketFormSchema } from "~/lib/validators/market";
+import { createMarketSchema } from "~/lib/validators/market";
 
 import Jstz from "@jstz-dev/jstz-client";
 import * as signer from "@jstz-dev/jstz_sdk";
@@ -11,7 +11,7 @@ import path from "node:path";
 import { textDecode, textEncode } from "~/lib/encoder";
 
 const marketBodySchema = z.object({
-  ...marketFormSchema.shape,
+  ...createMarketSchema.shape,
   master: z.string(),
 });
 
