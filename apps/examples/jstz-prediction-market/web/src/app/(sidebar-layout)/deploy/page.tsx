@@ -59,7 +59,7 @@ export default function DeployPage() {
           verifier: verifier ?? null,
         },
         {
-          timeout: 100 * 1_000,
+          timeout: 10 * 1_000,
         },
         // HACK: This is a workaround for the current version of `jstz-client`.
         // There's an open PR that adds proper inference for the return type of `injectAndPoll`
