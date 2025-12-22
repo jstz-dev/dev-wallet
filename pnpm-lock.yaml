@@ -80,6 +80,9 @@ importers:
       cva:
         specifier: 1.0.0-beta.4
         version: 1.0.0-beta.4(typescript@5.9.3)
+      date-fns:
+        specifier: ^4.1.0
+        version: 4.1.0
       jstz-ui:
         specifier: workspace:*
         version: link:../../../../packages/jstz-ui
@@ -139,8 +142,8 @@ importers:
         specifier: ^9
         version: 9.39.1(jiti@2.6.1)
       eslint-config-next:
-        specifier: 16.1.0
-        version: 16.1.0(@typescript-eslint/parser@8.50.0(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3)
+        specifier: 16.0.7
+        version: 16.0.7(@typescript-eslint/parser@8.50.0(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3)
       eslint-config-prettier:
         specifier: ^10.1.8
         version: 10.1.8(eslint@9.39.1(jiti@2.6.1))

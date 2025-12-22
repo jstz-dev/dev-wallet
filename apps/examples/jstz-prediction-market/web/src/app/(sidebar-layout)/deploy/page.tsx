@@ -1,14 +1,18 @@
 "use client";
 
 import Jstz from "@jstz-dev/jstz-client";
+import { Updater } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
 import { useIsClient } from "@uidotdev/usehooks";
+import { addDays, setSeconds } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "jstz-ui/ui/alert";
 import { Button } from "jstz-ui/ui/button";
+import { Calendar } from "jstz-ui/ui/calendar";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "jstz-ui/ui/card";
 import { Input } from "jstz-ui/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "jstz-ui/ui/popover";
 import { Spinner } from "jstz-ui/ui/spinner";
-import { TriangleAlert } from "lucide-react";
+import { ChevronDown, TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, Suspense, use, useEffect, useEffectEvent, useState } from "react";
 import { z } from "zod/mini";
@@ -16,8 +20,8 @@ import { useAppForm } from "~/components/ui/form";
 import { env } from "~/env";
 import { textDecode, textEncode } from "~/lib/encoder";
 import { useJstzSignerExtension } from "~/lib/hooks/useJstzSigner";
-import { MarketForm, marketFormSchema } from "~/lib/validators/market";
-import { Token } from "~/lib/validators/token";
+import { type CreateMarket, MarketForm, marketFormSchema } from "~/lib/validators/market";
+import { type Token } from "~/lib/validators/token";
 import { useJstzClient } from "~/providers/jstz-client.context";
 
 export const responseSchema = z.union([
@@ -35,7 +39,7 @@ export default function DeployPage() {
   const router = useRouter();
 
   const { mutateAsync: deployMarket } = useMutation({
-    mutationFn: async (market: MarketForm) => {
+    mutationFn: async (market: CreateMarket) => {
       const payload = {
         content: {
           _type: "RunFunction",
@@ -93,8 +97,8 @@ export default function DeployPage() {
   const form = useAppForm({
     defaultValues: {
       admins: [] as string[],
-      question: "Will Jstz be released to the mainnet by the end of Q2 2026?",
-      resolutionDate: new Date().toISOString(),
+      question: "",
+      resolutionDate: setSeconds(addDays(new Date(), 1), 0),
       pool: 0,
       tokens: [
         {
@@ -115,7 +119,8 @@ export default function DeployPage() {
     },
 
     onSubmit: async ({ value }) => {
-      await deployMarket(value);
+      const newMarket = { ...value, resolutionDate: value.resolutionDate.toISOString() };
+      await deployMarket(newMarket);
     },
   });
 
@@ -144,6 +149,7 @@ export default function DeployPage() {
                         <Input
                           type="text"
                           name="question"
+                          placeholder="Will Jstz be released to the mainnet by the end of Q2 2026?"
                           value={field.state.value}
                           onChange={(e) => field.handleChange(e.target.value)}
                           onBlur={field.handleBlur}
@@ -157,23 +163,37 @@ export default function DeployPage() {
 
                 <form.AppField name="resolutionDate">
                   {(field) => (
-                    <field.FormItem>
-                      <field.FormLabel htmlFor="resolutionDate">Resolution Date</field.FormLabel>
+                    <div className="flex gap-4 w-full">
+                      <field.FormItem className="flex-1">
+                        <field.FormLabel htmlFor="resolutionDate">Resolution Date</field.FormLabel>
 
-                      <field.FormControl>
-                        <Input
-                          type="datetime-local"
-                          name="resolutionDate"
-                          value={field.state.value.split(".")[0]}
-                          onChange={(e) => {
-                            if (e.target.valueAsDate) {
-                              field.handleChange(e.target.valueAsDate.toISOString());
-                            }
-                          }}
-                          onBlur={field.handleBlur}
-                        />
-                      </field.FormControl>
-                    </field.FormItem>
+                        <DatePicker date={field.state.value} onChange={field.handleChange} />
+                      </field.FormItem>
+
+                      <field.FormItem className="flex-1">
+                        <field.FormLabel htmlFor="time">Resolution Time</field.FormLabel>
+
+                        <field.FormControl>
+                          <Input
+                            type="time"
+                            name="time"
+                            id="time-picker"
+                            step="60"
+                            defaultValue={getCurrentTime()}
+                            className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                            onChange={(e) => {
+                              const current = field.state.value;
+                              const [hours, minutes] = e.target.value.split(":").map(Number);
+
+                              current.setHours(hours);
+                              current.setMinutes(minutes);
+
+                              field.handleChange(current);
+                            }}
+                          />
+                        </field.FormControl>
+                      </field.FormItem>
+                    </div>
                   )}
                 </form.AppField>
               </CardContent>
@@ -201,13 +221,16 @@ export default function DeployPage() {
   );
 }
 
-function DeployButton({ canSubmit, isSubmitting }: { canSubmit: boolean; isSubmitting: boolean }) {
+interface DeployButtonProps {
+  canSubmit: boolean;
+  isSubmitting: boolean;
+}
+
+function DeployButton({ canSubmit, isSubmitting }: DeployButtonProps) {
   const isClient = useIsClient();
 
   const { checkExtensionAvailability } = useJstzSignerExtension();
-  const [availabilityPromise, setAvailabilityPromise] = useState<Promise<boolean>>(
-    Promise.resolve(false),
-  );
+  const [availabilityPromise, setAvailabilityPromise] = useState(Promise.resolve(false));
 
   const onRender = useEffectEvent(() => {
     setAvailabilityPromise(checkExtensionAvailability());
@@ -243,5 +266,62 @@ function DeployButton({ canSubmit, isSubmitting }: { canSubmit: boolean; isSubmi
         </Alert>
       )}
     </>
+  );
+}
+
+const localeTime = new Intl.DateTimeFormat("en-UK", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
+function getCurrentTime() {
+  return localeTime.format(new Date());
+}
+
+const localeDate = new Intl.DateTimeFormat("en-UK");
+
+interface DatePickerProps {
+  date: MarketForm["resolutionDate"];
+  onChange: (value: Updater<MarketForm["resolutionDate"]>) => void;
+}
+
+function DatePicker({ date, onChange }: DatePickerProps) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          className="rounded-xl p-5.5"
+          variant="outline"
+          iconPosition="right"
+          renderIcon={(props) => <ChevronDown {...props} />}
+        >
+          {localeDate.format(date)}
+        </Button>
+      </PopoverTrigger>
+
+      <PopoverContent className="w-auto overflow-hidden p-0" align="start">
+        <Calendar
+          mode="single"
+          captionLayout="dropdown"
+          selected={date}
+          startMonth={new Date()}
+          endMonth={new Date(2030, 11)}
+          disabled={{ before: addDays(new Date(), 1) }}
+          weekStartsOn={1}
+          onSelect={(newDate) => {
+            if (!newDate) return;
+
+            newDate.setHours(date.getHours());
+            newDate.setMinutes(date.getMinutes());
+
+            onChange(newDate);
+            setOpen(false);
+          }}
+        />
+      </PopoverContent>
+    </Popover>
   );
 }
