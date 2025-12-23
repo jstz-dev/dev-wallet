@@ -149,6 +149,8 @@ export default function DeployPage() {
                         <Input
                           type="text"
                           name="question"
+                          autoComplete="off"
+                          autoCorrect="off"
                           placeholder="Will Jstz be released to the mainnet by the end of Q2 2026?"
                           value={field.state.value}
                           onChange={(e) => field.handleChange(e.target.value)}
