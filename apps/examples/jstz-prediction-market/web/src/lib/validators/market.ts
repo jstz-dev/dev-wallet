@@ -1,31 +1,45 @@
 import { z } from "zod/mini";
-import { tokenSchema } from "./token";
+import { betSchema, tokenSchema } from "./token";
+
+const baseMarketSchema = z.object({
+  question: z.string().check(z.minLength(3)),
+  admins: z.array(z.string()),
+  tokens: z.array(tokenSchema),
+});
 
 export const marketFormSchema = z.object({
-  question: z.string(),
+  ...baseMarketSchema.shape,
   resolutionDate: z.date(),
-  admins: z.array(z.string()),
   resolutionUrl: z.nullish(z.string()),
-  tokens: z.array(tokenSchema),
   pool: z.number().check(z.gte(0)),
 });
 
 export type MarketForm = z.infer<typeof marketFormSchema>;
 
 export const createMarketSchema = z.object({
-  ...z.omit(marketFormSchema, { resolutionDate: true }).shape,
+  ...baseMarketSchema.shape,
   resolutionDate: z.iso.datetime(),
 });
 
 export type CreateMarket = z.infer<typeof createMarketSchema>;
 
-export const marketSchema = z.object({
-  state: z.enum(["created", "on-going", "resolved"]),
-  admins: z.array(z.string()),
-  question: z.string(),
-  resolutionDate: z.iso.datetime(),
-  tokens: z.array(tokenSchema),
-  bets: z.array(z.object({ ...tokenSchema.shape, isSynthetic: z.boolean() })),
-});
+export const marketSchema = z.discriminatedUnion("state", [
+  // State: created, on-going, or waiting-for-resolution
+  z.object({
+    ...baseMarketSchema.shape,
+    state: z.enum(["created", "on-going", "waiting-for-resolution"]),
+    resolutionDate: z.iso.datetime(),
+    bets: z.array(betSchema),
+  }),
+
+  // State: resolved or closed
+  z.object({
+    ...baseMarketSchema.shape,
+    state: z.enum(["resolved", "closed"]),
+    bets: z.array(betSchema),
+    resolutionDate: z.iso.datetime(),
+    resolvedToken: tokenSchema,
+  }),
+]);
 
 export type Market = z.infer<typeof marketSchema>;

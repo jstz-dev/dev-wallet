@@ -1,6 +1,7 @@
 "use client";
 
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { isPast } from "date-fns";
 import { Button } from "jstz-ui/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "jstz-ui/ui/card";
 import { Progress } from "jstz-ui/ui/progress";
@@ -22,17 +23,29 @@ export default function MarketPage() {
 
   const jstzClient = createJstzClient();
 
-  const { data: kv } = useSuspenseQuery(smartFunctions.getKv(address, "root", jstzClient));
+  const { data: market } = useSuspenseQuery({
+    ...smartFunctions.getKv(address, "root", jstzClient),
+    select: (kv) => {
+      // FIXME: get rid of type assertion
+      const { data: market, error } = marketSchema.safeParse(JSON.parse(kv as string));
+
+      if (error) {
+        console.error(error);
+        return redirect("/404");
+      }
+
+      const isWaitingForResolution =
+        market.state !== "resolved" && market.state !== "closed" && isPast(market.resolutionDate);
+
+      if (isWaitingForResolution) {
+        market.state = "waiting-for-resolution";
+      }
+
+      return market;
+    },
+  });
 
   const { data: balance } = useSuspenseQuery(accounts.balance(address));
-
-  // FIXME: get rid of type assertion
-  const { data: market, error } = marketSchema.safeParse(JSON.parse(kv as string));
-
-  if (error) {
-    console.error(error);
-    return redirect("/404");
-  }
 
   const [yesCount, noCount] = market.bets.reduce(
     (acc, bet) => {
@@ -67,8 +80,8 @@ export default function MarketPage() {
         </Link>
 
         {/* Market Details */}
-        <div className="grid gap-6 grid-cols-1 xl:grid-cols-3">
-          <div className="xl:col-span-2">
+        <div className="grid gap-6 grid-cols-1 2xl:grid-cols-3">
+          <div className="2xl:col-span-2">
             {/* Market Info Card */}
             <Card>
               <CardHeader>
@@ -85,7 +98,9 @@ export default function MarketPage() {
                   </div>
                 </div>
 
-                <CardTitle>{market.question}</CardTitle>
+                <CardTitle>
+                  <h1>{market.question}</h1>
+                </CardTitle>
               </CardHeader>
 
               {/* Probability Bar */}
@@ -135,7 +150,24 @@ export default function MarketPage() {
                   <div className="text-xs text-muted-foreground">Status</div>
 
                   <div className="mt-1 font-semibold text-card-foreground">
-                    {market.state === "on-going" ? "Active" : "Resolved"}
+                    {(() => {
+                      switch (market.state) {
+                        case "on-going":
+                          return "Active";
+
+                        case "resolved":
+                          return "Resolved";
+
+                        case "waiting-for-resolution":
+                          return "Waiting for Resolution";
+
+                        case "closed":
+                          return "Closed";
+
+                        case "created":
+                          return "Uninitialised";
+                      }
+                    })()}
                   </div>
                 </div>
               </CardFooter>

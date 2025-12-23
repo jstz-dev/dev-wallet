@@ -1,6 +1,7 @@
 "use client";
 
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { Alert, AlertDescription, AlertTitle } from "jstz-ui/ui/alert";
 import { Badge } from "jstz-ui/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "jstz-ui/ui/card";
 import { Progress } from "jstz-ui/ui/progress";
@@ -10,20 +11,14 @@ import assert from "node:assert";
 import * as CurrencyConverter from "~/lib/currencyConverter";
 import { Market } from "~/lib/validators/market";
 import { accounts } from "~/queries/account.queries";
+import { StateBadge } from "./market-state-badge";
 
-interface MarketCardProps extends Market {
+type MarketCardProps = Market & {
   address: string;
-}
+};
 
-export function MarketCard({
-  state,
-  question,
-  tokens,
-  resolutionDate,
-  bets,
-  address,
-}: MarketCardProps) {
-  const isResolved = state === "resolved";
+export function MarketCard(props: MarketCardProps) {
+  const { state, question, tokens, resolutionDate, bets, address } = props;
 
   const noToken = tokens.find((token) => token.token === "no");
   assert(noToken, "Token should be defined.");
@@ -55,7 +50,7 @@ export function MarketCard({
   const noRatio = (noCount / numberOfTokens) * 100;
 
   return (
-    <Card className="group cursor-pointer overflow-hidden border-border bg-card transition-all hover:border-primary/50">
+    <Card className="group cursor-pointer overflow-hidden border-border bg-card transition-all hover:border-primary/50 h-full">
       {/* Header */}
       <CardHeader>
         <div className="flex items-center gap-2 justify-between">
@@ -71,8 +66,8 @@ export function MarketCard({
       </CardHeader>
 
       {/* Probability Display */}
-      <CardContent>
-        {!isResolved && (
+      <CardContent className="flex-1">
+        {state === "on-going" && (
           <>
             <div className="mb-3 flex items-center justify-between text-sm">
               <span className="font-medium text-muted-foreground">
@@ -98,28 +93,36 @@ export function MarketCard({
           </>
         )}
 
+        {/* Waiting for Resolution State */}
+        {state === "waiting-for-resolution" && (
+          <Alert variant="warning">
+            <AlertTitle>Market Waiting to be Resolved</AlertTitle>
+
+            <AlertDescription>Market needs to be resolved by and admin.</AlertDescription>
+          </Alert>
+        )}
+
         {/* Resolved State */}
-        {/* TODO: Add a proper display of the resolved market. */}
-        {isResolved && (
-          <div className="rounded-lg bg-success/20 border border-success/30 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2 text-success">
-                  <span className="text-sm font-semibold">Market Resolved</span>
-                </div>
+        {state === "resolved" && (
+          <Alert>
+            <AlertTitle>Market Resolved</AlertTitle>
 
-                <p className="mt-1 text-sm text-success/80">
-                  Winning side: {/* market.winningOutcome?.toUpperCase() */}
-                </p>
-              </div>
-            </div>
+            <AlertDescription>
+              <p>Winning side: {props.resolvedToken.token.toUpperCase()}</p>
+              <p>Admin needs to initialize pay out.</p>
+            </AlertDescription>
+          </Alert>
+        )}
 
-            {/* {market.userPosition && ( */}
-            {/*   <button className="mt-3 w-full rounded-lg bg-primary py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"> */}
-            {/*     Claim winnings */}
-            {/*   </button> */}
-            {/* )} */}
-          </div>
+        {/* Closed State */}
+        {state === "closed" && (
+          <Alert variant="destructive">
+            <AlertTitle>Market Resolved</AlertTitle>
+
+            <AlertDescription>
+              Winning side: {props.resolvedToken.token.toUpperCase()}
+            </AlertDescription>
+          </Alert>
         )}
       </CardContent>
 
@@ -137,11 +140,7 @@ export function MarketCard({
           <span>{resolutionDate.split("T")[0]}</span>
         </div>
 
-        {isResolved && (
-          <Badge variant="destructive" className="text-xs">
-            Resolved
-          </Badge>
-        )}
+        <StateBadge state={state} />
 
         {/* {!isResolved && market.userPosition && ( */}
         {/*   <Badge variant="default" className="bg-primary text-xs"> */}
