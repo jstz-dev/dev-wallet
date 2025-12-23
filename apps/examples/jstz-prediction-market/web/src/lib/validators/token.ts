@@ -7,3 +7,10 @@ export const tokenSchema = z.object({
 });
 
 export type Token = z.infer<typeof tokenSchema>;
+
+export const betSchema = z.object({
+  ...tokenSchema.shape,
+  isSynthetic: z.boolean(),
+});
+
+export type Bet = z.infer<typeof betSchema>;
