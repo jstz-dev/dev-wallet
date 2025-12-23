@@ -1,49 +1,67 @@
 "use client";
 
 import Jstz from "@jstz-dev/jstz-client";
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Alert, AlertDescription, AlertTitle } from "jstz-ui/ui/alert";
 import { Badge } from "jstz-ui/ui/badge";
 import { Button } from "jstz-ui/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "jstz-ui/ui/card";
-import { Separator } from "jstz-ui/ui/separator";
-import { Slider } from "jstz-ui/ui/slider";
 import { Spinner } from "jstz-ui/ui/spinner";
-import { cn } from "jstz-ui/utils";
-import { AlertTriangle, Clock, DollarSign } from "lucide-react";
-import assert from "node:assert";
-import { FormEvent } from "react";
-import { z } from "zod/mini";
-import * as CurrencyConverter from "~/lib/currencyConverter";
+import { AlertTriangle } from "lucide-react";
 import { textDecode, textEncode } from "~/lib/encoder";
 import { useJstzSignerExtension } from "~/lib/hooks/useJstzSigner";
 import { SignWithJstzSignerParams } from "~/lib/jstz-signer.service";
 import type { Market } from "~/lib/validators/market";
-import { Token, tokenSchema } from "~/lib/validators/token";
+import { Token } from "~/lib/validators/token";
 import { useJstzClient } from "~/providers/jstz-client.context";
 import { accounts } from "~/queries/account.queries";
 import { smartFunctions } from "~/queries/smartFunctions.queries";
-import { useAppForm } from "./ui/form";
+import { BettingForm } from "./betting-form";
+import { StateBadge } from "./market-state-badge";
 
-const betFormSchema = z.pick(tokenSchema, { token: true, amount: true });
+type RunSmartFunction = (payload: SignWithJstzSignerParams) => Promise<{
+  result: {
+    inner: Jstz.Receipt.Success.RunFunction;
+  };
+}>;
 
-interface BettingPanelProps extends Market {
-  address: string;
+function createSmartFunctionRunner(
+  jstzClient: Jstz,
+  signWithJstzExtension: ReturnType<typeof useJstzSignerExtension>["signWithJstzExtension"],
+): RunSmartFunction {
+  return async (payload: SignWithJstzSignerParams) => {
+    const { operation, signature, verifier } = await signWithJstzExtension(payload);
+
+    return (await jstzClient.operations.injectAndPoll(
+      {
+        inner: operation,
+        signature,
+        verifier: verifier ?? null,
+      },
+      {
+        timeout: 10 * 1_000,
+      },
+      // HACK: This is a workaround for the current version of `jstz-client`.
+      // There's an open PR that adds proper inference for the return type of `injectAndPoll`
+      // so it returns concrete Receipt based on provided `content._type` instead of a union
+      // of all possible Receipts
+    )) as { result: { inner: Jstz.Receipt.Success.RunFunction } };
+  };
 }
 
-export function BettingPanel({
-  address,
-  question,
-  state,
-  tokens,
-  resolutionDate,
-  bets,
-}: BettingPanelProps) {
+type BettingPanelProps = {
+  address: string;
+} & Market;
+
+export function BettingPanel(props: BettingPanelProps) {
+  const { address, question, state } = props;
+
   const { signWithJstzExtension } = useJstzSignerExtension();
   const { getJstzClient } = useJstzClient();
 
   const jstzClient = getJstzClient();
 
-  const { data: balance } = useSuspenseQuery(accounts.balance(address));
+  const runSmartFunction = createSmartFunctionRunner(jstzClient, signWithJstzExtension);
 
   const queryClient = useQueryClient();
 
@@ -66,24 +84,9 @@ export function BettingPanel({
         },
       };
 
-      const { operation, signature, verifier } = await signWithJstzExtension(payload);
-
       const {
         result: { inner },
-      } = (await jstzClient.operations.injectAndPoll(
-        {
-          inner: operation,
-          signature,
-          verifier: verifier ?? null,
-        },
-        {
-          timeout: 100 * 1_000,
-        },
-        // HACK: This is a workaround for the current version of `jstz-client`.
-        // There's an open PR that adds proper inference for the return type of `injectAndPoll`
-        // so it returns concrete Receipt based on provided `content._type` instead of a union
-        // of all possible Receipts
-      )) as { result: { inner: Jstz.Receipt.Success.RunFunction } };
+      } = await runSmartFunction(payload);
 
       console.log(textDecode(inner.body));
     },
@@ -94,312 +97,225 @@ export function BettingPanel({
     },
   });
 
-  const noToken = tokens.find((token) => token.token === "no");
-  assert(noToken, "Token should be defined.");
-
-  const yesToken = tokens.find((token) => token.token === "yes");
-  assert(yesToken, "Token should be defined.");
-
-  const form = useAppForm({
-    defaultValues: {
-      token: "yes" as Token["token"],
-      amount: yesToken.price,
-    },
-
-    validators: {
-      onSubmit: betFormSchema,
-    },
-
-    onSubmit: async ({ value }) => {
-      await placeBet(value);
-    },
-  });
-
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.stopPropagation();
-    e.preventDefault();
-    void form.handleSubmit();
-  }
-
-  function calculatePotentialWin(side: "yes" | "no", betAmount: number) {
-    const token = side === "yes" ? yesToken : noToken;
-    assert(
-      token,
-      "If `token` is `undefined` at this point something is wrong with the logic of assigning the initial tokens.",
-    );
-
-    const syntheticTokensAmount = bets.reduce((acc, token) => {
-      if (token.isSynthetic && side === token.token) {
-        return acc + token.amount;
-      }
-
-      return acc;
-    }, 0);
-
-    const tokensToBuy = betAmount / token.price;
-
-    const result = (balance + betAmount) / (token.amount - syntheticTokensAmount + tokensToBuy);
-
-    return result * tokensToBuy;
-  }
-
-  function calculateProfit(side: "yes" | "no", betAmount: number) {
-    const win = calculatePotentialWin(side, betAmount);
-    return Math.max(win - betAmount, 0);
-  }
-
-  function calculateReturn(side: "yes" | "no", betAmount: number) {
-    const profit = calculateProfit(side, betAmount);
-    return (profit / betAmount) * 100;
-  }
-
-  const StateBadge = (() => {
-    switch (state) {
-      case "on-going":
-        return <Badge className="text-xs">Active</Badge>;
-
-      case "created":
-        return (
-          <Badge variant="destructive" className=" text-xs">
-            Inactive
-          </Badge>
-        );
-
-      case "resolved":
-        return (
-          <Badge variant="destructive" className="text-xs">
-            Resolved
-          </Badge>
-        );
-    }
-  })();
-
-  if (state === "resolved") {
-    return (
-      <Card>
-        <CardHeader>
-          <div className="mb-4 flex items-start justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary">
-                <span className="text-sm font-bold text-primary-foreground">M</span>
-              </div>
-
-              <Badge variant="secondary">Market {address}</Badge>
-            </div>
-
-            {StateBadge}
-          </div>
-
-          <CardTitle>{question}</CardTitle>
-        </CardHeader>
-
-        <CardContent>
-          <div className="flex items-center gap-2 text-yellow-500">
-            <AlertTriangle className="h-5 w-5" />
-            <span className="font-semibold">Market Resolution Required</span>
-          </div>
-
-          <p className="mt-2 text-sm text-muted-foreground">
-            Select the winning side to resolve this market
-          </p>
-
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <Button
-              variant="outline"
-              className="border-primary/50 text-primary hover:bg-primary/20 bg-transparent"
-            >
-              Choose Yes as winner
-            </Button>
-
-            <Button
-              variant="outline"
-              className="border-destructive/50 text-destructive hover:bg-destructive/20 bg-transparent"
-            >
-              Choose No as winner
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card>
       <CardHeader>
-        <div className="mb-4 flex items-start justify-between">
+        <div className="mb-4 flex items-start justify-between min-w-0">
           <div className="flex items-center gap-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary">
               <span className="text-sm font-bold text-primary-foreground">M</span>
             </div>
 
-            <Badge variant="secondary">Market {address}</Badge>
+            <Badge variant="secondary">{address}</Badge>
           </div>
 
-          {StateBadge}
+          <StateBadge state={state} />
         </div>
 
-        <CardTitle>{question}</CardTitle>
+        <CardTitle>
+          <h2>{question}</h2>
+        </CardTitle>
       </CardHeader>
 
-      <form.AppForm>
-        <form onSubmit={onSubmit}>
-          {/* Betting Side Selection */}
-          <CardContent>
-            <form.AppField name="token">
-              {(field) => (
-                <field.FormItem className="mb-6">
-                  <field.FormLabel className="mb-2 block text-sm font-medium text-muted-foreground">
-                    Betting on:
-                  </field.FormLabel>
+      {(() => {
+        switch (state) {
+          case "on-going":
+            return <BettingForm onSubmit={placeBet} {...props} />;
 
-                  <field.FormControl>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        type="button"
-                        onClick={() => {
-                          field.handleChange("yes");
-                          form.setFieldValue("amount", yesToken.price);
-                        }}
-                        className={cn(
-                          "rounded-lg border-2",
-                          field.state.value === "yes"
-                            ? "border-primary bg-primary text-primary-foreground hover:bg-primary pointer-events-none"
-                            : "border-border bg-primary/10 text-primary hover:border-primary/50 hover:bg-secondary",
-                        )}
-                      >
-                        YES
-                      </Button>
+          case "waiting-for-resolution":
+            return <WaitingForResolution address={address} runSmartFunction={runSmartFunction} />;
 
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        onClick={() => {
-                          field.handleChange("no");
-                          form.setFieldValue("amount", noToken.price);
-                        }}
-                        className={cn(
-                          "rounded-lg border-2",
-                          field.state.value === "no"
-                            ? "border-destructive bg-destructive text-destructive-foreground pointer-events-none"
-                            : "border-border dark:bg-destructive/20 text-destructive hover:border-destructive/50",
-                        )}
-                      >
-                        NO
-                      </Button>
-                    </div>
-                  </field.FormControl>
-                </field.FormItem>
-              )}
-            </form.AppField>
+          case "resolved":
+            return (
+              <Resolved
+                address={address}
+                runSmartFunction={runSmartFunction}
+                resolvedToken={props.resolvedToken}
+              />
+            );
 
-            {/* Bet Amount Slider */}
-            <form.AppField name="amount">
-              {(field) => {
-                const side = form.getFieldValue("token");
+          case "closed":
+            return (
+              <CardContent>
+                <Alert variant="destructive">
+                  <AlertTitle>Market Closed</AlertTitle>
 
-                const token = side === "yes" ? yesToken : noToken;
-                const price = token.price;
+                  <AlertDescription>
+                    <p>Winning side: {props.resolvedToken.token.toUpperCase()}</p>
+                    <p>Money have been paid out.</p>
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            );
 
-                return (
-                  <field.FormItem className="mb-6">
-                    <div className="mb-3 flex items-center justify-between">
-                      <field.FormLabel
-                        htmlFor="bet-amount"
-                        className="text-sm font-medium text-muted-foreground"
-                      >
-                        Bet Amount:
-                      </field.FormLabel>
-
-                      <span className="text-lg font-bold text-primary">
-                        {CurrencyConverter.toTez(field.state.value)} XTZ
-                      </span>
-                    </div>
-
-                    <field.FormControl>
-                      <Slider
-                        name="bet-amount"
-                        value={[field.state.value]}
-                        onValueChange={(value) => field.handleChange(value[0])}
-                        min={price}
-                        max={price * 100}
-                        step={price}
-                        className="mb-2"
-                      />
-                    </field.FormControl>
-
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>{CurrencyConverter.toTez(price)} XTZ</span>
-                      <span>{CurrencyConverter.toTez(price * 100)} XTZ</span>
-                    </div>
-                  </field.FormItem>
-                );
-              }}
-            </form.AppField>
-
-            {/* Potential Returns */}
-            <form.Subscribe selector={({ values }) => [values.token, values.amount] as const}>
-              {([token, amount]) => (
-                <div className="mb-6 space-y-2 rounded-lg bg-secondary p-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Potential Win:</span>
-                    <span className="font-semibold text-success">
-                      {CurrencyConverter.toTez(calculatePotentialWin(token, amount))} XTZ
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Profit:</span>
-                    <span className="font-semibold text-success">
-                      {CurrencyConverter.toTez(calculateProfit(token, amount))} XTZ
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Return:</span>
-                    <span className="font-semibold text-primary">
-                      +{calculateReturn(token, amount).toFixed(2)}%
-                    </span>
-                  </div>
-                </div>
-              )}
-            </form.Subscribe>
-
-            {/* Action Buttons */}
-            <div className="flex">
-              <form.Subscribe selector={({ canSubmit, isSubmitting }) => [canSubmit, isSubmitting]}>
-                {([canSubmit, isSubmitting]) => (
-                  <Button
-                    type="submit"
-                    className="flex-1 bg-success text-success-foreground hover:bg-success/90"
-                    disabled={!canSubmit || isSubmitting}
-                    iconPosition="right"
-                    renderIcon={(props) => isSubmitting && <Spinner {...props} />}
-                  >
-                    Place Bet
-                  </Button>
-                )}
-              </form.Subscribe>
-            </div>
-          </CardContent>
-
-          <Separator className="my-6" />
-
-          {/* Footer Info */}
-          <CardFooter className="justify-between w-full">
-            <div className="flex items-center gap-1">
-              <DollarSign className="size-3" />
-              <span>{CurrencyConverter.toTez(balance)} XTZ</span>
-            </div>
-
-            <div className="flex items-center gap-1">
-              <Clock className="size-3" />
-              <span>{resolutionDate.split("T")[0]}</span>
-            </div>
-
-            {StateBadge}
-          </CardFooter>
-        </form>
-      </form.AppForm>
+          case "created":
+            return null;
+        }
+      })()}
     </Card>
+  );
+}
+
+interface WaitingForResolutionProps {
+  address: string;
+  runSmartFunction: RunSmartFunction;
+}
+
+function WaitingForResolution({ address, runSmartFunction }: WaitingForResolutionProps) {
+  const queryClient = useQueryClient();
+
+  const { getJstzClient } = useJstzClient();
+  const jstzClient = getJstzClient();
+
+  const { mutateAsync: resolveYes, isPending: isResolveYesPending } = useMutation({
+    mutationFn: async () => {
+      const payload: SignWithJstzSignerParams = {
+        content: {
+          _type: "RunFunction",
+          uri: `jstz://${address}/resolve`,
+          headers: {},
+          method: "POST",
+          body: textEncode({ token: "yes" }),
+          gasLimit: 55_000,
+        },
+      };
+
+      const {
+        result: { inner },
+      } = await runSmartFunction(payload);
+
+      console.log(textDecode(inner.body));
+    },
+
+    onSuccess: () => {
+      void queryClient.invalidateQueries(smartFunctions.getKv(address, "root", jstzClient));
+      void queryClient.invalidateQueries(accounts.balance(address, jstzClient));
+    },
+  });
+
+  const { mutateAsync: resolveNo, isPending: isResolveNoPending } = useMutation({
+    mutationFn: async () => {
+      const payload: SignWithJstzSignerParams = {
+        content: {
+          _type: "RunFunction",
+          uri: `jstz://${address}/resolve`,
+          headers: {},
+          method: "POST",
+          body: textEncode({ token: "yes" }),
+          gasLimit: 55_000,
+        },
+      };
+
+      const {
+        result: { inner },
+      } = await runSmartFunction(payload);
+
+      console.log(textDecode(inner.body));
+    },
+
+    onSuccess: () => {
+      void queryClient.invalidateQueries(smartFunctions.getKv(address, "root", jstzClient));
+      void queryClient.invalidateQueries(accounts.balance(address, jstzClient));
+    },
+  });
+
+  return (
+    <CardContent>
+      <div className="flex items-center gap-2 text-yellow-500">
+        <AlertTriangle className="h-5 w-5" />
+        <span className="font-semibold">Market Resolution Required</span>
+      </div>
+
+      <p className="mt-2 text-sm text-muted-foreground">
+        Select the winning side to resolve this market
+      </p>
+
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <Button
+          variant="outline"
+          disabled={isResolveNoPending || isResolveYesPending}
+          onClick={() => void resolveYes()}
+          className="border-primary/50 text-primary hover:bg-primary/20 bg-transparent"
+          iconPosition="right"
+          renderIcon={(props) => isResolveYesPending && <Spinner {...props} />}
+        >
+          Choose &quot;Yes&quot; as winner
+        </Button>
+
+        <Button
+          variant="outline"
+          disabled={isResolveNoPending || isResolveYesPending}
+          onClick={() => void resolveNo()}
+          className="border-destructive/50 text-destructive hover:bg-destructive/20 bg-transparent"
+          iconPosition="right"
+          renderIcon={(props) => isResolveNoPending && <Spinner {...props} />}
+        >
+          Choose &quot;No&quot; as winner
+        </Button>
+      </div>
+    </CardContent>
+  );
+}
+
+interface ResolvedProps {
+  address: string;
+  runSmartFunction: RunSmartFunction;
+  resolvedToken: Token;
+}
+
+function Resolved({ address, runSmartFunction, resolvedToken }: ResolvedProps) {
+  const queryClient = useQueryClient();
+
+  const { getJstzClient } = useJstzClient();
+  const jstzClient = getJstzClient();
+
+  const { mutateAsync: payout, isPending } = useMutation({
+    mutationFn: async () => {
+      const payload: SignWithJstzSignerParams = {
+        content: {
+          _type: "RunFunction",
+          uri: `jstz://${address}/payout`,
+          headers: {},
+          method: "POST",
+          body: null,
+          gasLimit: 55_000,
+        },
+      };
+
+      const {
+        result: { inner },
+      } = await runSmartFunction(payload);
+
+      console.log(textDecode(inner.body));
+    },
+
+    onSuccess: () => {
+      void queryClient.invalidateQueries(smartFunctions.getKv(address, "root", jstzClient));
+      void queryClient.invalidateQueries(accounts.balance(address, jstzClient));
+    },
+  });
+
+  return (
+    <>
+      <CardContent>
+        <Alert>
+          <AlertTitle>Market Resolved</AlertTitle>
+
+          <AlertDescription>Winning side: {resolvedToken.token.toUpperCase()}</AlertDescription>
+        </Alert>
+      </CardContent>
+
+      <CardFooter>
+        <Button
+          disabled={isPending}
+          onClick={() => void payout()}
+          className="w-full"
+          iconPosition="right"
+          renderIcon={(props) => isPending && <Spinner {...props} />}
+        >
+          Pay out
+        </Button>
+      </CardFooter>
+    </>
   );
 }
