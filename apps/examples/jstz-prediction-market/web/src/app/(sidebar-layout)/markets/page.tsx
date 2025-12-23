@@ -77,7 +77,11 @@ export default async function MarketsPage() {
           {markets.length !== 0 && (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {markets.map((market) => (
-                <Link href={`/markets/${market.address}`} key={market.address}>
+                <Link
+                  href={`/markets/${market.address}`}
+                  key={market.address}
+                  className="self-stretch justify-self-stretch"
+                >
                   <MarketCard {...market} />
                 </Link>
               ))}
