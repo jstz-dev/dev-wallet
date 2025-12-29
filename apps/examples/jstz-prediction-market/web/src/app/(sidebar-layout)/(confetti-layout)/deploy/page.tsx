@@ -23,6 +23,7 @@ import { useJstzSignerExtension } from "~/lib/hooks/useJstzSigner";
 import { type CreateMarket, MarketForm, marketFormSchema } from "~/lib/validators/market";
 import { type Token } from "~/lib/validators/token";
 import { useJstzClient } from "~/providers/jstz-client.context";
+import { useConfetti } from "~/providers/realistic-confetti-provider";
 
 export const responseSchema = z.union([
   z.object({
@@ -36,6 +37,7 @@ export const responseSchema = z.union([
 export default function DeployPage() {
   const { signWithJstzExtension } = useJstzSignerExtension();
   const { getJstzClient } = useJstzClient();
+  const { fireRealistic } = useConfetti();
   const router = useRouter();
 
   const { mutateAsync: deployMarket } = useMutation({
@@ -83,6 +85,7 @@ export default function DeployPage() {
         }
 
         router.push(`/markets/${response.address}`);
+        fireRealistic();
         return;
       } catch (e) {
         console.info(`Completed call. Couldn't parse it to JSON.`);
@@ -97,7 +100,7 @@ export default function DeployPage() {
   const form = useAppForm({
     defaultValues: {
       admins: [] as string[],
-      question: "",
+      question: "Will Jstz be released to the mainnet by the end of Q2 2026?",
       resolutionDate: setSeconds(addDays(new Date(), 1), 0),
       pool: 0,
       tokens: [
