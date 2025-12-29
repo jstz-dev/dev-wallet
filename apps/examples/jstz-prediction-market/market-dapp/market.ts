@@ -24,7 +24,7 @@ const marketFormSchema = z.object({
 });
 
 const marketSchema = marketFormSchema.extend({
-  state: z.enum(["created", "on-going", "resolved"]),
+  state: z.enum(["created", "on-going", "resolved", "closed"]),
   resolvedToken: tokenSchema,
 });
 
@@ -128,7 +128,7 @@ marketRouter.post(
   }),
 );
 
-marketRouter.get("/payout", async () => {
+marketRouter.post("/payout", async () => {
   const { state, bets = [], resolvedToken } = getState();
   if (!state || state === "created") return errorResponse("Market is not initialized yet");
   if (state !== "resolved" || !resolvedToken) return errorResponse("Market is not resolved");
@@ -151,6 +151,10 @@ marketRouter.get("/payout", async () => {
     }
   }
 
+  dispatch({
+    type: "close",
+  });
+
   return successResponse({ message: "Payout successful", payouts });
 });
 
@@ -158,21 +162,28 @@ marketRouter.get("/payout", async () => {
 const initActionSchema = marketFormSchema.extend({
   type: z.literal("init"),
 });
+
 const betActionSchema = tokenSchema.extend({
   type: z.literal("bet"),
   referer: z.string().length(36),
   price: z.number().min(1).max(ONE_TEZ),
   isSynthetic: z.boolean(),
 });
+
 const resolveActionSchema = marketSchema.shape.resolvedToken.pick({ token: true }).extend({
   type: z.literal("resolve"),
+});
+
+const closeActionSchema = z.object({
+  type: z.literal("close"),
 });
 
 type InitAction = z.infer<typeof initActionSchema>;
 type BetAction = z.infer<typeof betActionSchema>;
 type ResolveAction = z.infer<typeof resolveActionSchema>;
+type CloseAction = z.infer<typeof closeActionSchema>;
 
-type KvAction = InitAction | BetAction | ResolveAction;
+type KvAction = InitAction | BetAction | ResolveAction | CloseAction;
 
 const kvSchema = marketSchema.extend({
   bets: z.array(betActionSchema.omit({ type: true })).optional(),
@@ -200,8 +211,9 @@ function dispatch(action: KvAction) {
 
 function reducer(state: KvState, action: KvAction): KvState {
   const newState = { ...state };
+
   switch (action.type) {
-    case "init":
+    case "init": {
       newState.state = "on-going";
       newState.admins = action.admins;
       newState.question = action.question;
@@ -219,7 +231,9 @@ function reducer(state: KvState, action: KvAction): KvState {
         }),
       );
       break;
-    case "bet":
+    }
+
+    case "bet": {
       if (!newState.tokens || !newState.bets) throw errorResponse("Market in not initialized");
 
       const token = newState.tokens.find((t) => t.token === action.token);
@@ -241,6 +255,7 @@ function reducer(state: KvState, action: KvAction): KvState {
         token.price = Math.floor((token.amount / sumOfTokens) * ONE_TEZ);
       });
       break;
+    }
 
     case "resolve": {
       if (!newState.tokens || !newState.bets) throw errorResponse("Market in not initialized");
@@ -265,8 +280,15 @@ function reducer(state: KvState, action: KvAction): KvState {
       };
 
       newState.state = "resolved";
+      break;
+    }
+
+    case "close": {
+      newState.state = "closed";
+      break;
     }
   }
+
   return newState;
 }
 

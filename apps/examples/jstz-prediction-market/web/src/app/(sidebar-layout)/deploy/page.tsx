@@ -63,7 +63,7 @@ export default function DeployPage() {
           verifier: verifier ?? null,
         },
         {
-          timeout: 100 * 1_000,
+          timeout: 10 * 1_000,
         },
         // HACK: This is a workaround for the current version of `jstz-client`.
         // There's an open PR that adds proper inference for the return type of `injectAndPoll`
@@ -149,6 +149,8 @@ export default function DeployPage() {
                         <Input
                           type="text"
                           name="question"
+                          autoComplete="off"
+                          autoCorrect="off"
                           placeholder="Will Jstz be released to the mainnet by the end of Q2 2026?"
                           value={field.state.value}
                           onChange={(e) => field.handleChange(e.target.value)}

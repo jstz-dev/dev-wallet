@@ -1,4 +1,5 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { isPast } from "date-fns";
 import { TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { z } from "zod/mini";
@@ -9,7 +10,7 @@ import { marketSchema } from "~/lib/validators/market";
 import { getQueryClient } from "~/providers/query-provider";
 import { smartFunctions } from "~/queries/smartFunctions.queries";
 
-const marketFromRoot = z.object({
+const parentKvSchema = z.object({
   markets: z.record(
     z.string(),
     z.object({
@@ -31,18 +32,30 @@ export default async function MarketsPage() {
   const markets = await (async () => {
     if (!kv) return [];
 
-    const { data: marketsFromRoot, error } = marketFromRoot.safeParse(JSON.parse(kv as string));
+    const { data: parentKv, error } = parentKvSchema.safeParse(JSON.parse(kv as string));
     if (error) {
       throw error;
     }
 
+    const marketsFromRoot = Object.values(parentKv.markets);
+
     return Promise.all(
-      Object.values(marketsFromRoot.markets).map(async ({ address }) => {
+      marketsFromRoot.map(async ({ address }) => {
         const options = smartFunctions.getKv(address, "root", jstzClient);
         await queryClient.prefetchQuery(options);
 
         const kv = await queryClient.getQueryData(options.queryKey);
-        return { ...marketSchema.parse(JSON.parse(kv as string)), address };
+
+        const market = { ...marketSchema.parse(JSON.parse(kv as string)), address };
+
+        const isWaitingForResolution =
+          market.state !== "resolved" && market.state !== "closed" && isPast(market.resolutionDate);
+
+        if (isWaitingForResolution) {
+          market.state = "waiting-for-resolution";
+        }
+
+        return market;
       }),
     );
   })();
@@ -77,7 +90,11 @@ export default async function MarketsPage() {
           {markets.length !== 0 && (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {markets.map((market) => (
-                <Link href={`/markets/${market.address}`} key={market.address}>
+                <Link
+                  href={`/markets/${market.address}`}
+                  key={market.address}
+                  className="self-stretch justify-self-stretch"
+                >
                   <MarketCard {...market} />
                 </Link>
               ))}
