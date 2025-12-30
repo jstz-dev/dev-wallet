@@ -5,8 +5,8 @@ const ONE_TEZ = 1_000_000;
 const SUPER_ADMIN = "tz1ZXxxkNYSUutm5VZvfudakRxx2mjpWko4J";
 const KV_ROOT = "root";
 const REFERER_HEADER = "Referer";
-const RPC_URL = "http://localhost:8933";
-// const RPC_URL = "https://privatenet.jstz.info";
+// const RPC_URL = "http://localhost:8933";
+const RPC_URL = "https://privatenet.jstz.info";
 
 // Schemas
 const addressSchema = z.string().length(36);
