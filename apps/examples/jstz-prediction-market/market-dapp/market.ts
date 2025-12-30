@@ -333,7 +333,6 @@ async function getAsyncKV<T = unknown>(
 ): Promise<T> {
   const { rpcUrl = RPC_URL, kvKey = KV_ROOT } = options;
   const resp = await fetch(new Request(`${rpcUrl}/accounts/${address}/kv?key=${kvKey}`));
-  console.log(resp);
   const json = await resp
     .json()
     .then((data) => {
