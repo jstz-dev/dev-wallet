@@ -1,25 +1,16 @@
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { isPast } from "date-fns";
 import { TrendingUp } from "lucide-react";
-import Link from "next/link";
-import { z } from "zod/mini";
-import { MarketCard } from "~/components/market-card";
 import { env } from "~/env";
 import { createJstzClient } from "~/lib/jstz-signer.service";
 import { marketSchema } from "~/lib/validators/market";
+import { parentKvSchema } from "~/lib/validators/parentSf";
 import { getQueryClient } from "~/providers/query-provider";
+import { accounts } from "~/queries/account.queries";
 import { smartFunctions } from "~/queries/smartFunctions.queries";
+import { MarketList } from "./market-list";
 
-const parentKvSchema = z.object({
-  markets: z.record(
-    z.string(),
-    z.object({
-      address: z.string().check(z.length(36)),
-    }),
-  ),
-});
-
-export default async function MarketsPage() {
+export default async function MarketPage() {
   const queryClient = getQueryClient();
   const jstzClient = createJstzClient();
 
@@ -43,6 +34,8 @@ export default async function MarketsPage() {
       marketsFromRoot.map(async ({ address }) => {
         const options = smartFunctions.getKv(address, "root", jstzClient);
         await queryClient.prefetchQuery(options);
+
+        void queryClient.prefetchQuery(accounts.balance(address, jstzClient));
 
         const kv = await queryClient.getQueryData(options.queryKey);
 
@@ -87,19 +80,7 @@ export default async function MarketsPage() {
         )}
 
         <HydrationBoundary state={dehydrate(queryClient)}>
-          {markets.length !== 0 && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {markets.map((market) => (
-                <Link
-                  href={`/markets/${market.address}`}
-                  key={market.address}
-                  className="self-stretch justify-self-stretch"
-                >
-                  <MarketCard {...market} />
-                </Link>
-              ))}
-            </div>
-          )}
+          <MarketList />
         </HydrationBoundary>
       </div>
     </main>
