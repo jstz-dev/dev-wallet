@@ -1,182 +1,50 @@
-"use client";
-
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { isPast } from "date-fns";
-import { Button } from "jstz-ui/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "jstz-ui/ui/card";
-import { Progress } from "jstz-ui/ui/progress";
-import { Separator } from "jstz-ui/ui/separator";
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
-import { redirect, useParams } from "next/navigation";
-import { BettingPanel } from "~/components/betting-panel";
-import * as CurrencyConverter from "~/lib/currencyConverter";
+import { APIError } from "@jstz-dev/jstz-client";
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+import { notFound } from "next/navigation";
+import assert from "node:assert";
+import { HTTPCode } from "~/lib/HTTPCode";
 import { createJstzClient } from "~/lib/jstz-signer.service";
-import { marketSchema } from "~/lib/validators/market";
+import { getQueryClient } from "~/providers/query-provider";
 import { accounts } from "~/queries/account.queries";
 import { smartFunctions } from "~/queries/smartFunctions.queries";
+import { MarketDetails } from "./market-details";
 
-type Params = Awaited<PageProps<"/markets/[address]">["params"]>;
-
-export default function MarketPage() {
-  const { address } = useParams<Params>();
+export default async function MarketPage({ params }: PageProps<"/markets/[address]">) {
+  const { address } = await params;
 
   const jstzClient = createJstzClient();
+  const queryClient = getQueryClient();
 
-  const { data: market } = useSuspenseQuery({
-    ...smartFunctions.getKv(address, "root", jstzClient),
-    select: (kv) => {
-      // FIXME: get rid of type assertion
-      const { data: market, error } = marketSchema.safeParse(JSON.parse(kv as string));
+  const kvOptions = smartFunctions.getKv(address, "root", jstzClient);
 
-      if (error) {
-        console.error(error);
-        return redirect("/404");
-      }
+  void queryClient.prefetchQuery(accounts.balance(address + "1"));
+  await queryClient.prefetchQuery(kvOptions);
 
-      const isWaitingForResolution =
-        market.state !== "resolved" && market.state !== "closed" && isPast(market.resolutionDate);
-
-      if (isWaitingForResolution) {
-        market.state = "waiting-for-resolution";
-      }
-
-      return market;
-    },
-  });
-
-  const { data: balance } = useSuspenseQuery(accounts.balance(address));
-
-  const [yesCount, noCount] = market.bets.reduce(
-    (acc, bet) => {
-      switch (bet.token) {
-        case "yes":
-          acc[0] += bet.amount;
-          break;
-        case "no":
-          acc[1] += bet.amount;
-          break;
-      }
-
-      return acc;
-    },
-    [0, 0],
+  const kvState = queryClient.getQueryState<string, APIError>(kvOptions.queryKey);
+  assert(
+    !!kvState,
+    "At this point kv query state should have been populated. If it's undefined that means query has not been resolved yet.",
   );
 
-  const numberOfTokens = market.tokens.reduce((acc, token) => acc + token.amount, 0);
+  const { error } = kvState;
 
-  const yesRatio = (yesCount / numberOfTokens) * 100;
-  const noRatio = (noCount / numberOfTokens) * 100;
+  if (error?.status === HTTPCode.NOT_FOUND) {
+    return notFound();
+  }
+
+  const errorHasStatus = error && !!error.status;
+
+  const isServerError =
+    errorHasStatus && (error.status >= HTTPCode.INTERNAL_SERVER_ERROR || error.status < 600);
+
+  // NOTE: Trigger error boundary.
+  if (isServerError) {
+    throw error;
+  }
 
   return (
-    <main className="flex-1">
-      <div className="p-8">
-        {/* Back Button */}
-        <Link href="/markets">
-          <Button variant="link">
-            <ArrowLeft className="size-4" />
-            Back to Markets
-          </Button>
-        </Link>
-
-        {/* Market Details */}
-        <div className="grid gap-6 grid-cols-1 2xl:grid-cols-3">
-          <div className="2xl:col-span-2">
-            {/* Market Info Card */}
-            <Card>
-              <CardHeader>
-                <div className="mb-4 flex items-start justify-between">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary">
-                    <span className="text-sm font-bold text-primary-foreground">XTZ</span>
-                  </div>
-
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-card-foreground">
-                      {Number.isNaN(yesRatio) ? "No bets yet." : `${yesRatio.toFixed(2)}%`}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Current odds</div>
-                  </div>
-                </div>
-
-                <CardTitle>
-                  <h1>{market.question}</h1>
-                </CardTitle>
-              </CardHeader>
-
-              {/* Probability Bar */}
-              <CardContent>
-                <div className="mb-2 flex items-center justify-between text-sm">
-                  <span className="font-medium text-muted-foreground">
-                    YES - {yesRatio.toFixed(2)}
-                    {!Number.isNaN(yesRatio) && "%"}
-                  </span>
-
-                  <span className="font-medium text-muted-foreground">
-                    NO - {noRatio.toFixed(2)}
-                    {!Number.isNaN(noRatio) && "%"}
-                  </span>
-                </div>
-
-                <Progress
-                  value={Number.isNaN(yesRatio) ? 50 : yesRatio}
-                  indicatorProps={{
-                    className: Number.isNaN(yesRatio)
-                      ? "bg-destructive/20"
-                      : "bg-destructive rounded-r-md",
-                  }}
-                />
-              </CardContent>
-
-              <Separator />
-
-              <CardFooter className="w-full justify-between">
-                <div>
-                  <div className="text-xs text-muted-foreground">Total Volume</div>
-
-                  <div className="mt-1 font-semibold text-card-foreground">
-                    {CurrencyConverter.toTez(balance)}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-xs text-muted-foreground">End Date</div>
-
-                  <div className="mt-1 font-semibold text-card-foreground">
-                    {market.resolutionDate.split("T")[0]}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-xs text-muted-foreground">Status</div>
-
-                  <div className="mt-1 font-semibold text-card-foreground">
-                    {(() => {
-                      switch (market.state) {
-                        case "on-going":
-                          return "Active";
-
-                        case "resolved":
-                          return "Resolved";
-
-                        case "waiting-for-resolution":
-                          return "Waiting for Resolution";
-
-                        case "closed":
-                          return "Closed";
-
-                        case "created":
-                          return "Uninitialised";
-                      }
-                    })()}
-                  </div>
-                </div>
-              </CardFooter>
-            </Card>
-          </div>
-
-          <BettingPanel address={address} {...market} />
-        </div>
-      </div>
-    </main>
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <MarketDetails address={address} />
+    </HydrationBoundary>
   );
 }
