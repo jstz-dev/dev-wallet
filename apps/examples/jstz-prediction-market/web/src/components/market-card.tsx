@@ -1,24 +1,53 @@
 "use client";
 
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { isPast } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "jstz-ui/ui/alert";
 import { Badge } from "jstz-ui/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "jstz-ui/ui/card";
 import { Progress } from "jstz-ui/ui/progress";
 import { Separator } from "jstz-ui/ui/separator";
 import { Clock } from "lucide-react";
+import { notFound } from "next/navigation";
 import assert from "node:assert";
 import * as CurrencyConverter from "~/lib/currencyConverter";
-import { Market } from "~/lib/validators/market";
+import { marketSchema } from "~/lib/validators/market";
+import { useJstzClient } from "~/providers/jstz-client.context";
 import { accounts } from "~/queries/account.queries";
+import { smartFunctions } from "~/queries/smartFunctions.queries";
 import { StateBadge } from "./market-state-badge";
 
-type MarketCardProps = Market & {
+interface MarketCardProps {
   address: string;
-};
+}
 
-export function MarketCard(props: MarketCardProps) {
-  const { state, question, tokens, resolutionDate, bets, address } = props;
+export function MarketCard({ address }: MarketCardProps) {
+  const { getJstzClient } = useJstzClient();
+  const jstzClient = getJstzClient();
+
+  const { data: market } = useSuspenseQuery({
+    ...smartFunctions.getKv(address, "root", jstzClient),
+    select: (data) => {
+      // FIXME: get rid of type assertion
+      const { data: market, error } = marketSchema.safeParse(JSON.parse(data as string));
+
+      if (error) {
+        console.error(error);
+        return notFound();
+      }
+
+      const isWaitingForResolution =
+        market.state !== "resolved" && market.state !== "closed" && isPast(market.resolutionDate);
+
+      if (isWaitingForResolution) {
+        market.state = "waiting-for-resolution";
+      }
+
+      return market;
+    },
+  });
+
+  const { tokens, bets, question, state } = market;
 
   const noToken = tokens.find((token) => token.token === "no");
   assert(noToken, "Token should be defined.");
@@ -108,7 +137,7 @@ export function MarketCard(props: MarketCardProps) {
             <AlertTitle>Market Resolved</AlertTitle>
 
             <AlertDescription>
-              <p>Winning side: {props.resolvedToken.token.toUpperCase()}</p>
+              <p>Winning side: {market.resolvedToken.token.toUpperCase()}</p>
               <p>Admin needs to initialize pay out.</p>
             </AlertDescription>
           </Alert>
@@ -120,7 +149,7 @@ export function MarketCard(props: MarketCardProps) {
             <AlertTitle>Market Resolved</AlertTitle>
 
             <AlertDescription>
-              Winning side: {props.resolvedToken.token.toUpperCase()}
+              Winning side: {market.resolvedToken.token.toUpperCase()}
             </AlertDescription>
           </Alert>
         )}
@@ -137,7 +166,7 @@ export function MarketCard(props: MarketCardProps) {
 
         <div className="flex items-center gap-1">
           <Clock className="h-3 w-3" />
-          <span>{resolutionDate.split("T")[0]}</span>
+          <span>{market.resolutionDate.split("T")[0]}</span>
         </div>
 
         <StateBadge state={state} />
