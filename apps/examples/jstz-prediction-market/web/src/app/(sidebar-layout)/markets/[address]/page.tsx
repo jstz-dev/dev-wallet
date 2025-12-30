@@ -8,7 +8,7 @@ import { Progress } from "jstz-ui/ui/progress";
 import { Separator } from "jstz-ui/ui/separator";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { redirect, useParams } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import { BettingPanel } from "~/components/betting-panel";
 import * as CurrencyConverter from "~/lib/currencyConverter";
 import { createJstzClient } from "~/lib/jstz-signer.service";
@@ -31,7 +31,7 @@ export default function MarketPage() {
 
       if (error) {
         console.error(error);
-        return redirect("/404");
+        return notFound();
       }
 
       const isWaitingForResolution =
