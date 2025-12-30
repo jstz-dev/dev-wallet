@@ -1,16 +1,25 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { Badge } from "jstz-ui/ui/badge";
+import { APIError } from "@jstz-dev/jstz-client";
+import { type UseMutateAsyncFunction, useSuspenseQuery } from "@tanstack/react-query";
 import { Button } from "jstz-ui/ui/button";
 import { CardContent, CardFooter } from "jstz-ui/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "jstz-ui/ui/dialog";
 import { Separator } from "jstz-ui/ui/separator";
 import { Slider } from "jstz-ui/ui/slider";
 import { Spinner } from "jstz-ui/ui/spinner";
 import { cn } from "jstz-ui/utils";
-import { Clock, DollarSign } from "lucide-react";
+import { CheckCircle, Clock, DollarSign, ServerCrash } from "lucide-react";
 import assert from "node:assert";
-import { FormEvent } from "react";
+import { type FormEvent, useState } from "react";
+import { ZodError } from "zod";
 import { z } from "zod/mini";
 import * as CurrencyConverter from "~/lib/currencyConverter";
+import { HTTPCode } from "~/lib/HTTPCode";
 import { Market } from "~/lib/validators/market";
 import { Token, tokenSchema } from "~/lib/validators/token";
 import { accounts } from "~/queries/account.queries";
@@ -19,18 +28,11 @@ import { useAppForm } from "./ui/form";
 const betFormSchema = z.pick(tokenSchema, { token: true, amount: true });
 
 type BettingFormProps = Market & {
-  onSubmit: (value: Pick<Token, "token" | "amount">) => Promise<void>;
+  onSubmit: UseMutateAsyncFunction<void, Error, Pick<Token, "token"> & { amount: number }>;
   address: string;
 };
 
-export function BettingForm({
-  onSubmit,
-  tokens,
-  bets,
-  address,
-  state,
-  resolutionDate,
-}: BettingFormProps) {
+export function BettingForm({ onSubmit, tokens, bets, address, resolutionDate }: BettingFormProps) {
   const noToken = tokens.find((token) => token.token === "no");
   assert(noToken, "Token should be defined.");
 
@@ -38,6 +40,11 @@ export function BettingForm({
   assert(yesToken, "Token should be defined.");
 
   const { data: balance } = useSuspenseQuery(accounts.balance(address));
+
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const form = useAppForm({
     defaultValues: {
@@ -50,7 +57,49 @@ export function BettingForm({
     },
 
     onSubmit: async ({ value }) => {
-      await onSubmit(value);
+      await onSubmit(value, {
+        onSuccess: () => {
+          setSuccessModalOpen(true);
+        },
+
+        onError: (err) => {
+          switch (true) {
+            case err instanceof ZodError:
+              console.error("Invalid response was given.");
+              setErrorMessage(
+                "We received a response from the server that we have not expected. This is an error on our part.",
+              );
+              break;
+
+            case err instanceof SyntaxError:
+              console.error(`Completed call. Couldn't parse it to JSON.`);
+              setErrorMessage(
+                "We received a response that we couldn't properly deserialise. This is an error on our part.",
+              );
+              break;
+
+            case err instanceof APIError:
+              if (
+                err.status >= HTTPCode.BAD_REQUEST &&
+                err.status < HTTPCode.INTERNAL_SERVER_ERROR
+              ) {
+                setErrorMessage(`You did something wrong: ${err.message}`);
+              } else {
+                setErrorMessage(`There was an issue whith the server: ${err.message}`);
+              }
+              break;
+
+            case err instanceof Error:
+              console.error(err);
+              setErrorMessage(
+                "We received an error response from the server. Something have not went quite right. Try again later.",
+              );
+              break;
+          }
+
+          setErrorDialogOpen(true);
+        },
+      });
     },
   });
 
@@ -91,34 +140,6 @@ export function BettingForm({
     const profit = calculateProfit(side, betAmount);
     return (profit / betAmount) * 100;
   }
-
-  const StateBadge = (() => {
-    switch (state) {
-      case "on-going":
-        return <Badge className="text-xs">Active</Badge>;
-
-      case "waiting-for-resolution":
-        return (
-          <Badge variant="warning" className="text-xs">
-            Waiting for Resolution
-          </Badge>
-        );
-
-      case "resolved":
-        return (
-          <Badge variant="destructive" className="text-xs">
-            Resolved
-          </Badge>
-        );
-
-      case "created":
-        return (
-          <Badge variant="outline" className=" text-xs">
-            Inactive
-          </Badge>
-        );
-    }
-  })();
 
   return (
     <form.AppForm>
@@ -277,6 +298,72 @@ export function BettingForm({
           </div>
         </CardFooter>
       </form>
+
+      {/* Success Dialog */}
+      <Dialog open={successModalOpen} onOpenChange={setSuccessModalOpen}>
+        <DialogContent className="border-border bg-card sm:max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary">
+              <CheckCircle className="h-10 w-10 text-success" />
+            </div>
+
+            <DialogTitle className="text-center text-2xl text-card-foreground">
+              Bet Placed Successfully!
+            </DialogTitle>
+
+            <DialogDescription className="text-center text-muted-foreground">
+              Your bet has been submitted to chain
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-2 pt-2">
+            <Button
+              variant="outline"
+              className="w-full bg-transparent"
+              onClick={() => {
+                setSuccessModalOpen(false);
+                form.reset();
+              }}
+            >
+              Place Another Bet
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Error Dialog */}
+      <Dialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+        <DialogContent className="border-border bg-card sm:max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-secondary">
+              <ServerCrash className="size-10 text-muted-foreground" />
+            </div>
+
+            <DialogTitle className="text-center text-2xl text-card-foreground">
+              Something went wrong.
+            </DialogTitle>
+
+            <DialogDescription className="text-center text-muted-foreground">
+              We couldn&apos;t process the deployment request.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div>{errorMessage}</div>
+
+          <div className="flex flex-col gap-2 pt-2">
+            <Button
+              variant="outline"
+              className="w-full bg-transparent"
+              onClick={() => {
+                setErrorDialogOpen(false);
+                form.reset();
+              }}
+            >
+              Dismiss
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </form.AppForm>
   );
 }
