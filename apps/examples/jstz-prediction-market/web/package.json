@@ -4,11 +4,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "bun run --bun next dev",
     "build:deps": "pnpm --filter market-dapp build",
     "copy:artifacts": "bun scripts/copy-market.js",
     "build": "pnpm build:deps && pnpm copy:artifacts && bun run --bun next build",
-    "start": "bun run --bun next start"
+    "start": "bun run --bun next start",
+    "db:push": "drizzle-kit push",
+    "drizzle-kit": "drizzle-kit"
   },
   "dependencies": {
     "@better-fetch/fetch": "^1.1.18",
@@ -23,6 +25,9 @@
     "@uidotdev/usehooks": "^2.4.1",
     "cva": "1.0.0-beta.4",
     "date-fns": "^4.1.0",
+    "dotenv": "^17.2.3",
+    "drizzle-kit": "^0.31.8",
+    "drizzle-orm": "^0.45.1",
     "jstz-ui": "workspace:*",
     "lucide-react": "^0.555.0",
     "next": "16.1.0",
