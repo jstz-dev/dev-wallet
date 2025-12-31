@@ -1,7 +1,7 @@
 "use client";
 
-import Jstz from "@jstz-dev/jstz-client";
-import { Updater } from "@tanstack/react-form";
+import Jstz, { APIError } from "@jstz-dev/jstz-client";
+import { type Updater } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
 import { useIsClient } from "@uidotdev/usehooks";
 import { addDays, setSeconds } from "date-fns";
@@ -9,25 +9,36 @@ import { Alert, AlertDescription, AlertTitle } from "jstz-ui/ui/alert";
 import { Button } from "jstz-ui/ui/button";
 import { Calendar } from "jstz-ui/ui/calendar";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "jstz-ui/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "jstz-ui/ui/dialog";
 import { Input } from "jstz-ui/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "jstz-ui/ui/popover";
 import { Spinner } from "jstz-ui/ui/spinner";
-import { ChevronDown, TriangleAlert } from "lucide-react";
+import { ChevronDown, ServerCrash, TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FormEvent, Suspense, use, useEffect, useEffectEvent, useState } from "react";
+import { type FormEvent, Suspense, use, useEffect, useEffectEvent, useState } from "react";
+import { ZodError } from "zod";
 import { z } from "zod/mini";
 import { useAppForm } from "~/components/ui/form";
 import { env } from "~/env";
 import { textDecode, textEncode } from "~/lib/encoder";
 import { useJstzSignerExtension } from "~/lib/hooks/useJstzSigner";
-import { type CreateMarket, MarketForm, marketFormSchema } from "~/lib/validators/market";
+import { HTTPCode } from "~/lib/HTTPCode";
+import { type CreateMarket, type MarketForm, marketFormSchema } from "~/lib/validators/market";
 import { type Token } from "~/lib/validators/token";
+import { useConfetti } from "~/providers/confetti-provider";
 import { useJstzClient } from "~/providers/jstz-client.context";
 
 export const responseSchema = z.union([
   z.object({
     address: z.string(),
   }),
+
   z.object({
     message: z.string(),
   }),
@@ -37,6 +48,11 @@ export default function DeployPage() {
   const { signWithJstzExtension } = useJstzSignerExtension();
   const { getJstzClient } = useJstzClient();
   const router = useRouter();
+
+  const { fireRealistic } = useConfetti();
+
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const { mutateAsync: deployMarket } = useMutation({
     mutationFn: async (market: CreateMarket) => {
@@ -71,33 +87,61 @@ export default function DeployPage() {
         // of all possible Receipts
       )) as { result: { inner: Jstz.Receipt.Success.RunFunction } };
 
-      try {
-        const { data: response, error } = responseSchema.safeParse(textDecode(inner.body));
+      const response = responseSchema.parse(textDecode(inner.body));
 
-        if (error) {
-          console.error("Invalid response was given.");
-          return;
-        } else if ("message" in response) {
-          console.info(`Completed call. Response: ${response.message}`);
-          return;
-        }
-
-        router.push(`/markets/${response.address}`);
-        return;
-      } catch (e) {
-        console.info(`Completed call. Couldn't parse it to JSON.`);
-
-        if (typeof inner !== "string") {
-          console.dir(textDecode(inner.body));
-        }
+      // NOTE: If there's a `message` in response that means it errored out.
+      if ("message" in response) {
+        throw new Error(`Completed call. But the response was an error: ${response.message}`);
       }
+
+      return response.address;
+    },
+
+    onSuccess: (address) => {
+      router.push(`/markets/${address}`);
+      fireRealistic();
+    },
+
+    onError: (err) => {
+      switch (true) {
+        case err instanceof ZodError:
+          console.error("Invalid response was given.");
+          setErrorMessage(
+            "We received a response from the server that we have not expected. This is an error on our part.",
+          );
+          break;
+
+        case err instanceof SyntaxError:
+          console.error(`Completed call. Couldn't parse it to JSON.`);
+          setErrorMessage(
+            "We received a response that we couldn't properly deserialise. This is an error on our part.",
+          );
+          break;
+
+        case err instanceof APIError:
+          if (err.status >= HTTPCode.BAD_REQUEST && err.status < HTTPCode.INTERNAL_SERVER_ERROR) {
+            setErrorMessage(`You did something wrong: ${err.message}`);
+          } else {
+            setErrorMessage(`There was an issue whith the server: ${err.message}`);
+          }
+          break;
+
+        case err instanceof Error:
+          console.error(err);
+          setErrorMessage(
+            "We received an error response from the server. Something have not went quite right. Try again later.",
+          );
+          break;
+      }
+
+      setErrorDialogOpen(true);
     },
   });
 
   const form = useAppForm({
     defaultValues: {
       admins: [] as string[],
-      question: "",
+      question: "Will Jstz be released to the mainnet by the end of Q2 2026?",
       resolutionDate: setSeconds(addDays(new Date(), 1), 0),
       pool: 0,
       tokens: [
@@ -137,6 +181,7 @@ export default function DeployPage() {
           <CardHeader>
             <CardTitle>Deploy Page</CardTitle>
           </CardHeader>
+
           <form.AppForm>
             <form onSubmit={onSubmit}>
               <CardContent className="gap-4 flex-col flex">
@@ -218,6 +263,40 @@ export default function DeployPage() {
             </form>
           </form.AppForm>
         </Card>
+
+        {/* Error Dialog */}
+        <Dialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+          <DialogContent className="border-border bg-card sm:max-w-md">
+            <DialogHeader>
+              <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-secondary">
+                <ServerCrash className="size-10 text-muted-foreground" />
+              </div>
+
+              <DialogTitle className="text-center text-2xl text-card-foreground">
+                Something went wrong.
+              </DialogTitle>
+
+              <DialogDescription className="text-center text-muted-foreground">
+                We couldn&apos;t process the deployment request.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div>{errorMessage}</div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <Button
+                variant="outline"
+                className="w-full bg-transparent"
+                onClick={() => {
+                  setErrorDialogOpen(false);
+                  form.reset();
+                }}
+              >
+                Dismiss
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </main>
   );
