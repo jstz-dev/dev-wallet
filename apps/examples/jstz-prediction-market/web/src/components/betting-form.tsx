@@ -18,11 +18,11 @@ import assert from "node:assert";
 import { type FormEvent, useState } from "react";
 import { ZodError } from "zod";
 import { z } from "zod/mini";
-import * as CurrencyConverter from "~/lib/currencyConverter";
 import { HTTPCode } from "~/lib/HTTPCode";
 import { Market } from "~/lib/validators/market";
 import { Token, tokenSchema } from "~/lib/validators/token";
 import { accounts } from "~/queries/account.queries";
+import * as CurrencyConverter from "~/utils/currencyConverter";
 import { useAppForm } from "./ui/form";
 
 const betFormSchema = z.pick(tokenSchema, { token: true, amount: true });

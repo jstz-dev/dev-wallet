@@ -8,7 +8,7 @@ import { createMarketSchema } from "~/lib/validators/market";
 import Jstz from "@jstz-dev/jstz-client";
 import * as signer from "@jstz-dev/jstz_sdk";
 import path from "node:path";
-import { textDecode, textEncode } from "~/lib/encoder";
+import { textDecode, textEncode } from "~/utils/encoder";
 
 const marketBodySchema = z.object({
   ...createMarketSchema.shape,

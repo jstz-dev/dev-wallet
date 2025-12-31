@@ -26,15 +26,15 @@ import { ZodError } from "zod";
 import { z } from "zod/mini";
 import { useAppForm } from "~/components/ui/form";
 import { env } from "~/env";
-import { textDecode, textEncode } from "~/lib/encoder";
 import { useJstzSignerExtension } from "~/lib/hooks/useJstzSigner";
 import { HTTPCode } from "~/lib/HTTPCode";
 import { type CreateMarket, type MarketForm, marketFormSchema } from "~/lib/validators/market";
 import { type Token } from "~/lib/validators/token";
 import { useConfetti } from "~/providers/confetti-provider";
 import { useJstzClient } from "~/providers/jstz-client.context";
+import { textDecode, textEncode } from "~/utils/encoder";
 
-export const responseSchema = z.union([
+const responseSchema = z.union([
   z.object({
     address: z.string(),
   }),

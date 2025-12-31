@@ -4,9 +4,11 @@ import { cn } from "jstz-ui/utils";
 import { SquarePlus, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { PropsWithChildren } from "react";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
@@ -20,7 +22,7 @@ const navigation = [
   { name: "Deploy", href: "/deploy", icon: SquarePlus },
 ];
 
-export default function NavigationBar() {
+export default function NavigationBar({ children }: PropsWithChildren) {
   const pathname = usePathname();
 
   return (
@@ -63,6 +65,12 @@ export default function NavigationBar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        <SidebarFooter className="mt-auto">
+          <SidebarMenu>
+            <SidebarMenuItem>{children}</SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
       </SidebarContent>
     </Sidebar>
   );

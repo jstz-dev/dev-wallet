@@ -10,11 +10,12 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BettingPanel } from "~/components/betting-panel";
-import * as CurrencyConverter from "~/lib/currencyConverter";
+import { createJstzClient } from "~/lib/jstz-signer.service";
 import { marketSchema } from "~/lib/validators/market";
 import { useJstzClient } from "~/providers/jstz-client.context";
 import { accounts } from "~/queries/account.queries";
 import { smartFunctions } from "~/queries/smartFunctions.queries";
+import * as CurrencyConverter from "~/utils/currencyConverter";
 
 export function MarketDetails({ address }: { address: string }) {
   const { getJstzClient } = useJstzClient();
