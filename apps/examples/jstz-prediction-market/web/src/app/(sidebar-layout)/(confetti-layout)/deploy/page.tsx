@@ -34,7 +34,7 @@ import { useConfetti } from "~/providers/confetti-provider";
 import { useJstzClient } from "~/providers/jstz-client.context";
 import { textDecode, textEncode } from "~/utils/encoder";
 
-export const responseSchema = z.union([
+const responseSchema = z.union([
   z.object({
     address: z.string(),
   }),
