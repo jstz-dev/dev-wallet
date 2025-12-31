@@ -2,6 +2,14 @@ import { createEnv } from "@t3-oss/env-nextjs";
 import { vercel } from "@t3-oss/env-nextjs/presets-zod";
 import { z } from "zod/mini";
 
+const authURL =
+  process.env.NEXT_PUBLIC_VERCEL_ENV === "production"
+    ? // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      "https://" + process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL!
+    : process.env.NEXT_PUBLIC_VERCEL_BRANCH_URL
+      ? "https://" + process.env.NEXT_PUBLIC_VERCEL_BRANCH_URL
+      : process.env.NEXT_PUBLIC_AUTH_URL;
+
 export const env = createEnv({
   extends: [vercel()],
 
@@ -35,7 +43,7 @@ export const env = createEnv({
   },
 
   experimental__runtimeEnv: {
-    NEXT_PUBLIC_AUTH_URL: process.env.NEXT_PUBLIC_AUTH_URL,
+    NEXT_PUBLIC_AUTH_URL: authURL,
     NEXT_PUBLIC_PARENT_SF_ADDRESS: process.env.NEXT_PUBLIC_PARENT_SF_ADDRESS,
     NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
     NEXT_PUBLIC_JSTZ_NODE_ENDPOINT: process.env.NEXT_PUBLIC_JSTZ_NODE_ENDPOINT,
