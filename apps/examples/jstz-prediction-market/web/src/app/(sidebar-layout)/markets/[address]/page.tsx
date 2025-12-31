@@ -10,11 +10,11 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound, useParams } from "next/navigation";
 import { BettingPanel } from "~/components/betting-panel";
-import * as CurrencyConverter from "~/lib/currencyConverter";
 import { createJstzClient } from "~/lib/jstz-signer.service";
 import { marketSchema } from "~/lib/validators/market";
 import { accounts } from "~/queries/account.queries";
 import { smartFunctions } from "~/queries/smartFunctions.queries";
+import * as CurrencyConverter from "~/utils/currencyConverter";
 
 type Params = Awaited<PageProps<"/markets/[address]">["params"]>;
 

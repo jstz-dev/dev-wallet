@@ -18,11 +18,11 @@ import { FormEvent, Suspense, use, useEffect, useEffectEvent, useState } from "r
 import { z } from "zod/mini";
 import { useAppForm } from "~/components/ui/form";
 import { env } from "~/env";
-import { textDecode, textEncode } from "~/lib/encoder";
 import { useJstzSignerExtension } from "~/lib/hooks/useJstzSigner";
 import { type CreateMarket, MarketForm, marketFormSchema } from "~/lib/validators/market";
 import { type Token } from "~/lib/validators/token";
 import { useJstzClient } from "~/providers/jstz-client.context";
+import { textDecode, textEncode } from "~/utils/encoder";
 
 export const responseSchema = z.union([
   z.object({

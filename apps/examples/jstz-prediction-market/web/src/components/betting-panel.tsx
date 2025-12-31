@@ -8,7 +8,6 @@ import { Button } from "jstz-ui/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "jstz-ui/ui/card";
 import { Spinner } from "jstz-ui/ui/spinner";
 import { AlertTriangle } from "lucide-react";
-import { textDecode, textEncode } from "~/lib/encoder";
 import { useJstzSignerExtension } from "~/lib/hooks/useJstzSigner";
 import { SignWithJstzSignerParams } from "~/lib/jstz-signer.service";
 import type { Market } from "~/lib/validators/market";
@@ -16,6 +15,7 @@ import { Token } from "~/lib/validators/token";
 import { useJstzClient } from "~/providers/jstz-client.context";
 import { accounts } from "~/queries/account.queries";
 import { smartFunctions } from "~/queries/smartFunctions.queries";
+import { textDecode, textEncode } from "~/utils/encoder";
 import { BettingForm } from "./betting-form";
 import { StateBadge } from "./market-state-badge";
 

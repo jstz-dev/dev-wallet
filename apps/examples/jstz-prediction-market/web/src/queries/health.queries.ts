@@ -1,5 +1,5 @@
 import { createQueryKeys } from "@lukemorales/query-key-factory";
-import { $fetch } from "~/lib/$fetch";
+import { $fetch } from "~/utils/$fetch";
 
 export const health = createQueryKeys("health", {
   ping: {

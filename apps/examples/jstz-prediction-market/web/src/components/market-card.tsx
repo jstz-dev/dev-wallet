@@ -10,11 +10,11 @@ import { Separator } from "jstz-ui/ui/separator";
 import { Clock } from "lucide-react";
 import { notFound } from "next/navigation";
 import assert from "node:assert";
-import * as CurrencyConverter from "~/lib/currencyConverter";
 import { marketSchema } from "~/lib/validators/market";
 import { useJstzClient } from "~/providers/jstz-client.context";
 import { accounts } from "~/queries/account.queries";
 import { smartFunctions } from "~/queries/smartFunctions.queries";
+import * as CurrencyConverter from "~/utils/currencyConverter";
 import { StateBadge } from "./market-state-badge";
 
 interface MarketCardProps {
