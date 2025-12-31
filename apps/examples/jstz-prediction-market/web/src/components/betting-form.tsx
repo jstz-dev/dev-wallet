@@ -4,6 +4,7 @@ import { Button } from "jstz-ui/ui/button";
 import { CardContent, CardFooter } from "jstz-ui/ui/card";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -300,7 +301,16 @@ export function BettingForm({ onSubmit, tokens, bets, address, resolutionDate }:
       </form>
 
       {/* Success Dialog */}
-      <Dialog open={successModalOpen} onOpenChange={setSuccessModalOpen}>
+      <Dialog
+        open={successModalOpen}
+        onOpenChange={(open) => {
+          setSuccessModalOpen(open);
+
+          if (!open) {
+            form.reset();
+          }
+        }}
+      >
         <DialogContent className="border-border bg-card sm:max-w-md">
           <DialogHeader>
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary">
@@ -317,22 +327,26 @@ export function BettingForm({ onSubmit, tokens, bets, address, resolutionDate }:
           </DialogHeader>
 
           <div className="flex flex-col gap-2 pt-2">
-            <Button
-              variant="outline"
-              className="w-full bg-transparent"
-              onClick={() => {
-                setSuccessModalOpen(false);
-                form.reset();
-              }}
-            >
-              Place Another Bet
-            </Button>
+            <DialogClose asChild>
+              <Button variant="outline" className="w-full bg-transparent">
+                Place Another Bet
+              </Button>
+            </DialogClose>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Error Dialog */}
-      <Dialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+      <Dialog
+        open={errorDialogOpen}
+        onOpenChange={(open) => {
+          setErrorDialogOpen(open);
+
+          if (!open) {
+            form.reset();
+          }
+        }}
+      >
         <DialogContent className="border-border bg-card sm:max-w-md">
           <DialogHeader>
             <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-secondary">
@@ -351,16 +365,11 @@ export function BettingForm({ onSubmit, tokens, bets, address, resolutionDate }:
           <div>{errorMessage}</div>
 
           <div className="flex flex-col gap-2 pt-2">
-            <Button
-              variant="outline"
-              className="w-full bg-transparent"
-              onClick={() => {
-                setErrorDialogOpen(false);
-                form.reset();
-              }}
-            >
-              Dismiss
-            </Button>
+            <DialogClose asChild>
+              <Button variant="outline" className="w-full bg-transparent">
+                Dismiss
+              </Button>
+            </DialogClose>
           </div>
         </DialogContent>
       </Dialog>
