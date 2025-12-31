@@ -20,7 +20,7 @@ export const env = createEnv({
     GOOGLE_AUTH_SECRET: z.string(),
     GOOGLE_CLIENT_ID: z.string(),
 
-    DB_URL: z.string(),
+    DATABASE_URL: z.string(),
 
     WALLET_ADDRESS: z.string(),
     WALLET_PUBLIC_KEY: z.string(),
