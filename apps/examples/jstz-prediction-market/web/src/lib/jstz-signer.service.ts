@@ -54,19 +54,3 @@ export async function signWithJstzSigner({ content, signerOptions }: SignWithJst
     signerOptions,
   );
 }
-
-export async function callSmartFunction({
-  content,
-  onSignatureReceived,
-  options,
-  signerOptions,
-}: SignWithJstzSignerParams & {
-  onSignatureReceived: (
-    response: { data: JstzSigner.SignResponse },
-    jstzClient: Jstz,
-  ) => Promise<void>;
-  options?: JstzSignerClientOptions;
-}) {
-  const request = await signWithJstzSigner({ content, signerOptions });
-  await onSignatureReceived(request, createJstzClient(options));
-}
