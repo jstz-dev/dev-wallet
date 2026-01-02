@@ -6,20 +6,12 @@ import {
 } from "~/lib/jstz-signer/jstz-signer.client";
 
 export function useJstzSigner() {
-  const [isExtensionAvailable, setIsExtensionAvailable] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   async function checkExtensionAvailability() {
     try {
       setIsLoading(true);
       const { data } = await JstzSignerClient.checkExtensionAvailability();
-
-      await new Promise((resolve) => {
-        setTimeout(() => {
-          setIsExtensionAvailable(data.success);
-          resolve(undefined);
-        }, 1000);
-      });
 
       return data.success;
     } catch (e) {
@@ -61,7 +53,6 @@ export function useJstzSigner() {
 
   return {
     isLoading,
-    isExtensionAvailable,
     checkExtensionAvailability,
     getWalletAddress,
     signOperation,

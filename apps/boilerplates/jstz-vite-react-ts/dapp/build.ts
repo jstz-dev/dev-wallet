@@ -1,7 +1,7 @@
 import { build } from "bun";
 
 try {
-  const output = await build({
+  await build({
     entrypoints: ["index.ts"],
     minify: true,
     packages: "bundle",
