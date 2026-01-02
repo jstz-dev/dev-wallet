@@ -1,9 +1,7 @@
 import { AutoRouter, json } from "itty-router";
 import { z } from "zod";
 
-const ONE_TEZ = 1_000_000;
 const KV_ROOT = "root";
-const REFERER_HEADER = "Referer";
 const RPC_URL = "https://privatenet.jstz.info";
 
 // Schemas
@@ -11,7 +9,7 @@ const addFormSchema = z.object({
   value: z.number(),
 });
 
-export type AddForm = z.infer<typeof addFormSchema>
+export type AddForm = z.infer<typeof addFormSchema>;
 
 interface ResponseMessage extends Record<string, unknown> {
   message: string;
