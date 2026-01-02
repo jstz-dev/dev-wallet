@@ -5,11 +5,11 @@ const KV_ROOT = "root";
 const RPC_URL = "https://privatenet.jstz.info";
 
 // Schemas
-const addFormSchema = z.object({
+const increaseFormSchema = z.object({
   value: z.number(),
 });
 
-export type AddForm = z.infer<typeof addFormSchema>;
+export type IncreaseForm = z.infer<typeof increaseFormSchema>
 
 interface ResponseMessage extends Record<string, unknown> {
   message: string;
@@ -43,7 +43,7 @@ router.get("/counter", () => {
 router.post("/counter/increase", async (request) => {
   try {
     const body = await request.json();
-    const { success, error, data } = addFormSchema.safeParse(body);
+    const { success, error, data } = increaseFormSchema.safeParse(body);
     if (!success) return errorResponse(error.message);
 
     dispatch({

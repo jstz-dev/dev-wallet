@@ -2,7 +2,7 @@ import { Suspense, use, useState } from "react";
 import { useJstzSigner } from "~/hooks/useJstzSigner";
 import { textDecode, textEncode } from "~/lib/encoder.ts";
 import { JstzSignerClient } from "~/lib/jstz-signer/jstz-signer.client.ts";
-import { type AddForm } from "../dapp";
+import { type IncreaseForm } from "../dapp";
 import "./App.css";
 import jstzLogo from "./assets/jstz.svg";
 import reactLogo from "./assets/react.svg";
@@ -70,7 +70,7 @@ function CounterCard() {
 
   const [counter, setCounter] = useState(initialCounter);
 
-  async function signAndInject(payload: AddForm) {
+  async function signAndInject(payload: IncreaseForm) {
     try {
       setProcessing(true);
 
