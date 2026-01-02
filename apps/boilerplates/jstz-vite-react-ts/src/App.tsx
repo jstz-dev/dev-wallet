@@ -1,11 +1,19 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useJstzSigner } from "~/hooks/useJstzSigner";
 import { textDecode, textEncode } from "~/lib/encoder.ts";
 import { JstzSignerClient } from "~/lib/jstz-signer/jstz-signer.client.ts";
+import { type AddForm } from "../dapp";
 import "./App.css";
 import jstzLogo from "./assets/jstz.svg";
 import reactLogo from "./assets/react.svg";
 import viteLogo from "/vite.svg";
+
+/**
+ * @property dAppAddress - address of the smart function deployed from ../dapp
+ * @example
+ * // KT1KQERjRDyuHsLvCaUAz4nxdg3n9jpbcW8N
+ */
+const dAppAddress = import.meta.env.VITE_DAPP_ADDRESS;
 
 function App() {
   const jstzClientRef = useRef(JstzSignerClient.createJstzClient());
@@ -14,13 +22,37 @@ function App() {
 
   const [processing, setProcessing] = useState(false);
   const [response, setResponse] = useState("");
+  const [counter, setCounter] = useState(0);
 
-  async function signAndInject() {
+  useEffect(() => {
+    void fetchCounter();
+  }, []);
+
+  /**
+   * @func fetchCounter - uses Jstz client to obtain the current state of the smart function's KV store (https://jstz.tezos.com/functions/data_storage)
+   */
+  async function fetchCounter() {
+    try {
+      const jstzClient = jstzClientRef.current;
+      const resp = (await jstzClient.accounts.getKv(dAppAddress, { key: "root" })) as string;
+
+      const kv = JSON.parse(resp);
+
+      setCounter(kv?.counter ?? 0);
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+
+  async function signAndInject(payload: AddForm) {
     try {
       setProcessing(true);
 
       const jstzClient = jstzClientRef.current;
 
+      /**
+       * https://jstz.tezos.com/quick_start#5-interacting-with-the-smart-function-in-a-web-application
+       */
       const isExtensionAvailable = await checkExtensionAvailability();
 
       if (!isExtensionAvailable) {
@@ -28,17 +60,13 @@ function App() {
         return;
       }
 
-      // Fill up the env variable with the address of the function deployed from ../dapp
-      // KT1...
-      const address = import.meta.env.VITE_DAPP_ADDRESS;
-
       const { operation, signature, verifier } = await signOperation({
         content: {
           _type: "RunFunction",
-          uri: `jstz://${address}/bet`,
+          uri: `jstz://${dAppAddress}/counter/increase`,
           headers: {},
           method: "POST",
-          body: textEncode({ value: 2 }),
+          body: textEncode(payload),
           gasLimit: 55_000,
         },
       });
@@ -54,8 +82,14 @@ function App() {
       let returnedMessage = "No message.";
 
       if (typeof inner === "object" && "body" in inner) {
-        returnedMessage =
-          (inner.body && JSON.stringify(textDecode(inner.body), null, 2)) ?? "No message.";
+        const parsedBody = inner.body && textDecode(inner.body);
+        if (!parsedBody) {
+          returnedMessage = "Success but no return message from the dapp";
+        } else if (parsedBody.message) {
+          returnedMessage = parsedBody.message;
+        } else {
+          returnedMessage = JSON.stringify(parsedBody, null, 2);
+        }
       }
 
       if (typeof inner === "string") {
@@ -65,6 +99,8 @@ function App() {
       console.info(`Completed call. Response: ${returnedMessage}`);
 
       setResponse(returnedMessage);
+
+      await fetchCounter();
 
       return { message: returnedMessage };
     } catch (err) {
@@ -105,8 +141,9 @@ function App() {
       </div>
       <h1>Jstz + Vite + React</h1>
       <div className="card">
-        <button disabled={processing} onClick={signAndInject}>
-          Sign and inject
+        <p> Count is {counter}</p>
+        <button disabled={processing} onClick={() => signAndInject({ value: 1 })}>
+          +1
         </button>
         <p>{response}</p>
       </div>

@@ -11,6 +11,8 @@ const addFormSchema = z.object({
   value: z.number(),
 });
 
+export type AddForm = z.infer<typeof addFormSchema>
+
 interface ResponseMessage extends Record<string, unknown> {
   message: string;
 }
@@ -51,7 +53,7 @@ router.post("/counter/increase", async (request) => {
       value: data?.value,
     });
 
-    return successResponse("Admin added successfully.");
+    return successResponse(`Counter increased by value of ${data?.value}`);
   } catch (err) {
     if (err instanceof Error) {
       return errorResponse(`Error: ${err.message}`);
