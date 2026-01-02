@@ -1,0 +1,19 @@
+{
+  "name": "market-dapp",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "bun ./build.ts"
+  },
+  "dependencies": {
+    "@jstz-dev/jstz": "^0.0.0",
+    "itty-router": "^5.0.18",
+    "zod": "^4"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.4",
+    "@types/node": "^24.10.1"
+  }
+}
