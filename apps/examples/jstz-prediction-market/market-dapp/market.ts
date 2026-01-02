@@ -78,8 +78,9 @@ marketRouter.post(
   "/bet",
   withParseBody(async (request, body) => {
     // check resolution date
-    const isResolutionDatePassed = await getIsResolutionDatePassed()
-    if (isResolutionDatePassed) return errorResponse("Market is not accepting bets anymore")
+    // FIXME: temporary disabled
+    // const isResolutionDatePassed = await getIsResolutionDatePassed()
+    // if (isResolutionDatePassed) return errorResponse("Market is not accepting bets anymore")
 
     const { state } = getState();
     if (!state || state === "created") return errorResponse("Market is not initialized yet");
@@ -98,7 +99,7 @@ marketRouter.post(
     const mutez = Number(receivedMutez);
 
     if (!receivedMutez || isNaN(mutez) || mutez < tokenState.price)
-      return errorResponse("Not enough tez for to make a bet");
+      return errorResponse("Not enough tez to make a bet");
 
     const amount = Math.floor(mutez / tokenState.price);
 
