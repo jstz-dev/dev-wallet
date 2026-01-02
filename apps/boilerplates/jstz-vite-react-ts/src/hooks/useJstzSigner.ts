@@ -45,7 +45,10 @@ export function useJstzSigner() {
 
   async function signOperation(payload: SignWithJstzSignerParams) {
     try {
-      const response = await JstzSignerClient.signWithJstzSigner(payload);
+      const response = await JstzSignerClient.signWithJstzSigner({
+        ...payload,
+        signerOptions: { timeout: 10_000 },
+      });
 
       const { operation, signature, verifier } = response.data;
 

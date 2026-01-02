@@ -100,7 +100,6 @@ function reducer(state: Record<string, any>, action: KvAction): KvState {
 }
 
 // utils
-
 interface GetAsyncKVOptions {
   rpcUrl?: string;
   kvKey?: string;
