@@ -84,7 +84,9 @@ export function BettingForm({ onSubmit, tokens, bets, address, resolutionDate }:
                 err.status >= HTTPCode.BAD_REQUEST &&
                 err.status < HTTPCode.INTERNAL_SERVER_ERROR
               ) {
-                setErrorMessage(`You did something wrong: ${err.message}`);
+                if (err.message.includes("InsufficientFunds")) {
+                  setErrorMessage("You don't have enough funds.");
+                } else setErrorMessage(`You did something wrong: ${err.message}`);
               } else {
                 setErrorMessage(`There was an issue whith the server: ${err.message}`);
               }
