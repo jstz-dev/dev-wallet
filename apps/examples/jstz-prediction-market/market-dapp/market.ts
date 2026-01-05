@@ -402,12 +402,12 @@ async function getIsMaster(address: string) {
 
 async function withMaster(handler: (request: IRequest) => Promise<Response>) {
   return async (request: IRequest) => {
-    const requester = request.headers.get("Referer") as Address;
-
-    const isMaster = await getIsMaster(requester);
-    if (!isMaster) {
-      return errorResponse("You don't have authoritah");
-    }
+    // const requester = request.headers.get("Referer") as Address;
+    //
+    // const isMaster = await getIsMaster(requester);
+    // if (!isMaster) {
+    //   return errorResponse("You don't have authoritah");
+    // }
     return handler(request);
   };
 }
