@@ -84,7 +84,9 @@ export function BettingForm({ onSubmit, tokens, bets, address, resolutionDate }:
                 err.status >= HTTPCode.BAD_REQUEST &&
                 err.status < HTTPCode.INTERNAL_SERVER_ERROR
               ) {
-                setErrorMessage(`You did something wrong: ${err.message}`);
+                if (err.message.includes("InsufficientFunds")) {
+                  setErrorMessage("You don't have enough funds.");
+                } else setErrorMessage(`You did something wrong: ${err.message}`);
               } else {
                 setErrorMessage(`There was an issue whith the server: ${err.message}`);
               }
@@ -317,12 +319,12 @@ export function BettingForm({ onSubmit, tokens, bets, address, resolutionDate }:
               <CheckCircle className="h-10 w-10 text-success" />
             </div>
 
-            <DialogTitle className="text-center text-2xl text-card-foreground">
+            <DialogTitle className="text-2xl text-card-foreground">
               Bet Placed Successfully!
             </DialogTitle>
 
-            <DialogDescription className="text-center text-muted-foreground">
-              Your bet has been submitted to chain
+            <DialogDescription className="text-muted-foreground">
+              Your bet has been submitted to chain.
             </DialogDescription>
           </DialogHeader>
 
@@ -353,12 +355,12 @@ export function BettingForm({ onSubmit, tokens, bets, address, resolutionDate }:
               <ServerCrash className="size-10 text-muted-foreground" />
             </div>
 
-            <DialogTitle className="text-center text-2xl text-card-foreground">
+            <DialogTitle className="text-2xl text-card-foreground">
               Something went wrong.
             </DialogTitle>
 
-            <DialogDescription className="text-center text-muted-foreground">
-              We couldn&apos;t process the deployment request.
+            <DialogDescription className="text-muted-foreground">
+              We couldn&apos;t process the bet.
             </DialogDescription>
           </DialogHeader>
 

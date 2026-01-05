@@ -9,6 +9,7 @@ import { Separator } from "jstz-ui/ui/separator";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import assert from "node:assert";
 import { BettingPanel } from "~/components/betting-panel";
 import * as CurrencyConverter from "~/lib/currencyConverter";
 import { marketSchema } from "~/lib/validators/market";
@@ -23,8 +24,9 @@ export function MarketDetails({ address }: { address: string }) {
   const { data: kv } = useSuspenseQuery(smartFunctions.getKv(address, "root", jstzClient));
 
   const market = (() => {
-    // FIXME: get rid of type assertion
-    const { data: market, error } = marketSchema.safeParse(JSON.parse(kv as string));
+    assert(typeof kv === "string", "kv at this point should be defined and a string.");
+
+    const { data: market, error } = marketSchema.safeParse(JSON.parse(kv));
 
     if (error) {
       console.error(error);
