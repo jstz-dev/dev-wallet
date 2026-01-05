@@ -95,10 +95,12 @@ export function BettingPanel(props: BettingPanelProps) {
             HTTPCode.FORBIDDEN,
             new Error(body.message),
             body.message,
+            // @ts-expect-error This error should disappear after jstz update
             inner.headers,
           );
         }
 
+        // @ts-expect-error This error should disappear after jstz update
         throw new APIError(inner.statusCode, {}, body.message, inner.headers);
       }
     },
