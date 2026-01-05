@@ -283,18 +283,18 @@ function reducer(state: KvState, action: KvAction): KvState {
 
       const balance = Ledger.balance(Ledger.selfAddress);
 
-      const syntheticTokensAmount = newState.bets.reduce((acc, token) => {
-        if (token.isSynthetic) {
+      const realTokensAmount = newState.bets.reduce((acc, token) => {
+        if (!token.isSynthetic) {
           return acc + token.amount;
         }
         return acc;
       }, 0);
 
-      const resolvedTokenPrice = Math.floor(balance / (token.amount - syntheticTokensAmount));
+      const resolvedTokenPrice = Math.floor(balance / realTokensAmount);
 
       newState.resolvedToken = {
         token: action.token,
-        amount: token.amount - syntheticTokensAmount,
+        amount: realTokensAmount,
         price: resolvedTokenPrice,
       };
 
