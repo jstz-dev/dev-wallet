@@ -1,6 +1,6 @@
 "use client";
 
-import Jstz from "@jstz-dev/jstz-client";
+import Jstz, { APIError } from "@jstz-dev/jstz-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "jstz-ui/ui/alert";
 import { Badge } from "jstz-ui/ui/badge";
@@ -10,6 +10,7 @@ import { Spinner } from "jstz-ui/ui/spinner";
 import { AlertTriangle } from "lucide-react";
 import { textDecode, textEncode } from "~/lib/encoder";
 import { useJstzSignerExtension } from "~/lib/hooks/useJstzSigner";
+import { HTTPCode } from "~/lib/HTTPCode";
 import { SignWithJstzSignerParams } from "~/lib/jstz-signer.service";
 import type { Market } from "~/lib/validators/market";
 import { Token } from "~/lib/validators/token";
@@ -67,8 +68,6 @@ export function BettingPanel(props: BettingPanelProps) {
 
   const { mutateAsync: placeBet } = useMutation({
     mutationFn: async ({ token, amount }: Pick<Token, "token"> & { amount: number }) => {
-      console.log(amount);
-
       const payload: SignWithJstzSignerParams = {
         content: {
           _type: "RunFunction",
@@ -88,7 +87,20 @@ export function BettingPanel(props: BettingPanelProps) {
         result: { inner },
       } = await runSmartFunction(payload);
 
-      console.log(textDecode(inner.body));
+      const body = textDecode(inner.body) as Record<string, unknown>;
+
+      if (inner.statusCode >= HTTPCode.BAD_REQUEST) {
+        if (body.message === "InsufficientFunds") {
+          throw new APIError(
+            HTTPCode.FORBIDDEN,
+            new Error(body.message),
+            body.message,
+            inner.headers,
+          );
+        }
+
+        throw new APIError(inner.statusCode, {}, body.message, inner.headers);
+      }
     },
 
     onSuccess: () => {
