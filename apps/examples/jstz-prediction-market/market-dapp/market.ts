@@ -335,22 +335,18 @@ async function getAsyncKV<T = unknown>(
 ): Promise<T> {
   const { rpcUrl = RPC_URL, kvKey = KV_ROOT } = options;
   const resp = await fetch(new Request(`${rpcUrl}/accounts/${address}/kv?key=${kvKey}`));
-  if (resp.status >= 200 && resp.status < 300) {
     const json = await resp
       .json()
       .then((data) => {
         console.log(data);
         return data;
       })
-      .catch((e) => {
+      .catch(async (e) => {
         console.log(e);
-        return "{}";
+        const message = await resp.text()
+        throw new Error(message)
       });
     return JSON.parse(json);
-  } else {
-    const message = await resp.text()
-    throw new Error(message)
-  }
 }
 
 async function getIsResolutionDatePassed() {
