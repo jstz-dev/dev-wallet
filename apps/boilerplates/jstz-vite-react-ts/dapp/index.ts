@@ -1,9 +1,7 @@
 import { AutoRouter, json } from "itty-router";
 import { z } from "zod";
 
-const ONE_TEZ = 1_000_000;
 const KV_ROOT = "root";
-const REFERER_HEADER = "Referer";
 const RPC_URL = "https://privatenet.jstz.info";
 
 // Schemas
