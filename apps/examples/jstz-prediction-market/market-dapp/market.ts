@@ -284,7 +284,7 @@ function reducer(state: KvState, action: KvAction): KvState {
       const balance = Ledger.balance(Ledger.selfAddress);
 
       const realTokensAmount = newState.bets.reduce((acc, token) => {
-        if (!token.isSynthetic) {
+        if (!token.isSynthetic && token.token === action.token) {
           return acc + token.amount;
         }
         return acc;
