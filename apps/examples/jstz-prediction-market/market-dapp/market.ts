@@ -238,6 +238,7 @@ function reducer(state: KvState, action: KvAction): KvState {
       newState.resolutionDate = action.resolutionDate;
       newState.resolutionUrl = action.resolutionUrl;
       newState.tokens = action.tokens;
+      newState.master = action.master;
       newState.bets = [];
       action.tokens.forEach((token) =>
         newState.bets!.push({
