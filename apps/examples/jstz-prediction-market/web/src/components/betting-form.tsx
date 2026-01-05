@@ -14,7 +14,7 @@ import { Separator } from "jstz-ui/ui/separator";
 import { Slider } from "jstz-ui/ui/slider";
 import { Spinner } from "jstz-ui/ui/spinner";
 import { cn } from "jstz-ui/utils";
-import { CheckCircle, Clock, DollarSign, ServerCrash } from "lucide-react";
+import { CheckCircle, Clock, ServerCrash } from "lucide-react";
 import assert from "node:assert";
 import { type FormEvent, useState } from "react";
 import { ZodError } from "zod";
@@ -24,6 +24,7 @@ import { HTTPCode } from "~/lib/HTTPCode";
 import { Market } from "~/lib/validators/market";
 import { Token, tokenSchema } from "~/lib/validators/token";
 import { accounts } from "~/queries/account.queries";
+import { TezSign } from "./TezSign";
 import { useAppForm } from "./ui/form";
 
 const betFormSchema = z.pick(tokenSchema, { token: true, amount: true });
@@ -289,7 +290,7 @@ export function BettingForm({ onSubmit, tokens, bets, address, resolutionDate }:
         {/* Footer Info */}
         <CardFooter className="justify-between w-full">
           <div className="flex items-center gap-1">
-            <DollarSign className="size-3" />
+            <TezSign className="text-base" />
             <span>{CurrencyConverter.toTez(balance)} XTZ</span>
           </div>
 
