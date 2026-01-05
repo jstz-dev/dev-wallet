@@ -16,6 +16,7 @@ import { useJstzClient } from "~/providers/jstz-client.context";
 import { accounts } from "~/queries/account.queries";
 import { smartFunctions } from "~/queries/smartFunctions.queries";
 import { StateBadge } from "./market-state-badge";
+import { TezSign } from "./TezSign";
 
 interface MarketCardProps {
   address: string;
@@ -160,7 +161,7 @@ export function MarketCard({ address }: MarketCardProps) {
       {/* Footer */}
       <CardFooter className="flex justify-between">
         <div className="flex items-center gap-1">
-          <DollarSign className="h-3 w-3" />
+          <TezSign className="text-base" />
           <span>{CurrencyConverter.toTez(balance)}</span>
         </div>
 
@@ -178,23 +179,5 @@ export function MarketCard({ address }: MarketCardProps) {
         {/* )} */}
       </CardFooter>
     </Card>
-  );
-}
-
-function DollarSign({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <line x1="12" y1="1" x2="12" y2="23" />
-      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-    </svg>
   );
 }
