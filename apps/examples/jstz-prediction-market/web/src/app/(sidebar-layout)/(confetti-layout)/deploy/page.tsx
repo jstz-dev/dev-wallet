@@ -390,7 +390,7 @@ function DatePicker({ date, onChange }: DatePickerProps) {
           selected={date}
           startMonth={new Date()}
           endMonth={new Date(2030, 11)}
-          disabled={{ before: addDays(new Date(), 1) }}
+          disabled={{ before: new Date() }}
           weekStartsOn={1}
           onSelect={(newDate) => {
             if (!newDate) return;
