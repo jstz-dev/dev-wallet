@@ -291,7 +291,7 @@ export function BettingForm({ onSubmit, tokens, bets, address, resolutionDate }:
         <CardFooter className="justify-between w-full">
           <div className="flex items-center gap-1">
             <TezSign className="text-base" />
-            <span>{CurrencyConverter.toTez(balance)} XTZ</span>
+            <span>{CurrencyConverter.toTez(balance)}</span>
           </div>
 
           <div className="flex items-center gap-1">
