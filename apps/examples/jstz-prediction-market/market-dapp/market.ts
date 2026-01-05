@@ -390,6 +390,8 @@ async function getIsMaster(address: string) {
     console.log("KV", kv);
     if ("master" in kv) {
       console.log("Master function:", kv.master);
+      console.log("Requester address:", address);
+      console.log("is Master:", kv.master === address);
       return kv.master === address;
     }
   } catch (e) {
