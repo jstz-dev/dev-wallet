@@ -8,44 +8,40 @@ import { Progress } from "jstz-ui/ui/progress";
 import { Separator } from "jstz-ui/ui/separator";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { notFound, useParams } from "next/navigation";
+import { notFound } from "next/navigation";
+import assert from "node:assert";
 import { BettingPanel } from "~/components/betting-panel";
 import * as CurrencyConverter from "~/lib/currencyConverter";
-import { createJstzClient } from "~/lib/jstz-signer.service";
 import { marketSchema } from "~/lib/validators/market";
+import { useJstzClient } from "~/providers/jstz-client.context";
 import { accounts } from "~/queries/account.queries";
 import { smartFunctions } from "~/queries/smartFunctions.queries";
 
-type Params = Awaited<PageProps<"/markets/[address]">["params"]>;
+export function MarketDetails({ address }: { address: string }) {
+  const { getJstzClient } = useJstzClient();
+  const jstzClient = getJstzClient();
 
-export default function MarketPage() {
-  const { address } = useParams<Params>();
+  const { data: kv } = useSuspenseQuery(smartFunctions.getKv(address, "root", jstzClient));
 
-  const jstzClient = createJstzClient();
+  const market = (() => {
+    assert(typeof kv === "string", "kv at this point should be defined and a string.");
 
-  const { data: market } = useSuspenseQuery({
-    ...smartFunctions.getKv(address, "root", jstzClient),
-    select: (kv) => {
-      // FIXME: get rid of type assertion
-      const { data: market, error } = marketSchema.safeParse(JSON.parse(kv as string));
+    const { data: market, error } = marketSchema.safeParse(JSON.parse(kv));
 
-      if (error) {
-        console.error(error);
-        return notFound();
-      }
+    if (error) {
+      console.error(error);
+      return notFound();
+    }
 
-      const isWaitingForResolution =
-        market.state !== "resolved" && market.state !== "closed" && isPast(market.resolutionDate);
+    const isWaitingForResolution =
+      market.state !== "resolved" && market.state !== "closed" && isPast(market.resolutionDate);
 
-      if (isWaitingForResolution) {
-        market.state = "waiting-for-resolution";
-      }
+    if (isWaitingForResolution) {
+      market.state = "waiting-for-resolution";
+    }
 
-      return market;
-    },
-  });
-
-  const { data: balance } = useSuspenseQuery(accounts.balance(address));
+    return market;
+  })();
 
   const [yesCount, noCount] = market.bets.reduce(
     (acc, bet) => {
@@ -62,6 +58,8 @@ export default function MarketPage() {
     },
     [0, 0],
   );
+
+  const { data: balance } = useSuspenseQuery(accounts.balance(address, jstzClient));
 
   const numberOfTokens = market.tokens.reduce((acc, token) => acc + token.amount, 0);
 

@@ -78,8 +78,9 @@ marketRouter.post(
   "/bet",
   withParseBody(async (request, body) => {
     // check resolution date
-    const isResolutionDatePassed = await getIsResolutionDatePassed()
-    if (isResolutionDatePassed) return errorResponse("Market is not accepting bets anymore")
+    // FIXME: temporary disabled
+    // const isResolutionDatePassed = await getIsResolutionDatePassed()
+    // if (isResolutionDatePassed) return errorResponse("Market is not accepting bets anymore")
 
     const { state } = getState();
     if (!state || state === "created") return errorResponse("Market is not initialized yet");
@@ -98,7 +99,7 @@ marketRouter.post(
     const mutez = Number(receivedMutez);
 
     if (!receivedMutez || isNaN(mutez) || mutez < tokenState.price)
-      return errorResponse("Not enough tez for to make a bet");
+      return errorResponse("Not enough tez to make a bet");
 
     const amount = Math.floor(mutez / tokenState.price);
 
@@ -237,6 +238,7 @@ function reducer(state: KvState, action: KvAction): KvState {
       newState.resolutionDate = action.resolutionDate;
       newState.resolutionUrl = action.resolutionUrl;
       newState.tokens = action.tokens;
+      newState.master = action.master;
       newState.bets = [];
       action.tokens.forEach((token) =>
         newState.bets!.push({
@@ -281,18 +283,18 @@ function reducer(state: KvState, action: KvAction): KvState {
 
       const balance = Ledger.balance(Ledger.selfAddress);
 
-      const syntheticTokensAmount = newState.bets.reduce((acc, token) => {
-        if (token.isSynthetic) {
+      const realTokensAmount = newState.bets.reduce((acc, token) => {
+        if (!token.isSynthetic && token.token === action.token) {
           return acc + token.amount;
         }
         return acc;
       }, 0);
 
-      const resolvedTokenPrice = Math.floor(balance / (token.amount - syntheticTokensAmount));
+      const resolvedTokenPrice = Math.floor(balance / realTokensAmount);
 
       newState.resolvedToken = {
         token: action.token,
-        amount: token.amount - syntheticTokensAmount,
+        amount: realTokensAmount,
         price: resolvedTokenPrice,
       };
 
@@ -333,18 +335,18 @@ async function getAsyncKV<T = unknown>(
 ): Promise<T> {
   const { rpcUrl = RPC_URL, kvKey = KV_ROOT } = options;
   const resp = await fetch(new Request(`${rpcUrl}/accounts/${address}/kv?key=${kvKey}`));
-  console.log(resp);
-  const json = await resp
-    .json()
-    .then((data) => {
-      console.log(data);
-      return data;
-    })
-    .catch((e) => {
-      console.log(e);
-      return "{}";
-    });
-  return JSON.parse(json);
+    const json = await resp
+      .json()
+      .then((data) => {
+        console.log(data);
+        return data;
+      })
+      .catch(async (e) => {
+        console.log(e);
+        const message = await resp.text()
+        throw new Error(message)
+      });
+    return JSON.parse(json);
 }
 
 async function getIsResolutionDatePassed() {
@@ -388,6 +390,8 @@ async function getIsMaster(address: string) {
     console.log("KV", kv);
     if ("master" in kv) {
       console.log("Master function:", kv.master);
+      console.log("Requester address:", address);
+      console.log("is Master:", kv.master === address);
       return kv.master === address;
     }
   } catch (e) {
@@ -398,12 +402,12 @@ async function getIsMaster(address: string) {
 
 async function withMaster(handler: (request: IRequest) => Promise<Response>) {
   return async (request: IRequest) => {
-    const requester = request.headers.get("Referer") as Address;
-
-    const isMaster = await getIsMaster(requester);
-    if (!isMaster) {
-      return errorResponse("You don't have authoritah");
-    }
+    // const requester = request.headers.get("Referer") as Address;
+    //
+    // const isMaster = await getIsMaster(requester);
+    // if (!isMaster) {
+    //   return errorResponse("You don't have authoritah");
+    // }
     return handler(request);
   };
 }

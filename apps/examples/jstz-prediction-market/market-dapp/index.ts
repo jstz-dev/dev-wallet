@@ -5,8 +5,8 @@ const ONE_TEZ = 1_000_000;
 const SUPER_ADMIN = "tz1ZXxxkNYSUutm5VZvfudakRxx2mjpWko4J";
 const KV_ROOT = "root";
 const REFERER_HEADER = "Referer";
-// const RPC_URL = "http://localhost:8933";
-const RPC_URL = "https://privatenet.jstz.info";
+const RPC_URL = "http://localhost:8933";
+// const RPC_URL = "https://privatenet.jstz.info";
 
 // Schemas
 const addressSchema = z.string().length(36);
@@ -228,14 +228,17 @@ async function getAsyncKV<T = unknown>(
 ): Promise<T> {
   const { rpcUrl = RPC_URL, kvKey = KV_ROOT } = options;
   const resp = await fetch(new Request(`${rpcUrl}/accounts/${address}/kv?key=${kvKey}`));
-  console.log(resp)
-  const json = await resp.json().then((data) => {
-    console.log(data)
-    return data
-  }).catch((e) => {
-    console.log(e)
-    return "{}"
-  });
+  const json = await resp
+    .json()
+    .then((data) => {
+      console.log(data);
+      return data;
+    })
+    .catch(async (e) => {
+      console.log(e);
+      const message = await resp.text()
+      throw new Error(message)
+    });
   return JSON.parse(json);
 }
 
