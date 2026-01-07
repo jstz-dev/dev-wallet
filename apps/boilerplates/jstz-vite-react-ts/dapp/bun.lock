@@ -1,0 +1,35 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "market-dapp",
+      "dependencies": {
+        "@jstz-dev/jstz": "^0.0.0",
+        "itty-router": "^5.0.18",
+        "zod": "^4",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.3.4",
+        "@types/node": "^24.10.1",
+      },
+    },
+  },
+  "packages": {
+    "@jstz-dev/jstz": ["@jstz-dev/jstz@0.0.0", "", { "dependencies": { "@jstz-dev/types": "^0.0.0" } }, "sha512-/6TnpZ/4zmGi2sOBchZ4+l56xRJGC6azbeOlHCoXQ6ZGWaExyp6FXR1XApU2ZhMV0ZDv1gvhpThNn76qsNfhBA=="],
+
+    "@jstz-dev/types": ["@jstz-dev/types@0.0.0", "", {}, "sha512-RsuX2suEOmvCsdCv5gHtUtk9OpiE/TRImDvO/w7OOd/nQtySgBh6+BhCjbQ5pznuZUsKeVLguQHkcAO9JZkHxA=="],
+
+    "@types/bun": ["@types/bun@1.3.5", "", { "dependencies": { "bun-types": "1.3.5" } }, "sha512-RnygCqNrd3srIPEWBd5LFeUYG7plCoH2Yw9WaZGyNmdTEei+gWaHqydbaIRkIkcbXwhBT94q78QljxN0Sk838w=="],
+
+    "@types/node": ["@types/node@24.10.4", "", { "dependencies": { "undici-types": "~7.16.0" } }, "sha512-vnDVpYPMzs4wunl27jHrfmwojOGKya0xyM3sH+UE5iv5uPS6vX7UIoh6m+vQc5LGBq52HBKPIn/zcSZVzeDEZg=="],
+
+    "bun-types": ["bun-types@1.3.5", "", { "dependencies": { "@types/node": "*" } }, "sha512-inmAYe2PFLs0SUbFOWSVD24sg1jFlMPxOjOSSCYqUgn4Hsc3rDc7dFvfVYjFPNHtov6kgUeulV4SxbuIV/stPw=="],
+
+    "itty-router": ["itty-router@5.0.22", "", {}, "sha512-9hmdGErWdYDOurGYxSbqLhy4EFReIwk71hMZTJ5b+zfa2zjMNV1ftFno2b8VjAQvX615gNB8Qxbl9JMRqHnIVA=="],
+
+    "undici-types": ["undici-types@7.16.0", "", {}, "sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw=="],
+
+    "zod": ["zod@4.3.4", "", {}, "sha512-Zw/uYiiyF6pUT1qmKbZziChgNPRu+ZRneAsMUDU6IwmXdWt5JwcUfy2bvLOCUtz5UniaN/Zx5aFttZYbYc7O/A=="],
+  }
+}
